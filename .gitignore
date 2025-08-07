@@ -1,7 +1,6 @@
 # Cloned repositories (managed separately)
 app-portal/
 template-*/
-docs/
 
 # OS
 .DS_Store
