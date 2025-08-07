@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+.yarn/cache
+.yarn/install-state.gz
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.local
+.env.*.local
+*.secret
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage/
+.nyc_output/
+
+# Temporary files
+tmp/
+temp/
+
+# Cloned repositories (managed separately)
+app-portal/
+template-*/
+docs/
+
+# Backstage specific
+*.tar.gz
+
+# Local configuration
+app-config.local.yaml
+app-config.local.*.yaml
