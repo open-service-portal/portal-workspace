@@ -6,6 +6,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This workspace contains all Open Service Portal repositories for unified Backstage development.
 
+```
+portal-workspace/            # Workspace root and shared context
+├── CLAUDE.md               # Project context (this file)
+├── README.md               # Project overview
+├── docs/                   # Documentation
+├── concepts/               # Concepts documentation
+└── app-portal/             # Code repository
+```
+
+## Setup
+
+To set up the complete workspace, clone all repositories:
+
+```bash
+# Clone the workspace
+git clone https://github.com/open-service-portal/portal-workspace.git
+
+# Navigate to the workspace
+cd portal-workspace
+
+# Clone the app-portal code repository inside the workspace
+git clone https://github.com/open-service-portal/app-portal.git
+```
+
 ### GitHub Organization
 
 - **open-service-portal** - Organization for the Open Service Portal project
