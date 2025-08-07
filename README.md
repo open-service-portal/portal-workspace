@@ -7,9 +7,9 @@ This is a workspace directory containing multiple Open Service Portal repositori
 This workspace contains the following repositories:
 
 - **[app-portal/](https://github.com/open-service-portal/app-portal)** - Main Backstage application
-- **[template-golang-service/](https://github.com/open-service-portal/template-golang-service)** - Go service template
-- **[template-nodejs-service/](https://github.com/open-service-portal/template-nodejs-service)** - Node.js service template
-- **[docs/](https://github.com/open-service-portal/docs)** - Documentation site (future)
+- **template-golang-service/** - Go service template (planned)
+- **template-nodejs-service/** - Node.js service template (planned)
+- **docs/** - Documentation site (planned)
 
 ## Setup
 
@@ -17,12 +17,15 @@ To set up this workspace, clone each repository:
 
 ```bash
 # Clone the workspace (this repository)
-git clone git@github.com-michaelstingl:open-service-portal/portal-workspace.git open-service-portal
+git clone git@github.com:open-service-portal/portal-workspace.git open-service-portal
 cd open-service-portal
 
 # Clone individual repositories
-git clone git@github.com-michaelstingl:open-service-portal/app-portal.git
-# Clone additional repositories as needed
+git clone git@github.com:open-service-portal/app-portal.git
+
+# Future: Clone templates when created
+# git clone git@github.com:open-service-portal/template-golang-service.git
+# git clone git@github.com:open-service-portal/template-nodejs-service.git
 ```
 
 ## Development

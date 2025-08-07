@@ -15,79 +15,29 @@ This workspace contains all Open Service Portal repositories for unified Backsta
 ### Repository Overview
 
 #### Core Application
-- **app-portal/** - Main Backstage application (git@github.com-michaelstingl:open-service-portal/app-portal.git)
+- **app-portal/** - Main Backstage application (git@github.com:open-service-portal/app-portal.git)
   - Scaffolded with `@backstage/create-app`
   - Contains frontend and backend packages
   - Configured for GitHub/GitLab integration
 
-#### Service Templates
-- **template-golang-service/** - Template for Go microservices
-- **template-nodejs-service/** - Template for Node.js services
+#### Service Templates (Planned)
+- **template-golang-service/** - Template for Go microservices (planned)
+- **template-nodejs-service/** - Template for Node.js services (planned)
 - **template-python-service/** - Template for Python services (planned)
 
 #### Documentation
 - **docs/** - Documentation website (planned)
 - **portal-workspace/** - This workspace repository with meta-documentation
 
-## Common Development Commands
+## Development
 
-### Backstage Application (app-portal/)
+Each repository has its own `CLAUDE.md` file with specific development commands:
 
-Start development server:
-```bash
-cd app-portal
-yarn install
-yarn dev
-# Frontend: http://localhost:3000
-# Backend API: http://localhost:7007
-```
+- **app-portal/CLAUDE.md** - Backstage development commands, build instructions, plugin creation
+- **template-*/CLAUDE.md** - Template testing, scaffolding, and validation commands
+- **docs/CLAUDE.md** - Documentation build and preview commands
 
-Build for production:
-```bash
-cd app-portal
-yarn build:all
-yarn build:backend
-```
-
-Run tests:
-```bash
-cd app-portal
-yarn test
-yarn test:all
-```
-
-Lint code:
-```bash
-cd app-portal
-yarn lint
-yarn lint:all
-```
-
-Create new plugin:
-```bash
-cd app-portal
-yarn new
-```
-
-### Docker Operations
-
-```bash
-# Build Docker image
-cd app-portal
-yarn build-image
-
-# Run with Docker Compose
-docker-compose up -d
-```
-
-### Template Development
-
-```bash
-# Test template locally
-cd template-golang-service
-npx @backstage/cli template:install
-npx @backstage/cli template:dry-run
-```
+See the respective repository's CLAUDE.md for detailed instructions.
 
 ## High-Level Architecture
 
@@ -174,24 +124,20 @@ app-portal/
    - Maintain up-to-date README files
    - Document architectural decisions
 
-## Troubleshooting
+## Local Development Setup
 
-### Common Issues
+### Default Port Allocation
 
-1. **Port conflicts**
-   - Frontend defaults to port 3000
-   - Backend defaults to port 7007
-   - Check for running processes: `lsof -i :3000`
+To avoid conflicts when running multiple services locally:
 
-2. **Node version mismatch**
-   - Ensure Node.js 20 LTS is used
-   - Use nvm to manage versions
-   - Check `.nvmrc` file in repositories
+| Service | Default Port | Purpose |
+|---------|-------------|---------|
+| Backstage Frontend | 3000 | Web UI |
+| Backstage Backend | 7007 | API |
+| Documentation (Docusaurus) | 3001 | Docs site (planned) |
+| Template Preview | 3002 | Template testing (planned) |
 
-3. **Authentication issues**
-   - Verify GitHub/GitLab tokens are valid
-   - Check token scopes (repo, read:org required)
-   - Ensure tokens are properly exported
+Check for port conflicts: `lsof -i :PORT`
 
 ## Development Workflow
 
@@ -231,44 +177,20 @@ gh pr create --repo open-service-portal/app-portal \
 gh pr status --repo open-service-portal/app-portal
 ```
 
-## SSH Configuration
 
-For GitHub access with custom SSH config:
-```
-Host github.com-michaelstingl
-  HostName github.com
-  AddKeysToAgent yes
-  UseKeychain yes
-  IdentityFile ~/.ssh/id_ed25519
-```
+## Workspace Conventions
 
-Use `git@github.com-michaelstingl:open-service-portal/repo.git` for cloning.
+### Repository Naming
+- `app-*` - Applications (e.g., app-portal)
+- `template-*` - Service templates
+- `plugin-*` - Shared Backstage plugins (future)
+- `docs` - Documentation site
 
-## Important Files
-
-### Backstage Configuration
-- `app-portal/app-config.yaml` - Base configuration
-- `app-portal/app-config.production.yaml` - Production overrides
-- `app-portal/app-config.local.yaml` - Local development (gitignored)
-
-### Package Structure
-```
-app-portal/
-├── packages/
-│   ├── app/          # Frontend application
-│   └── backend/      # Backend services
-├── plugins/          # Custom plugins
-└── app-config.yaml   # Configuration
-```
-
-### Template Structure
-```
-template-*/
-├── template.yaml     # Template definition
-├── skeleton/         # Template content
-├── catalog-info.yaml # Component metadata
-└── docs/            # Template documentation
-```
+### Documentation Structure
+Each repository should contain:
+- `README.md` - Quick start and overview
+- `CLAUDE.md` - Detailed development instructions for Claude Code
+- `docs/` - Extended documentation (if needed)
 
 ## Key Patterns
 
