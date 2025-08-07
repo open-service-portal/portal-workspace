@@ -38,7 +38,7 @@ Each repository has its own development workflow. See [CLAUDE.md](./CLAUDE.md) f
 # Start Backstage
 cd app-portal
 yarn install
-yarn dev
+yarn start
 ```
 
 - Frontend: http://localhost:3000

@@ -51,7 +51,7 @@ yarn start-backend
 ```bash
 # Backstage on default ports
 cd app-portal
-yarn dev
+yarn start
 
 # Documentation on custom port
 cd docs
