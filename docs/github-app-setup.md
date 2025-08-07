@@ -92,8 +92,8 @@ After creation, you'll be redirected to the app settings page.
 ### Note Important Values
 
 From the app settings page, note:
-- **App ID:** (e.g., `1743793`)
-- **Client ID:** (e.g., `Iv23liSg43IqiG8dZQxO`)
+- **App ID:** (e.g., `123456`)
+- **Client ID:** (e.g., `Iv1234567890abcdef`)
 - **Client Secret:** (from step above)
 
 ### Install the App
@@ -102,7 +102,7 @@ From the app settings page, note:
 2. Select your organization
 3. Choose **"All repositories"** or select specific repositories
 4. Click **"Install"**
-5. Note the **Installation ID** from the URL: `.../installations/79711885`
+5. Note the **Installation ID** from the URL: `.../installations/YOUR_INSTALLATION_ID`
 
 ## Step 3: Configure Backstage
 
