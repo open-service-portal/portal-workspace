@@ -39,6 +39,12 @@ Each repository has its own `CLAUDE.md` file with specific development commands:
 
 See the respective repository's CLAUDE.md for detailed instructions.
 
+## Troubleshooting
+
+Common issues and solutions are documented in [docs/troubleshooting/](./docs/troubleshooting/).
+
+When encountering errors, check the troubleshooting guides first.
+
 ## High-Level Architecture
 
 ### Technology Stack
@@ -124,20 +130,6 @@ app-portal/
    - Maintain up-to-date README files
    - Document architectural decisions
 
-## Local Development Setup
-
-### Default Port Allocation
-
-To avoid conflicts when running multiple services locally:
-
-| Service | Default Port | Purpose |
-|---------|-------------|---------|
-| Backstage Frontend | 3000 | Web UI |
-| Backstage Backend | 7007 | API |
-| Documentation (Docusaurus) | 3001 | Docs site (planned) |
-| Template Preview | 3002 | Template testing (planned) |
-
-Check for port conflicts: `lsof -i :PORT`
 
 ## Development Workflow
 

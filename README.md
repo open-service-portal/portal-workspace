@@ -44,11 +44,17 @@ yarn dev
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:7007
 
+## Documentation
+
+- [CLAUDE.md](./CLAUDE.md) - Development instructions for Claude Code
+- [Troubleshooting Guide](./docs/troubleshooting/) - Common issues and solutions
+
 ## Note
 
 This workspace parent directory is version controlled separately to maintain:
 - Workspace-level documentation (this README, CLAUDE.md)
 - Shared configurations
 - Cross-repository scripts or tools
+- Troubleshooting guides
 
 The actual repository directories are excluded via `.gitignore`.
