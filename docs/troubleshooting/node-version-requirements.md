@@ -49,19 +49,13 @@ export NODE_OPTIONS="--no-node-snapshot"
 ```
 
 
-## Auto-Switch Node Version with direnv
+## Auto-Switch Node Version with direnv (Recommended)
 
-### Quick Setup
+### macOS with Homebrew Example
 
 1. Install direnv:
 ```bash
-# macOS with Homebrew
 brew install direnv
-
-# Ubuntu/Debian
-sudo apt install direnv
-
-# Or download binary from https://direnv.net
 ```
 
 2. Add to `~/.zshrc`:
@@ -69,14 +63,32 @@ sudo apt install direnv
 eval "$(direnv hook zsh)"
 ```
 
-3. Copy `.envrc.example` to `.envrc`:
+3. Reload shell:
+```bash
+source ~/.zshrc
+```
+
+### Other Platforms
+
+```bash
+# Ubuntu/Debian
+sudo apt install direnv
+# Add to ~/.bashrc: eval "$(direnv hook bash)"
+
+# Manual installation
+# Download from https://direnv.net
+```
+
+### Setup in Project
+
+1. Copy `.envrc.example` to `.envrc`:
 ```bash
 cp .envrc.example .envrc
 # Edit .envrc with your credentials
 # Note: .nvmrc is already in the repository with Node.js 20
 ```
 
-4. Allow direnv:
+2. Allow direnv:
 ```bash
 direnv allow
 ```
