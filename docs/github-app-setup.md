@@ -51,6 +51,8 @@ For production with a public URL:
 ### Configure Permissions
 
 #### Repository permissions:
+- **Administration:**: Read and Write
+- **Workflow:** Read and Write
 - **Actions:** Read and write
 - **Contents:** Read and write
 - **Issues:** Read and write
@@ -58,7 +60,6 @@ For production with a public URL:
 - **Pull requests:** Read and write
 
 #### Organization permissions:
-- **Administration:** Read
 - **Members:** Read
 
 #### Account permissions:
@@ -226,6 +227,12 @@ rm -rf node_modules .yarn/unplugged .yarn/install-state.gz
 nvm use
 yarn install
 ```
+
+### Permission Errors
+
+1. Edit the App, add required permissions. 
+2. Install App --> Approve new Permissions in Review Request
+
 
 ## Security Notes
 
