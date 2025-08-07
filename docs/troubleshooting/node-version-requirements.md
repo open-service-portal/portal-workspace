@@ -73,6 +73,7 @@ eval "$(direnv hook zsh)"
 ```bash
 cp .envrc.example .envrc
 # Edit .envrc with your credentials
+# Note: .nvmrc is already in the repository with Node.js 20
 ```
 
 4. Allow direnv:
@@ -87,11 +88,11 @@ direnv allow
 - Loads all environment variables
 - Unloads everything when leaving directory
 
-### Alternative: .nvmrc
+### Alternative: .nvmrc only
 
-If you prefer using only `.nvmrc` without direnv, create:
+If you prefer using only `.nvmrc` without direnv:
 ```bash
-echo "20" > .nvmrc
+# .nvmrc is already in the repository
 nvm use  # Manual activation
 ```
 
