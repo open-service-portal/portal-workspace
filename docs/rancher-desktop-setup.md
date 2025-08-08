@@ -81,9 +81,10 @@ This script will:
 4. Install provider-kubernetes
 5. Install NGINX Ingress Controller automatically
 6. Create a service account for Backstage
-7. Run a smoke test to verify everything works
 
 **Note:** The script disables Traefik by default to avoid conflicts and automatically installs NGINX Ingress Controller for a consistent development experience.
+
+After setup completes, you can run smoke tests using the examples in `examples/crossplane-rancher-examples/`
 
 ## Manual Setup Steps
 

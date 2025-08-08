@@ -195,40 +195,6 @@ create_backstage_service_account() {
     echo -e "${GREEN}Service account created.${NC}"
 }
 
-# Run smoke test
-run_smoke_test() {
-    echo ""
-    echo "Running smoke test..."
-    
-    # Get the directory where the script is located
-    SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-    MANIFESTS_DIR="${SCRIPT_DIR}/rancher-k8s-manifests"
-    
-    # Create a test namespace
-    kubectl create namespace crossplane-test --dry-run=client -o yaml | kubectl apply -f -
-    
-    # Create a temporary file with the timestamp replaced
-    TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-    sed "s/TIMESTAMP_PLACEHOLDER/${TIMESTAMP}/g" "${MANIFESTS_DIR}/smoke-test-configmap.yaml" | kubectl apply -f -
-    
-    # Wait for the Object to be ready
-    echo "Waiting for smoke test ConfigMap to be created..."
-    sleep 5
-    
-    # Verify the ConfigMap was created
-    if kubectl get configmap crossplane-smoke-test -n crossplane-test &> /dev/null; then
-        echo -e "${GREEN}✅ Smoke test passed! ConfigMap created successfully via Crossplane.${NC}"
-        
-        # Show the ConfigMap content
-        echo ""
-        echo "ConfigMap content:"
-        kubectl get configmap crossplane-smoke-test -n crossplane-test -o yaml | grep -A 2 "data:"
-    else
-        echo -e "${RED}❌ Smoke test failed. ConfigMap was not created.${NC}"
-        echo "Check Crossplane logs:"
-        echo "  kubectl logs -n crossplane-system -l app=crossplane"
-    fi
-}
 
 # Print summary
 print_summary() {
@@ -248,6 +214,9 @@ print_summary() {
     echo "  kubectl get pods -n crossplane-system"
     echo "  kubectl get providers"
     echo "  kubectl get crds | grep crossplane"
+    echo ""
+    echo "To run smoke tests:"
+    echo "  See examples/crossplane-rancher-examples/README.md"
     echo ""
     echo "Backstage Configuration:"
     echo "  Service Account Token has been created."
@@ -294,9 +263,6 @@ main() {
     
     # Create Backstage service account
     create_backstage_service_account
-    
-    # Run smoke test
-    run_smoke_test
     
     # Print summary
     print_summary
