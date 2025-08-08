@@ -1,3 +1,6 @@
+# Claude settings
+.claude/settings.local.json
+
 # Cloned repositories (managed separately)
 .github/
 app-portal/

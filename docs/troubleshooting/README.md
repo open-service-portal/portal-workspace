@@ -6,6 +6,7 @@ Common issues and solutions for Open Service Portal development.
 
 - [Node.js Version Requirements](./node-version-requirements.md) - Wrong Node version errors and how to fix them
 - [Port Conflicts](./port-conflicts.md) - Port already in use errors and solutions
+- [Rancher Desktop Issues](./rancher-desktop-issues.md) - Troubleshooting Rancher Desktop setup and common problems
 
 ## Quick Checks
 

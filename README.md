@@ -48,7 +48,17 @@ yarn start
 
 - [CLAUDE.md](./CLAUDE.md) - Development instructions for Claude Code
 - [GitHub App Setup](./docs/github-app-setup.md) - Configure GitHub authentication
+- [Rancher Desktop Setup](./docs/rancher-desktop-setup.md) - Local Kubernetes with Rancher Desktop
 - [Troubleshooting Guide](./docs/troubleshooting/) - Common issues and solutions
+
+## Local Development Environment
+
+**Rancher Desktop:**
+```bash
+# Run automated setup
+./scripts/setup-rancher-k8s.sh
+```
+See [Rancher Desktop Setup Guide](./docs/rancher-desktop-setup.md) for details.
 
 ## Note
 
