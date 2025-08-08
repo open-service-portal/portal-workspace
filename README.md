@@ -7,9 +7,9 @@ This is a workspace directory containing multiple Open Service Portal repositori
 This workspace contains the following repositories:
 
 - **[app-portal/](https://github.com/open-service-portal/app-portal)** - Main Backstage application
-- **template-golang-service/** - Go service template (planned)
-- **template-nodejs-service/** - Node.js service template (planned)
-- **docs/** - Documentation site (planned)
+- **[service-nodejs-template/](https://github.com/open-service-portal/service-nodejs-template)** - Node.js service template
+- **service-golang-template/** - Go service template (planned)
+- **service-python-template/** - Python service template (planned)
 
 ## Setup
 
@@ -47,6 +47,7 @@ yarn start
 ## Documentation
 
 - [CLAUDE.md](./CLAUDE.md) - Development instructions for Claude Code
+- [GitHub App Setup](./docs/github-app-setup.md) - Configure GitHub authentication
 - [Troubleshooting Guide](./docs/troubleshooting/) - Common issues and solutions
 
 ## Note

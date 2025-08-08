@@ -4,15 +4,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Workspace Structure
 
-This workspace contains all Open Service Portal repositories for unified Backstage development.
+**IMPORTANT**: This directory IS the portal-workspace repository itself!
+
+It serves as a parent/workspace repository that:
+- Contains shared documentation and configuration
+- Has other repositories cloned inside it (app-portal, templates, etc.)
+- These nested repositories are gitignored and managed independently
 
 ```
-portal-workspace/            # Workspace root and shared context
-├── CLAUDE.md               # Project context (this file)
-├── README.md               # Project overview
-├── docs/                   # Documentation
-├── concepts/               # Concepts documentation
-└── app-portal/             # Code repository
+open-service-portal/         # THIS directory = portal-workspace repo
+├── .git/                   # portal-workspace git (own repository)
+├── CLAUDE.md               # Workspace-level context (this file)
+├── README.md               # Workspace overview
+├── docs/                   # Shared documentation
+├── concepts/               # Architecture decisions
+├── .gitignore              # Ignores nested repos below
+│
+├── app-portal/             # NESTED repo (cloned separately)
+│   └── .git/               # app-portal's own git
+├── service-nodejs-template/ # NESTED repo (cloned separately)  
+│   └── .git/               # template's own git
+└── .github/                # NESTED repo for org profile
+    └── .git/               # .github's own git
 ```
 
 ## Setup
@@ -44,10 +57,10 @@ git clone https://github.com/open-service-portal/app-portal.git
   - Contains frontend and backend packages
   - Configured for GitHub/GitLab integration
 
-#### Service Templates (Planned)
-- **template-golang-service/** - Template for Go microservices (planned)
-- **template-nodejs-service/** - Template for Node.js services (planned)
-- **template-python-service/** - Template for Python services (planned)
+#### Service Templates
+- **service-nodejs-template/** - Template for Node.js services (git@github.com:open-service-portal/service-nodejs-template.git)
+- **service-golang-template/** - Template for Go microservices (planned)
+- **service-python-template/** - Template for Python services (planned)
 
 #### Documentation
 - **docs/** - Documentation website (planned)
@@ -98,9 +111,10 @@ When encountering errors, check the troubleshooting guides first.
 ### Template Development
 When creating service templates:
 1. Follow the naming convention: `service-{name}-template`
-2. Include comprehensive documentation
-3. Add TechDocs support
-4. Include catalog-info.yaml
+2. Add `template.yaml` in repository root
+3. Templates are auto-discovered via GitHub provider (pattern: `service-*-template`)
+4. Include comprehensive documentation
+5. Add example service scaffolding in `content/` directory
 
 ### Environment Variables
 Required environment variables should be documented and include:
@@ -174,24 +188,26 @@ app-portal/
    - Create PR with clear description
    - Link to related issues or concepts
 
-### GitHub CLI Workflow
+### GitHub CLI Usage
 
-Use GitHub CLI for efficient workflow:
+We use GitHub CLI (`gh`) for GitHub operations with file-based bodies:
 
 ```bash
-# Create issue
+# Creating issues
 gh issue create --repo open-service-portal/app-portal \
-  --title "Add new feature" \
-  --body "Description of the feature"
+  --title "Issue title here" \
+  --body-file issue-body.md
 
-# Create PR
+# Creating pull requests  
 gh pr create --repo open-service-portal/app-portal \
-  --title "feat: add new feature" \
-  --body "Implements #123"
-
-# Check PR status
-gh pr status --repo open-service-portal/app-portal
+  --title "feat: PR title here" \
+  --body-file pr-body.md
 ```
+
+**Conventions:**
+- Use `--body-file` for better markdown formatting
+- Don't include the title in the markdown file (use `--title` flag)
+- Body files can be deleted after use
 
 
 ## Workspace Conventions
