@@ -1,7 +1,9 @@
 # Cloned repositories (managed separately)
 .github/
 app-portal/
-*-template/
+
+# Service Template Repositories
+service-*-template/
 
 # OS
 .DS_Store
