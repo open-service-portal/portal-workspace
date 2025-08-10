@@ -10,6 +10,10 @@ on:
     paths:
       - '.github/workflows/sync-labels.yml'
 
+permissions:
+  issues: write
+  contents: read
+
 jobs:
   sync:
     runs-on: ubuntu-latest
