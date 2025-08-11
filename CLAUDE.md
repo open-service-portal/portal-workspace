@@ -236,6 +236,17 @@ Each repository should contain:
 - `CLAUDE.md` - Detailed development instructions for Claude Code
 - `docs/` - Extended documentation (if needed)
 
+### Communication & Analogies
+We use **restaurant industry analogies** to explain technical concepts, especially for Crossplane:
+- **Menu** = XRD (Composite Resource Definition) - what customers can order
+- **Kitchen** = Composition - how to prepare what was ordered
+- **Supplier** = Provider (e.g., provider-helm) - source of ingredients
+- **Customer** = Developer using the platform
+- **Order** = Claim - request for resources
+- **Soft Opening** = Testing phase before production
+
+This makes complex infrastructure concepts accessible to all stakeholders.
+
 ## Key Patterns
 
 1. **Service Discovery**: Use Backstage Software Catalog
