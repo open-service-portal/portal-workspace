@@ -18,6 +18,8 @@ open-service-portal/         # THIS directory = portal-workspace repo
 ├── README.md               # Workspace overview
 ├── docs/                   # Shared documentation
 ├── concepts/               # Architecture decisions
+├── .claude/                # Claude Code configuration
+│   └── agents/             # Custom agents for specialized tasks
 ├── .gitignore              # Ignores nested repos below
 │
 ├── app-portal/             # NESTED repo (cloned separately)
