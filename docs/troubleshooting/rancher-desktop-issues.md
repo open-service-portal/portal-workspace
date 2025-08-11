@@ -261,7 +261,7 @@ osascript -e 'quit app "Docker"'  # macOS
      --serviceaccount=default:backstage-k8s-sa
    
    # Generate new token
-   export K8S_SERVICE_ACCOUNT_TOKEN=$(kubectl create token backstage-k8s-sa -n default --duration=87600h)
+   export K8S_SERVICE_ACCOUNT_TOKEN=$(kubectl create token backstage-k8s-sa -n default --duration=8760h)
    ```
 
 2. **Verify Token**

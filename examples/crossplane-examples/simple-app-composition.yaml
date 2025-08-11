@@ -9,7 +9,7 @@ spec:
   resources:
     - name: namespace
       base:
-        apiVersion: kubernetes.crossplane.io/v1alpha1
+        apiVersion: kubernetes.crossplane.io/v1alpha2
         kind: Object
         spec:
           forProvider:
@@ -24,7 +24,7 @@ spec:
           
     - name: deployment
       base:
-        apiVersion: kubernetes.crossplane.io/v1alpha1
+        apiVersion: kubernetes.crossplane.io/v1alpha2
         kind: Object
         spec:
           forProvider:
@@ -66,7 +66,7 @@ spec:
           
     - name: service
       base:
-        apiVersion: kubernetes.crossplane.io/v1alpha1
+        apiVersion: kubernetes.crossplane.io/v1alpha2
         kind: Object
         spec:
           forProvider:

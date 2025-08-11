@@ -99,7 +99,7 @@ kubectl delete namespace crossplane-test
 ### Creating a Deployment via Crossplane
 
 ```yaml
-apiVersion: kubernetes.crossplane.io/v1alpha1
+apiVersion: kubernetes.crossplane.io/v1alpha2
 kind: Object
 metadata:
   name: nginx-deployment
@@ -133,7 +133,7 @@ spec:
 ### Creating a Service via Crossplane
 
 ```yaml
-apiVersion: kubernetes.crossplane.io/v1alpha1
+apiVersion: kubernetes.crossplane.io/v1alpha2
 kind: Object
 metadata:
   name: nginx-service
