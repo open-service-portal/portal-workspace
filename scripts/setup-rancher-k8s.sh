@@ -112,7 +112,7 @@ install_crossplane() {
         --namespace crossplane-system \
         --version 1.17.0 \
         crossplane-stable/crossplane \
-        --wait
+        --wait --timeout=5m
     
     echo -e "${GREEN}Crossplane installed successfully.${NC}"
 }
@@ -163,16 +163,19 @@ install_nginx_ingress() {
     helm repo update
     
     # Install NGINX Ingress
+    # Note: Using NodePort for local development as LoadBalancer doesn't work properly in Rancher Desktop
     helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
         --namespace ingress-nginx \
         --create-namespace \
-        --set controller.service.type=LoadBalancer \
+        --set controller.service.type=NodePort \
         --set controller.service.ports.http=80 \
         --set controller.service.ports.https=443 \
-        --wait
+        --set controller.service.nodePorts.http=30080 \
+        --set controller.service.nodePorts.https=30443 \
+        --wait --timeout=5m
     
     echo -e "${GREEN}NGINX Ingress Controller installed.${NC}"
-    echo "Ingress will be available at: http://localhost"
+    echo "Ingress will be available at: http://localhost:30080 (HTTP) and https://localhost:30443 (HTTPS)"
 }
 
 # Create service account for Backstage
