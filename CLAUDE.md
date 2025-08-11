@@ -153,6 +153,16 @@ app-portal/
 - GitOps workflow with ArgoCD/Flux
 - Kubernetes-native service definitions
 
+### Local Development Environment
+We use Rancher Desktop for local Kubernetes development:
+
+**Rancher Desktop**
+   - Open-source Docker Desktop alternative
+   - Built-in Kubernetes (K3s)
+   - No licensing restrictions
+   - Include Crossplane v1.17+ for infrastructure management.
+   - Setup: `./scripts/setup-rancher-k8s.sh`
+
 ## Best Practices
 
 1. **Version Control**

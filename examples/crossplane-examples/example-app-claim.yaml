@@ -1,0 +1,13 @@
+# Example claim to create an application using the composition
+apiVersion: example.io/v1alpha1
+kind: Application
+metadata:
+  name: my-nginx-app
+  namespace: default
+spec:
+  parameters:
+    namespace: my-app
+    image: nginx:1.25
+    replicas: 2
+    port: 80
+    serviceType: NodePort
