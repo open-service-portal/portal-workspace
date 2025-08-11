@@ -85,8 +85,8 @@ configure_rancher_desktop() {
     # Ensure Kubernetes is enabled
     rdctl set --kubernetes-enabled=true
     
-    # Keep current Kubernetes version (removing the set command that causes error)
-    # rdctl set --kubernetes-version is not needed as version is already set
+    # Use the currently configured Kubernetes version
+    # No need to override the version that Rancher Desktop already has configured
     
     # Disable Traefik to avoid conflicts with other ingress controllers
     echo "Disabling Traefik ingress controller..."
@@ -190,7 +190,7 @@ create_backstage_service_account() {
         --dry-run=client -o yaml | kubectl apply -f -
     
     # Get the token
-    export K8S_SERVICE_ACCOUNT_TOKEN=$(kubectl create token backstage-k8s-sa -n default --duration=87600h)
+    export K8S_SERVICE_ACCOUNT_TOKEN=$(kubectl create token backstage-k8s-sa -n default --duration=8760h)
     
     echo -e "${GREEN}Service account created.${NC}"
 }

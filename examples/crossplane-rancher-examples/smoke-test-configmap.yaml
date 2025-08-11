@@ -1,6 +1,6 @@
 # Smoke test ConfigMap to verify Crossplane is working correctly
 # This creates a ConfigMap in the crossplane-test namespace via Crossplane
-apiVersion: kubernetes.crossplane.io/v1alpha1
+apiVersion: kubernetes.crossplane.io/v1alpha2
 kind: Object
 metadata:
   name: smoke-test-configmap
