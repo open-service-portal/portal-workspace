@@ -18,6 +18,7 @@ graph TB
         Catalog["Software Catalog"]
         Scaffolder["Scaffolder Engine"]
         NodeTemplate["📦 Node Development<br/>Template"]
+        K8sPlugin["🔍 Kubernetes Plugin<br/>Resource Monitor"]
     end
     
     %% Simone's Templates
@@ -45,22 +46,56 @@ graph TB
         Note["⚡ PULL not PUSH<br/>Flux pulls from Git"]
     end
     
-    %% Crossplane
-    subgraph Crossplane["🎯 Crossplane"]
-        XRD["XNodeApp<br/>Custom Resource"]
-        CompDef["Composition Definition"]
-        Resources["Managed Resources"]
-    end
-    
-    %% Kubernetes
-    subgraph Kubernetes["☸️ Kubernetes Cluster"]
-        subgraph Namespace["dashboard namespace"]
-            Frontend["Frontend<br/>Deployment"]
-            Backend["Backend<br/>Deployment"]
-            Postgres["PostgreSQL<br/>StatefulSet"]
-            Service1["Frontend<br/>Service"]
-            Service2["Backend<br/>Service"]
-            Ingress["Ingress"]
+    %% Environments
+    subgraph Environments["🌍 Multi-Environment Infrastructure"]
+        subgraph DevEnv["Development Environment"]
+            subgraph CrossplaneDev["🎯 Crossplane Dev"]
+                XRDDev["XNodeApp<br/>Custom Resource"]
+                CompDefDev["Composition Definition"]
+                ResourcesDev["Managed Resources"]
+            end
+            
+            subgraph K8sDev["☸️ Kubernetes Dev Cluster"]
+                subgraph NamespaceDev["dashboard-dev namespace"]
+                    FrontendDev["Frontend<br/>Deployment"]
+                    BackendDev["Backend<br/>Deployment"]
+                    PostgresDev["PostgreSQL<br/>StatefulSet"]
+                end
+            end
+        end
+        
+        subgraph QAEnv["QA Environment"]
+            subgraph CrossplaneQA["🎯 Crossplane QA"]
+                XRDQA["XNodeApp<br/>Custom Resource"]
+                CompDefQA["Composition Definition"]
+                ResourcesQA["Managed Resources"]
+            end
+            
+            subgraph K8sQA["☸️ Kubernetes QA Cluster"]
+                subgraph NamespaceQA["dashboard-qa namespace"]
+                    FrontendQA["Frontend<br/>Deployment"]
+                    BackendQA["Backend<br/>Deployment"]
+                    PostgresQA["PostgreSQL<br/>StatefulSet"]
+                end
+            end
+        end
+        
+        subgraph ProdEnv["Production Environment"]
+            subgraph CrossplaneProd["🎯 Crossplane Prod"]
+                XRDProd["XNodeApp<br/>Custom Resource"]
+                CompDefProd["Composition Definition"]
+                ResourcesProd["Managed Resources"]
+            end
+            
+            subgraph K8sProd["☸️ Kubernetes Prod Cluster"]
+                subgraph NamespaceProd["dashboard namespace"]
+                    FrontendProd["Frontend<br/>Deployment"]
+                    BackendProd["Backend<br/>Deployment"]
+                    PostgresProd["PostgreSQL<br/>StatefulSet"]
+                    ServiceProd["Services"]
+                    IngressProd["Ingress"]
+                end
+            end
         end
     end
     
@@ -82,21 +117,39 @@ graph TB
     %% GitOps Pull Flow
     DeployRepo -.->|"Step 7: PULL Changes<br/>Not Push!"| GitController
     GitController -->|"Step 8: Fetch Manifests"| Kustomization
-    Kustomization -->|"Step 9: Apply XR"| XRD
+    Kustomization -->|"Step 9: Apply to Dev"| XRDDev
+    Kustomization -->|"Step 9: Apply to QA"| XRDQA
+    Kustomization -->|"Step 9: Apply to Prod"| XRDProd
     
-    %% Crossplane Provisioning
-    XRD -->|"Step 10: Use Composition"| CompDef
-    CompDef -->|"Step 11: Create Resources"| Resources
-    Resources -->|"Step 12: Deploy Frontend"| Frontend
-    Resources -->|"Step 13: Deploy Backend"| Backend
-    Resources -->|"Step 14: Deploy Database"| Postgres
-    Resources -->|"Step 15: Create Services"| Service1
-    Resources --> Service2
-    Resources -->|"Step 16: Configure Ingress"| Ingress
+    %% Crossplane Provisioning - Dev
+    XRDDev -->|"Step 10: Use Composition"| CompDefDev
+    CompDefDev -->|"Step 11: Create Resources"| ResourcesDev
+    ResourcesDev -->|"Step 12: Deploy Frontend"| FrontendDev
+    ResourcesDev -->|"Step 13: Deploy Backend"| BackendDev
+    ResourcesDev -->|"Step 14: Deploy Database"| PostgresDev
     
-    %% Feedback Loop
-    GitController -.->|"Status"| Note
-    Resources -.->|"Ready Status"| DeployRepo
+    %% Crossplane Provisioning - QA
+    XRDQA --> CompDefQA
+    CompDefQA --> ResourcesQA
+    ResourcesQA --> FrontendQA
+    ResourcesQA --> BackendQA
+    ResourcesQA --> PostgresQA
+    
+    %% Crossplane Provisioning - Prod
+    XRDProd --> CompDefProd
+    CompDefProd --> ResourcesProd
+    ResourcesProd --> FrontendProd
+    ResourcesProd --> BackendProd
+    ResourcesProd --> PostgresProd
+    ResourcesProd --> ServiceProd
+    ResourcesProd --> IngressProd
+    
+    %% Backstage Monitoring
+    K8sPlugin -.->|"Reads Resource Status"| ResourcesDev
+    K8sPlugin -.->|"Reads Resource Status"| ResourcesQA
+    K8sPlugin -.->|"Reads Resource Status"| ResourcesProd
+    K8sPlugin -.->|"Syncs to Catalog"| Catalog
+    
     
     %% Styling
     classDef actor fill:#e1f5fe,stroke:#01579b,stroke-width:2px
@@ -107,15 +160,19 @@ graph TB
     classDef flux fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
     classDef crossplane fill:#fce4ec,stroke:#880e4f,stroke-width:2px
     classDef k8s fill:#e3f2fd,stroke:#0d47a1,stroke-width:2px
+    classDef environment fill:#fff9c4,stroke:#f57f17,stroke-width:3px
+    classDef monitor fill:#e1bee7,stroke:#6a1b9a,stroke-width:2px
     
     class Sasha,Simone actor
     class Catalog,Scaffolder,NodeTemplate backstage
+    class K8sPlugin monitor
     class FrontendTpl,BackendTpl,PostgresTpl,Composition template
     class FrontendRepo,BackendRepo repo
     class DeployRepo deploy
     class GitController,Kustomization,Note flux
-    class XRD,CompDef,Resources crossplane
-    class Frontend,Backend,Postgres,Service1,Service2,Ingress,Namespace k8s
+    class XRDDev,XRDProd,XRDQA,CompDefDev,CompDefQA,CompDefProd,ResourcesDev,ResourcesQA,ResourcesProd crossplane
+    class FrontendDev,BackendDev,PostgresDev,FrontendQA,BackendQA,PostgresQA,FrontendProd,BackendProd,PostgresProd,ServiceProd,IngressProd,NamespaceDev,NamespaceQA,NamespaceProd k8s
+    class DevEnv,QAEnv,ProdEnv environment
 ```
 
 ## User Stories
@@ -215,11 +272,19 @@ graph TB
 
 ```
 dashboard-frontend/          # Application code
+├── .github/
+│   └── workflows/
+│       ├── ci.yaml        # Test & build
+│       └── release.yaml   # Build & push image
 ├── src/
 ├── package.json
 └── Dockerfile
 
 dashboard-backend/           # Application code
+├── .github/
+│   └── workflows/
+│       ├── ci.yaml        # Test & build
+│       └── release.yaml   # Build & push image
 ├── src/
 ├── package.json
 └── Dockerfile
