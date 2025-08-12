@@ -10,8 +10,8 @@ This document illustrates how developers use Backstage to create full-stack appl
 graph TB
     %% Actors - Using GitLab Personas
     %% https://handbook.gitlab.com/handbook/product/personas/
-    Sasha["👩‍💻 Sasha<br/>(Software Developer)"]
-    Simone["👨‍💼 Simone<br/>(Platform Engineer)"]
+    Sasha["👩‍💻 Sasha<br/>Software Developer"]
+    Simone["👨‍💼 Simone<br/>Platform Engineer"]
     
     %% Backstage Layer
     subgraph Backstage["🎭 Backstage Portal"]
@@ -25,21 +25,21 @@ graph TB
         FrontendTpl["Frontend App<br/>Template"]
         BackendTpl["Backend API<br/>Template"]
         PostgresTpl["PostgreSQL<br/>Template"]
-        Composition["🎯 Composition:<br/>Node Development<br/>(Frontend + Backend + DB)"]
+        Composition["🎯 Composition:<br/>Node Development<br/>Frontend + Backend + DB"]
     end
     
     %% GitHub Repositories
     subgraph GitHub["📂 GitHub Organization"]
         subgraph AppRepos["Application Repositories"]
-            FrontendRepo["dashboard-frontend<br/>(React App)"]
-            BackendRepo["dashboard-backend<br/>(Node.js API)"]
+            FrontendRepo["dashboard-frontend<br/>React App"]
+            BackendRepo["dashboard-backend<br/>Node.js API"]
         end
         
-        DeployRepo["🚀 dashboard-deploy<br/>(Flux Manifests)<br/>✅ flux-managed"]
+        DeployRepo["🚀 dashboard-deploy<br/>Flux Manifests<br/>✅ flux-managed"]
     end
     
     %% Flux GitOps
-    subgraph FluxGitOps["🔄 Flux (Pull-Based GitOps)"]
+    subgraph FluxGitOps["🔄 Flux - Pull-Based GitOps"]
         GitController["Source Controller<br/>Polls every 1min"]
         Kustomization["Kustomization Controller"]
         Note["⚡ PULL not PUSH<br/>Flux pulls from Git"]
@@ -47,7 +47,7 @@ graph TB
     
     %% Crossplane
     subgraph Crossplane["🎯 Crossplane"]
-        XRD["XNodeApp<br/>(Custom Resource)"]
+        XRD["XNodeApp<br/>Custom Resource"]
         CompDef["Composition Definition"]
         Resources["Managed Resources"]
     end
@@ -80,7 +80,7 @@ graph TB
     Scaffolder -->|"6c. Create Deploy Repo"| DeployRepo
     
     %% GitOps Pull Flow
-    DeployRepo -.->|"7. PULL Changes<br/>(Not Push!)"| GitController
+    DeployRepo -.->|"7. PULL Changes<br/>Not Push!"| GitController
     GitController -->|"8. Fetch Manifests"| Kustomization
     Kustomization -->|"9. Apply XR"| XRD
     
