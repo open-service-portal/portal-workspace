@@ -20,7 +20,7 @@ graph TB
         NodeTemplate["📦 Node Development<br/>Template"]
     end
     
-    %% Steve's Templates
+    %% Simone's Templates
     subgraph Templates["Platform Templates"]
         FrontendTpl["Frontend App<br/>Template"]
         BackendTpl["Backend API<br/>Template"]
@@ -134,30 +134,33 @@ graph TB
    - **PostgreSQL Template**: Database with persistent storage and backups
 
 2. **Composition: Node Development**
-   ```yaml
-   # Combines all three components into one deployable unit
-   apiVersion: apiextensions.crossplane.io/v1
-   kind: Composition
-   metadata:
-     name: node-development
-   spec:
-     compositeTypeRef:
-       apiVersion: platform.io/v1
-       kind: XNodeApp
-     resources:
-       - name: frontend
-         base:
-           apiVersion: apps/v1
-           kind: Deployment
-       - name: backend
-         base:
-           apiVersion: apps/v1
-           kind: Deployment
-       - name: database
-         base:
-           apiVersion: postgresql.cnpg.io/v1
-           kind: Cluster
-   ```
+   - Combines all three components into one deployable unit
+   - Uses Crossplane Composition to define infrastructure
+   - Creates Frontend Deployment, Backend Deployment, and PostgreSQL database
+   - Example composition structure:
+     ```yaml
+     apiVersion: apiextensions.crossplane.io/v1
+     kind: Composition
+     metadata:
+       name: node-development
+     spec:
+       compositeTypeRef:
+         apiVersion: platform.io/v1
+         kind: XNodeApp
+       resources:
+         - name: frontend
+           base:
+             apiVersion: apps/v1
+             kind: Deployment
+         - name: backend
+           base:
+             apiVersion: apps/v1
+             kind: Deployment
+         - name: database
+           base:
+             apiVersion: postgresql.cnpg.io/v1
+             kind: Cluster
+     ```
 
 3. **Backstage Template Registration:**
    - Creates `template-node-development` repository
