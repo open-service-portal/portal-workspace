@@ -76,6 +76,55 @@ This guide covers common issues when using Rancher Desktop for local Kubernetes 
    kubectl cluster-info
    ```
 
+### Kubeconfig Issues
+
+#### Symptoms
+- Cannot find kubeconfig
+- Authentication errors
+- Context not found
+
+#### Solutions
+
+1. **Check Kubeconfig Location**
+   ```bash
+   # Default location
+   ls -la ~/.kube/config
+   
+   # Check KUBECONFIG environment variable
+   echo $KUBECONFIG
+   ```
+
+2. **Export Kubeconfig**
+   ```bash
+   # Export current config
+   kubectl config view --raw > rancher-desktop.kubeconfig
+   
+   # Use exported config
+   export KUBECONFIG=$(pwd)/rancher-desktop.kubeconfig
+   ```
+
+3. **Verify Kubeconfig Contents**
+   ```bash
+   # Check clusters
+   kubectl config get-clusters
+   
+   # Check contexts
+   kubectl config get-contexts
+   
+   # View full config (sanitized)
+   kubectl config view
+   ```
+
+4. **Reset Kubeconfig**
+   ```bash
+   # Backup existing config
+   cp ~/.kube/config ~/.kube/config.backup
+   
+   # Restart Rancher Desktop to regenerate
+   rdctl stop
+   rdctl start
+   ```
+
 ### Crossplane Installation Failures
 
 #### Symptoms
