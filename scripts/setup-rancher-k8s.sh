@@ -186,16 +186,143 @@ create_backstage_service_account() {
     # Create service account
     kubectl create serviceaccount backstage-k8s-sa -n default --dry-run=client -o yaml | kubectl apply -f -
     
+    # Create secret for permanent token
+    kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: backstage-k8s-sa-token
+  namespace: default
+  annotations:
+    kubernetes.io/service-account.name: backstage-k8s-sa
+type: kubernetes.io/service-account-token
+EOF
+    
     # Create cluster role binding
     kubectl create clusterrolebinding backstage-k8s-sa-binding \
         --clusterrole=cluster-admin \
         --serviceaccount=default:backstage-k8s-sa \
         --dry-run=client -o yaml | kubectl apply -f -
     
-    # Get the token
-    export K8S_SERVICE_ACCOUNT_TOKEN=$(kubectl create token backstage-k8s-sa -n default --duration=8760h)
+    # Wait for token to be generated
+    sleep 2
     
-    echo -e "${GREEN}Service account created.${NC}"
+    # Get the permanent token from the secret
+    export K8S_SERVICE_ACCOUNT_TOKEN=$(kubectl get secret backstage-k8s-sa-token -n default -o jsonpath='{.data.token}' | base64 -d)
+    
+    echo -e "${GREEN}Service account created with permanent token.${NC}"
+}
+
+# Install Flux for GitOps
+install_flux() {
+    echo ""
+    echo "Installing Flux for GitOps..."
+    
+    # Check if flux CLI is installed
+    if ! command -v flux &> /dev/null; then
+        echo "Installing Flux CLI..."
+        curl -s https://fluxcd.io/install.sh | sh
+        
+        # Add to PATH if not already there
+        if [[ ":$PATH:" != *":$HOME/.fluxcd/bin:"* ]]; then
+            export PATH="$HOME/.fluxcd/bin:$PATH"
+        fi
+    fi
+    
+    # Check if Flux is already installed in cluster
+    if kubectl get namespace flux-system &> /dev/null; then
+        echo -e "${YELLOW}Flux is already installed in the cluster.${NC}"
+        return
+    fi
+    
+    # Try to find GitHub token from multiple sources
+    local GITHUB_TOKEN=""
+    
+    # 1. Check GITHUB_TOKEN env var
+    if [ -n "${GITHUB_TOKEN}" ]; then
+        echo "Using GitHub token from GITHUB_TOKEN environment variable"
+        GITHUB_TOKEN="${GITHUB_TOKEN}"
+    # 2. Check FLUX_GITHUB_TOKEN env var
+    elif [ -n "${FLUX_GITHUB_TOKEN}" ]; then
+        echo "Using GitHub token from FLUX_GITHUB_TOKEN environment variable"
+        GITHUB_TOKEN="${FLUX_GITHUB_TOKEN}"
+    # 3. Check .envrc file
+    elif [ -f "${SCRIPT_DIR}/../.envrc" ]; then
+        source "${SCRIPT_DIR}/../.envrc" 2>/dev/null || true
+        if [ -n "${GITHUB_TOKEN}" ]; then
+            echo "Using GitHub token from .envrc file"
+        fi
+    # 4. Try GitHub CLI
+    elif command -v gh &> /dev/null && gh auth token &> /dev/null; then
+        echo "Using GitHub token from GitHub CLI (gh auth)"
+        GITHUB_TOKEN=$(gh auth token)
+    fi
+    
+    # If no token found, skip Flux installation
+    if [ -z "$GITHUB_TOKEN" ]; then
+        echo -e "${YELLOW}No GitHub token found. Skipping Flux installation.${NC}"
+        echo ""
+        echo "To install Flux later, you can:"
+        echo "  1. Set GITHUB_TOKEN environment variable"
+        echo "  2. Create .envrc file with: export GITHUB_TOKEN=ghp_xxxxx"
+        echo "  3. Authenticate with GitHub CLI: gh auth login"
+        echo "  4. Run manually: flux bootstrap github --owner=open-service-portal --repository=flux-system --path=clusters/local --personal"
+        echo ""
+        echo "Create a token at: https://github.com/settings/tokens/new (needs 'repo' scope)"
+        return
+    fi
+    
+    # Bootstrap Flux
+    echo "Bootstrapping Flux..."
+    if ! GITHUB_TOKEN=$GITHUB_TOKEN flux bootstrap github \
+        --token-auth \
+        --owner=open-service-portal \
+        --repository=flux-system \
+        --branch=main \
+        --path=clusters/local \
+        --personal; then
+        echo -e "${YELLOW}Failed to bootstrap Flux. This might be due to:${NC}"
+        echo "  - Token doesn't have access to the open-service-portal organization"
+        echo "  - Repository already exists"
+        echo "  - Network issues"
+        echo ""
+        echo "You can try bootstrapping to your personal account instead:"
+        echo "  flux bootstrap github --owner=$(gh api user --jq .login 2>/dev/null || echo YOUR_GITHUB_USERNAME) --repository=flux-system --path=clusters/local --personal"
+        return
+    fi
+    
+    # Create auto-discovery for labeled repos
+    echo "Setting up auto-discovery for Backstage-created services..."
+    kubectl apply -f - <<EOF
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: backstage-services
+  namespace: flux-system
+spec:
+  interval: 1m
+  url: https://github.com/open-service-portal
+  ref:
+    branch: main
+  secretRef:
+    name: flux-system
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Alert
+metadata:
+  name: backstage-services
+  namespace: flux-system
+spec:
+  providerRef:
+    name: generic-webhook
+  eventSeverity: info
+  eventSources:
+    - kind: GitRepository
+      name: backstage-services
+  summary: 'Backstage service reconciliation'
+EOF
+    
+    echo -e "${GREEN}Flux installed and configured for GitOps.${NC}"
 }
 
 
@@ -209,6 +336,11 @@ print_summary() {
     echo "  Context: rancher-desktop"
     echo "  Kubernetes: $(kubectl version --short 2>/dev/null | grep Server | awk '{print $3}')"
     echo "  Crossplane: v1.17.0"
+    if kubectl get namespace flux-system &> /dev/null; then
+        echo "  Flux: $(flux version --client 2>/dev/null | grep flux | awk '{print $2}')"
+    else
+        echo "  Flux: Not installed (no GitHub token found)"
+    fi
     echo ""
     echo "Kubeconfig Access:"
     echo "  Location: ~/.kube/config"
@@ -225,6 +357,11 @@ print_summary() {
     echo "  kubectl get pods -n crossplane-system"
     echo "  kubectl get providers"
     echo "  kubectl get crds | grep crossplane"
+    if kubectl get namespace flux-system &> /dev/null; then
+        echo "  kubectl get pods -n flux-system"
+        echo "  flux get sources git"
+        echo "  flux get kustomizations"
+    fi
     echo ""
     echo "To run smoke tests:"
     echo "  See examples/crossplane-rancher-examples/README.md"
@@ -285,6 +422,9 @@ main() {
     
     # Create Backstage service account
     create_backstage_service_account
+    
+    # Install Flux for GitOps
+    install_flux
     
     # Print summary
     print_summary

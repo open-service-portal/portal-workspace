@@ -1,6 +1,9 @@
 # Claude settings
 .claude/settings.local.json
 
+# Environment variables
+.envrc
+
 # Cloned repositories (managed separately)
 .github/
 app-portal/

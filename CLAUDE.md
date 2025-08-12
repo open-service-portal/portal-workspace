@@ -112,11 +112,16 @@ When encountering errors, check the troubleshooting guides first.
 
 ### Template Development
 When creating service templates:
-1. Follow the naming convention: `service-{name}-template`
+1. Follow the naming convention: `template-{name}` (e.g., `template-configmap-service`)
 2. Add `template.yaml` in repository root
-3. Templates are auto-discovered via GitHub provider (pattern: `service-*-template`)
+3. Templates are auto-discovered via GitHub provider (pattern: `template-*`)
 4. Include comprehensive documentation
 5. Add example service scaffolding in `content/` directory
+
+Template types:
+- `template-*-service` - GitOps-enabled services (creates Git repos, deployed via Flux)
+- `template-*-experiment` - Direct-apply templates (no Git repo, immediate deployment)
+- `template-*-hybrid` - Supports both GitOps and direct deployment
 
 ### Environment Variables
 Required environment variables should be documented and include:
@@ -154,14 +159,38 @@ app-portal/
 - Kubernetes-native service definitions
 
 ### Local Development Environment
-We use Rancher Desktop for local Kubernetes development:
 
-**Rancher Desktop**
-   - Open-source Docker Desktop alternative
-   - Built-in Kubernetes (K3s)
-   - No licensing restrictions
-   - Include Crossplane v1.17+ for infrastructure management.
-   - Setup: `./scripts/setup-rancher-k8s.sh`
+#### Automated Setup
+Run the setup script to configure your complete local Kubernetes environment:
+
+```bash
+./scripts/setup-rancher-k8s.sh
+```
+
+This script provides a **zero-config** setup that installs and configures:
+
+1. **Rancher Desktop** - Kubernetes (K3s) runtime
+2. **Crossplane v1.17** - Infrastructure as Code management
+3. **NGINX Ingress Controller** - Traffic routing (http://localhost:30080)
+4. **Backstage Service Account** - Permanent token for cluster access
+5. **Flux GitOps** - Automated deployment from Git (if GitHub token available)
+
+#### GitHub Token Configuration
+The setup script supports multiple token sources (no prompting):
+- Environment variable: `export GITHUB_TOKEN=ghp_xxxx`
+- Flux-specific: `export FLUX_GITHUB_TOKEN=ghp_xxxx`
+- Local config: Copy `.envrc.example` to `.envrc` and add your token
+- GitHub CLI: `gh auth login` (automatically detected)
+
+If no token is found, Flux installation is skipped gracefully.
+
+#### Platform Requirements
+**Rancher Desktop** (Required)
+- Open-source Docker Desktop alternative
+- Built-in Kubernetes (K3s)
+- No licensing restrictions
+- Install: `brew install --cask rancher` (macOS)
+- Download: https://rancherdesktop.io/
 
 ## Best Practices
 
