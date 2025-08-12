@@ -251,7 +251,7 @@ print_summary() {
     echo ""
     echo "Or programmatically access the cluster:"
     echo "  Server: https://127.0.0.1:6443"
-    echo "  CA Certificate: kubectl config view --raw -o jsonpath='{.clusters[0].cluster.certificate-authority-data}' | base64 -d"
+    echo "  CA Certificate: kubectl config view --raw -o jsonpath='{.clusters[?(@.name==\"rancher-desktop\")].cluster.certificate-authority-data}' | base64 -d"
     echo "  Client Certificate: kubectl config view --raw -o jsonpath='{.users[0].user.client-certificate-data}' | base64 -d"
     echo "  Client Key: kubectl config view --raw -o jsonpath='{.users[0].user.client-key-data}' | base64 -d"
     echo ""
