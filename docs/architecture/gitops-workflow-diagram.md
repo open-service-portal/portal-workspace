@@ -8,9 +8,10 @@ This document illustrates how developers use Backstage to create full-stack appl
 
 ```mermaid
 graph TB
-    %% Actors
-    Emily["👩‍💻 Emily<br/>(Developer)"]
-    Steve["👨‍💼 Steve<br/>(Platform Engineer)"]
+    %% Actors - Using GitLab Personas
+    %% https://handbook.gitlab.com/handbook/product/personas/
+    Sasha["👩‍💻 Sasha<br/>(Software Developer)"]
+    Simone["👨‍💼 Simone<br/>(Platform Engineer)"]
     
     %% Backstage Layer
     subgraph Backstage["🎭 Backstage Portal"]
@@ -63,15 +64,15 @@ graph TB
         end
     end
     
-    %% Steve's Flow (Platform Engineering)
-    Steve -->|"1. Creates Templates"| Templates
+    %% Simone's Flow (Platform Engineering)
+    Simone -->|"1. Creates Templates"| Templates
     FrontendTpl --> Composition
     BackendTpl --> Composition
     PostgresTpl --> Composition
     Composition -->|"2. Registers"| NodeTemplate
     
-    %% Emily's Flow (Developer Experience)
-    Emily -->|"3. Browse Catalog"| Catalog
+    %% Sasha's Flow (Developer Experience)
+    Sasha -->|"3. Browse Catalog"| Catalog
     Catalog -->|"4. Select Template"| NodeTemplate
     NodeTemplate -->|"5. Fill Parameters"| Scaffolder
     Scaffolder -->|"6a. Create Frontend Repo"| FrontendRepo
@@ -107,7 +108,7 @@ graph TB
     classDef crossplane fill:#fce4ec,stroke:#880e4f,stroke-width:2px
     classDef k8s fill:#e3f2fd,stroke:#0d47a1,stroke-width:2px
     
-    class Emily,Steve actor
+    class Sasha,Simone actor
     class Catalog,Scaffolder,NodeTemplate backstage
     class FrontendTpl,BackendTpl,PostgresTpl,Composition template
     class FrontendRepo,BackendRepo repo
@@ -119,11 +120,13 @@ graph TB
 
 ## User Stories
 
-### 🏗️ Steve's Story: Building the Platform
+> We use [GitLab's documented personas](https://handbook.gitlab.com/handbook/product/personas/) to represent typical users of our platform. These personas are based on extensive user research and help us design better experiences.
 
-**Steve is a platform engineer** who creates reusable templates for development teams.
+### 🏗️ Simone's Story: Building the Platform
 
-#### What Steve Creates:
+**[Simone (Platform Engineer)](https://handbook.gitlab.com/handbook/product/personas/#simone-platform-engineer)** is responsible for the platform that the development team builds on. Simone creates reusable templates and self-service infrastructure for development teams.
+
+#### What Simone Creates:
 
 1. **Individual Component Templates:**
    - **Frontend Template**: React app with TypeScript, routing, and state management
@@ -161,11 +164,11 @@ graph TB
    - Backstage auto-discovers and adds to catalog
    - Developers can now self-serve complete stacks
 
-### 👩‍💻 Emily's Story: Creating a Dashboard
+### 👩‍💻 Sasha's Story: Creating a Dashboard
 
-**Emily is a developer** who needs to create a metrics dashboard for her team.
+**[Sasha (Software Developer)](https://handbook.gitlab.com/handbook/product/personas/#sasha-software-developer)** is a software developer who wants to ship features as quickly and reliably as possible. Sasha needs to create a metrics dashboard for the team.
 
-#### Emily's Journey:
+#### Sasha's Journey:
 
 1. **Discovery**
    - Opens Backstage portal
@@ -231,13 +234,13 @@ dashboard-deploy/           # GitOps manifests
 
 ### Benefits
 
-#### For Developers (Emily)
+#### For Developers (Sasha)
 - **One-click deployment** - Complete stack from a form
 - **No YAML wrestling** - Templates handle complexity
 - **Separation of concerns** - Code separate from deployment
 - **Fast iteration** - Push code, Flux deploys automatically
 
-#### For Platform Engineers (Steve)
+#### For Platform Engineers (Simone)
 - **Standardization** - All teams use same patterns
 - **Reusability** - Write once, use many times
 - **Governance** - Control via templates and compositions
@@ -267,3 +270,19 @@ This architecture provides:
 - **Platform scalability** - Templates reduce support burden
 - **GitOps benefits** - Version control, audit, rollback
 - **Multi-repo pattern** - Clean separation of code and config
+
+## About the Personas
+
+We use GitLab's well-researched personas to ensure our platform meets real user needs:
+
+### [Sasha - Software Developer](https://handbook.gitlab.com/handbook/product/personas/#sasha-software-developer)
+- **Goal**: Ship features quickly and reliably
+- **Challenges**: Complex infrastructure, slow deployment processes
+- **How we help**: Self-service templates, automated GitOps deployments
+
+### [Simone - Platform Engineer](https://handbook.gitlab.com/handbook/product/personas/#simone-platform-engineer)
+- **Goal**: Provide reliable, scalable platform for developers
+- **Challenges**: Supporting many teams, maintaining standards
+- **How we help**: Reusable compositions, governance through templates
+
+These personas are part of GitLab's [comprehensive persona framework](https://handbook.gitlab.com/handbook/product/personas/), which includes other roles like Sidney (Systems Administrator), Sam (Security Analyst), and Rachel (Release Manager).
