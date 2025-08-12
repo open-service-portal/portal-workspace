@@ -10,8 +10,11 @@ This document illustrates how developers use Backstage to create full-stack appl
 graph TB
     %% Actors - Using GitLab Personas
     %% https://handbook.gitlab.com/handbook/product/personas/
-    Sasha["👩‍💻 Sasha<br/>Software Developer"]
-    Simone["👨‍💼 Simone<br/>Platform Engineer"]
+    Sasha["👩‍💻 Sasha<br/>Software Developer<br/>Builds Features"]
+    Priyanka["🏗️ Priyanka<br/>Platform Engineer<br/>Creates Infrastructure"]
+    Rachel["📦 Rachel<br/>Release Manager<br/>Ships to Production"]
+    Sidney["🔧 Sidney<br/>Systems Admin<br/>Maintains Clusters"]
+    Amy["🔒 Amy<br/>Security Engineer<br/>Ensures Compliance"]
     
     %% Backstage Layer
     subgraph Backstage["🎭 Backstage Portal"]
@@ -99,8 +102,8 @@ graph TB
         end
     end
     
-    %% Simone's Flow (Platform Engineering)
-    Simone -->|"Step 1: Creates Templates"| Templates
+    %% Priyanka's Flow (Platform Engineering)
+    Priyanka -->|"Step 1: Creates Templates"| Templates
     FrontendTpl --> Composition
     BackendTpl --> Composition
     PostgresTpl --> Composition
@@ -113,6 +116,18 @@ graph TB
     Scaffolder -->|"Step 6a: Create Frontend Repo"| FrontendRepo
     Scaffolder -->|"Step 6b: Create Backend Repo"| BackendRepo
     Scaffolder -->|"Step 6c: Create Deploy Repo"| DeployRepo
+    
+    %% Amy's Security Review
+    Amy -->|"Reviews Security"| DeployRepo
+    Amy -.->|"Security Policies"| Kustomization
+    
+    %% Rachel's Release Management
+    Rachel -->|"Manages Releases"| DeployRepo
+    Rachel -.->|"Approves Prod Deploy"| ProdEnv
+    
+    %% Sidney's Operations
+    Sidney -->|"Monitors Infrastructure"| K8sPlugin
+    Sidney -.->|"Manages Clusters"| Environments
     
     %% GitOps Pull Flow
     DeployRepo -.->|"Step 7: PULL Changes<br/>Not Push!"| GitController
@@ -163,7 +178,7 @@ graph TB
     classDef environment fill:#fff9c4,stroke:#f57f17,stroke-width:3px
     classDef monitor fill:#e1bee7,stroke:#6a1b9a,stroke-width:2px
     
-    class Sasha,Simone actor
+    class Sasha,Priyanka,Rachel,Sidney,Amy actor
     class Catalog,Scaffolder,NodeTemplate backstage
     class K8sPlugin monitor
     class FrontendTpl,BackendTpl,PostgresTpl,Composition template
@@ -179,11 +194,11 @@ graph TB
 
 > We use [GitLab's documented personas](https://handbook.gitlab.com/handbook/product/personas/) to represent typical users of our platform. These personas are based on extensive user research and help us design better experiences.
 
-### 🏗️ Simone's Story: Building the Platform
+### 🏗️ Priyanka's Story: Building the Platform
 
-**[Simone (Platform Engineer)](https://handbook.gitlab.com/handbook/product/personas/#simone-platform-engineer)** is responsible for the platform that the development team builds on. Simone creates reusable templates and self-service infrastructure for development teams.
+**[Priyanka (Platform Engineer)](https://handbook.gitlab.com/handbook/product/personas/#priyanka-platform-engineer)** is responsible for building and maintaining the platform that development teams use. Priyanka creates reusable templates, manages Kubernetes clusters, and provides self-service infrastructure.
 
-#### What Simone Creates:
+#### What Priyanka Creates:
 
 1. **Individual Component Templates:**
    - **Frontend Template**: React app with TypeScript, routing, and state management
@@ -255,6 +270,69 @@ graph TB
    - Applies Crossplane XR (XNodeApp)
    - Crossplane provisions all resources
    - Full stack is running in Kubernetes!
+
+### 🔒 Amy's Story: Securing the Platform
+
+**[Amy (Application Security Engineer)](https://handbook.gitlab.com/handbook/product/personas/#amy-application-security-engineer)** ensures that applications meet security standards and compliance requirements.
+
+#### Amy's Security Workflow:
+
+1. **Template Security Review**
+   - Reviews Priyanka's templates for security best practices
+   - Ensures secrets management is properly configured
+   - Validates network policies and RBAC settings
+
+2. **Deployment Manifest Scanning**
+   - Automatically scans `dashboard-deploy` repository
+   - Checks for exposed secrets or misconfigurations
+   - Enforces security policies via OPA/Gatekeeper
+
+3. **Runtime Security**
+   - Monitors running workloads for vulnerabilities
+   - Sets up security policies in Crossplane compositions
+   - Ensures compliance with industry standards
+
+### 📦 Rachel's Story: Managing Releases
+
+**[Rachel (Release Manager)](https://handbook.gitlab.com/handbook/product/personas/#rachel-release-manager)** coordinates releases across environments and ensures smooth deployments.
+
+#### Rachel's Release Process:
+
+1. **Environment Promotion**
+   - Reviews changes in Dev environment
+   - Approves promotion to QA
+   - Coordinates production releases
+
+2. **GitOps Workflow**
+   - Uses Git tags for release versions
+   - Manages Kustomize overlays for each environment
+   - Controls Flux sync policies
+
+3. **Rollback Strategy**
+   - Can quickly revert via Git
+   - Flux automatically applies rollback
+   - Zero-downtime deployments
+
+### 🔧 Sidney's Story: Operating the Infrastructure
+
+**[Sidney (Systems Administrator)](https://handbook.gitlab.com/handbook/product/personas/#sidney-systems-administrator)** maintains the Kubernetes clusters and ensures platform reliability.
+
+#### Sidney's Operations:
+
+1. **Cluster Management**
+   - Monitors cluster health via Backstage Kubernetes Plugin
+   - Manages node scaling and upgrades
+   - Configures cluster-level resources
+
+2. **Observability**
+   - Sets up monitoring and alerting
+   - Uses Backstage to visualize resource usage
+   - Troubleshoots issues across environments
+
+3. **Disaster Recovery**
+   - Implements backup strategies
+   - Tests failover procedures
+   - Maintains runbooks in TechDocs
 
 ## Key Concepts
 
@@ -341,16 +419,43 @@ This architecture provides:
 
 ## About the Personas
 
-We use GitLab's well-researched personas to ensure our platform meets real user needs:
+We use GitLab's well-researched personas to ensure our platform meets real user needs. Each persona represents real users based on extensive research:
 
-### [Sasha - Software Developer](https://handbook.gitlab.com/handbook/product/personas/#sasha-software-developer)
+### Core Personas in Our Workflow
+
+#### [Sasha - Software Developer](https://handbook.gitlab.com/handbook/product/personas/#sasha-software-developer)
 - **Goal**: Ship features quickly and reliably
 - **Challenges**: Complex infrastructure, slow deployment processes
 - **How we help**: Self-service templates, automated GitOps deployments
 
-### [Simone - Platform Engineer](https://handbook.gitlab.com/handbook/product/personas/#simone-platform-engineer)
-- **Goal**: Provide reliable, scalable platform for developers
-- **Challenges**: Supporting many teams, maintaining standards
-- **How we help**: Reusable compositions, governance through templates
+#### [Priyanka - Platform Engineer](https://handbook.gitlab.com/handbook/product/personas/#priyanka-platform-engineer)
+- **Goal**: Build and maintain scalable platform infrastructure
+- **Challenges**: Supporting diverse teams, ensuring consistency
+- **How we help**: Crossplane compositions, Backstage templates
 
-These personas are part of GitLab's [comprehensive persona framework](https://handbook.gitlab.com/handbook/product/personas/), which includes other roles like Sidney (Systems Administrator), Sam (Security Analyst), and Rachel (Release Manager).
+#### [Rachel - Release Manager](https://handbook.gitlab.com/handbook/product/personas/#rachel-release-manager)
+- **Goal**: Coordinate smooth releases across environments
+- **Challenges**: Managing dependencies, ensuring quality
+- **How we help**: GitOps workflows, environment promotion
+
+#### [Sidney - Systems Administrator](https://handbook.gitlab.com/handbook/product/personas/#sidney-systems-administrator)
+- **Goal**: Maintain reliable infrastructure
+- **Challenges**: Monitoring multiple clusters, incident response
+- **How we help**: Backstage Kubernetes Plugin, centralized observability
+
+#### [Amy - Application Security Engineer](https://handbook.gitlab.com/handbook/product/personas/#amy-application-security-engineer)
+- **Goal**: Ensure applications meet security standards
+- **Challenges**: Shift-left security, compliance requirements
+- **How we help**: Security policies in templates, automated scanning
+
+### Additional GitLab Personas
+
+The complete [GitLab persona framework](https://handbook.gitlab.com/handbook/product/personas/) includes many other roles that interact with our platform:
+
+- **[Parker - Product Manager](https://handbook.gitlab.com/handbook/product/personas/#parker-product-manager)**: Defines requirements and priorities
+- **[Delaney - Development Team Lead](https://handbook.gitlab.com/handbook/product/personas/#delaney-development-team-lead)**: Manages development teams
+- **[Presley - Product Designer](https://handbook.gitlab.com/handbook/product/personas/#presley-product-designer)**: Designs user experiences
+- **[Allison - Application Ops](https://handbook.gitlab.com/handbook/product/personas/#allison-application-ops)**: Manages application operations
+- **[Cameron - Compliance Manager](https://handbook.gitlab.com/handbook/product/personas/#cameron-compliance-manager)**: Ensures regulatory compliance
+
+These personas help us build a platform that serves the entire organization's needs.
