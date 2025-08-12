@@ -65,34 +65,34 @@ graph TB
     end
     
     %% Simone's Flow (Platform Engineering)
-    Simone -->|"1. Creates Templates"| Templates
+    Simone -->|"Step 1: Creates Templates"| Templates
     FrontendTpl --> Composition
     BackendTpl --> Composition
     PostgresTpl --> Composition
-    Composition -->|"2. Registers"| NodeTemplate
+    Composition -->|"Step 2: Registers"| NodeTemplate
     
     %% Sasha's Flow (Developer Experience)
-    Sasha -->|"3. Browse Catalog"| Catalog
-    Catalog -->|"4. Select Template"| NodeTemplate
-    NodeTemplate -->|"5. Fill Parameters"| Scaffolder
-    Scaffolder -->|"6a. Create Frontend Repo"| FrontendRepo
-    Scaffolder -->|"6b. Create Backend Repo"| BackendRepo
-    Scaffolder -->|"6c. Create Deploy Repo"| DeployRepo
+    Sasha -->|"Step 3: Browse Catalog"| Catalog
+    Catalog -->|"Step 4: Select Template"| NodeTemplate
+    NodeTemplate -->|"Step 5: Fill Parameters"| Scaffolder
+    Scaffolder -->|"Step 6a: Create Frontend Repo"| FrontendRepo
+    Scaffolder -->|"Step 6b: Create Backend Repo"| BackendRepo
+    Scaffolder -->|"Step 6c: Create Deploy Repo"| DeployRepo
     
     %% GitOps Pull Flow
-    DeployRepo -.->|"7. PULL Changes<br/>Not Push!"| GitController
-    GitController -->|"8. Fetch Manifests"| Kustomization
-    Kustomization -->|"9. Apply XR"| XRD
+    DeployRepo -.->|"Step 7: PULL Changes<br/>Not Push!"| GitController
+    GitController -->|"Step 8: Fetch Manifests"| Kustomization
+    Kustomization -->|"Step 9: Apply XR"| XRD
     
     %% Crossplane Provisioning
-    XRD -->|"10. Use Composition"| CompDef
-    CompDef -->|"11. Create Resources"| Resources
-    Resources -->|"12. Deploy Frontend"| Frontend
-    Resources -->|"13. Deploy Backend"| Backend
-    Resources -->|"14. Deploy Database"| Postgres
-    Resources -->|"15. Create Services"| Service1
+    XRD -->|"Step 10: Use Composition"| CompDef
+    CompDef -->|"Step 11: Create Resources"| Resources
+    Resources -->|"Step 12: Deploy Frontend"| Frontend
+    Resources -->|"Step 13: Deploy Backend"| Backend
+    Resources -->|"Step 14: Deploy Database"| Postgres
+    Resources -->|"Step 15: Create Services"| Service1
     Resources --> Service2
-    Resources -->|"16. Configure Ingress"| Ingress
+    Resources -->|"Step 16: Configure Ingress"| Ingress
     
     %% Feedback Loop
     GitController -.->|"Status"| Note
