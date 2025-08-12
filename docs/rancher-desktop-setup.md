@@ -189,6 +189,88 @@ EOF
 kubectl get configmap crossplane-smoke-test -n crossplane-test
 ```
 
+## Kubeconfig Access
+
+Rancher Desktop automatically configures kubectl to work with its Kubernetes cluster. The kubeconfig is stored in the standard location and is automatically managed.
+
+### Default Kubeconfig Location
+
+```bash
+# Rancher Desktop updates the default kubeconfig
+~/.kube/config
+```
+
+### Getting the Kubeconfig
+
+```bash
+# View the current kubeconfig
+kubectl config view
+
+# Export the raw kubeconfig to a file
+kubectl config view --raw > rancher-desktop-kubeconfig.yaml
+
+# Use the exported kubeconfig
+export KUBECONFIG=$(pwd)/rancher-desktop-kubeconfig.yaml
+```
+
+### Kubeconfig Details
+
+The Rancher Desktop kubeconfig contains:
+- **Cluster endpoint**: `https://127.0.0.1:6443`
+- **Context name**: `rancher-desktop`
+- **Authentication**: Client certificates managed by Rancher Desktop
+
+### Programmatic Access
+
+To extract specific kubeconfig components:
+
+```bash
+# Get the API server URL
+kubectl config view -o jsonpath='{.clusters[0].cluster.server}'
+
+# Get the CA certificate (base64 encoded)
+kubectl config view --raw -o jsonpath='{.clusters[0].cluster.certificate-authority-data}'
+
+# Decode the CA certificate
+kubectl config view --raw -o jsonpath='{.clusters[0].cluster.certificate-authority-data}' | base64 -d
+
+# Get client certificate data
+kubectl config view --raw -o jsonpath='{.users[0].user.client-certificate-data}' | base64 -d
+
+# Get client key data (be careful with this!)
+kubectl config view --raw -o jsonpath='{.users[0].user.client-key-data}' | base64 -d
+```
+
+### Using Kubeconfig in CI/CD
+
+For CI/CD pipelines or external tools:
+
+```bash
+# Export the kubeconfig
+kubectl config view --raw > kubeconfig.yaml
+
+# Set in environment
+export KUBECONFIG=/path/to/kubeconfig.yaml
+
+# Or use inline
+KUBECONFIG=/path/to/kubeconfig.yaml kubectl get nodes
+```
+
+### Multiple Contexts
+
+If you have multiple Kubernetes clusters:
+
+```bash
+# List all contexts
+kubectl config get-contexts
+
+# Switch to Rancher Desktop
+kubectl config use-context rancher-desktop
+
+# Verify current context
+kubectl config current-context
+```
+
 ## Backstage Integration
 
 ### 1. Create Service Account

@@ -57,6 +57,13 @@ yarn start
 ```bash
 # Run automated setup
 ./scripts/setup-rancher-k8s.sh
+
+# After setup, access the cluster
+kubectl config use-context rancher-desktop
+kubectl get nodes
+
+# Export kubeconfig if needed
+kubectl config view --raw > rancher-kubeconfig.yaml
 ```
 See [Rancher Desktop Setup Guide](./docs/rancher-desktop-setup.md) for details.
 
