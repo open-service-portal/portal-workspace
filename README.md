@@ -34,10 +34,27 @@ Each repository has its own development workflow. See [CLAUDE.md](./CLAUDE.md) f
 
 ### Quick Start
 
+#### Zero-Config Frontend Development
+
+For immediate frontend development without any configuration:
+
 ```bash
-# Start Backstage
 cd app-portal
 yarn install
+yarn dev  # No tokens or secrets needed!
+```
+
+This starts Backstage with mock data and guest authentication - perfect for UI/theme development.
+
+#### Full Development Setup
+
+For complete functionality with GitHub integration:
+
+```bash
+# Start Backstage with full features
+cd app-portal
+yarn install
+# Configure your .envrc with tokens (see docs/github-app-setup.md)
 yarn start
 ```
 

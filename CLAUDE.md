@@ -70,6 +70,27 @@ git clone https://github.com/open-service-portal/app-portal.git
 
 ## Development
 
+### Quick Start Options
+
+#### Zero-Config Frontend Development (NEW!)
+```bash
+cd app-portal
+yarn install
+yarn dev  # No configuration needed!
+```
+
+The `yarn dev` command starts Backstage with:
+- Guest authentication (no GitHub tokens required)
+- Mock data from examples/ directory
+- In-memory SQLite database
+- No external integrations
+- Perfect for UI/theme development
+
+#### Full Development Setup
+Requires environment configuration with GitHub tokens. See app-portal documentation for setup.
+
+### Repository-Specific Commands
+
 Each repository has its own `CLAUDE.md` file with specific development commands:
 
 - **app-portal/CLAUDE.md** - Backstage development commands, build instructions, plugin creation
