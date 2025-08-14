@@ -3,6 +3,11 @@
 
 set -e
 
+# Configuration
+IMAGE_NAME="app-portal"
+REGISTRY="ghcr.io/open-service-portal"
+CONTAINER_NAME="app-portal"
+
 # Colors for output
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -27,12 +32,15 @@ build_image() {
     echo "Building Docker image..."
     yarn build-image
     
-    echo -e "${GREEN}✓ Docker image built successfully${NC}"
+    # Tag with our image name
+    docker tag backstage:latest ${IMAGE_NAME}:latest
+    
+    echo -e "${GREEN}✓ Docker image built successfully as ${IMAGE_NAME}:latest${NC}"
 }
 
 # Function to run the container
 run_container() {
-    echo -e "${YELLOW}Starting Backstage container...${NC}"
+    echo -e "${YELLOW}Starting ${CONTAINER_NAME} container...${NC}"
     
     # Check if secrets exist, if not decrypt them
     if [ ! -f .env ] || [ ! -f github-app-key.pem ]; then
@@ -43,10 +51,10 @@ run_container() {
     fi
     
     # Stop existing container if running
-    docker stop backstage 2>/dev/null && docker rm backstage 2>/dev/null || true
+    docker stop ${CONTAINER_NAME} 2>/dev/null && docker rm ${CONTAINER_NAME} 2>/dev/null || true
     
     # Prepare docker run command
-    DOCKER_CMD="docker run -d --name backstage \
+    DOCKER_CMD="docker run -d --name ${CONTAINER_NAME} \
         --env-file .env \
         -v $(pwd)/github-app-key.pem:/app/github-app-key.pem:ro \
         -e AUTH_GITHUB_APP_PRIVATE_KEY_FILE=/app/github-app-key.pem \
@@ -63,25 +71,55 @@ run_container() {
     fi
     
     # Run the container
-    eval "$DOCKER_CMD backstage:latest node packages/backend $CONFIG_ARGS"
+    eval "$DOCKER_CMD ${IMAGE_NAME}:latest node packages/backend $CONFIG_ARGS"
     
     echo -e "${GREEN}✓ Container started${NC}"
     echo "Backstage is available at: http://localhost:7007"
     echo ""
-    echo "View logs: docker logs -f backstage"
-    echo "Stop: docker stop backstage"
+    echo "View logs: docker logs -f ${CONTAINER_NAME}"
+    echo "Stop: docker stop ${CONTAINER_NAME}"
 }
 
 # Function to show logs
 show_logs() {
-    docker logs -f backstage
+    docker logs -f ${CONTAINER_NAME}
 }
 
 # Function to stop container
 stop_container() {
-    echo -e "${YELLOW}Stopping Backstage container...${NC}"
-    docker stop backstage && docker rm backstage
+    echo -e "${YELLOW}Stopping ${CONTAINER_NAME} container...${NC}"
+    docker stop ${CONTAINER_NAME} && docker rm ${CONTAINER_NAME}
     echo -e "${GREEN}✓ Container stopped${NC}"
+}
+
+# Function to push image to registry
+push_image() {
+    echo -e "${YELLOW}Pushing image to GitHub Container Registry...${NC}"
+    
+    # Check if image exists
+    if ! docker images ${IMAGE_NAME}:latest --format "{{.Repository}}" | grep -q ${IMAGE_NAME}; then
+        echo -e "${RED}Error: Image ${IMAGE_NAME}:latest not found. Run 'build' first.${NC}"
+        exit 1
+    fi
+    
+    # Get version tag (use git tag if available, otherwise date)
+    VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "v$(date +%Y%m%d-%H%M%S)")
+    
+    # Tag images
+    echo "Tagging images..."
+    docker tag ${IMAGE_NAME}:latest ${REGISTRY}/${IMAGE_NAME}:latest
+    docker tag ${IMAGE_NAME}:latest ${REGISTRY}/${IMAGE_NAME}:${VERSION}
+    
+    # Push images
+    echo "Pushing ${REGISTRY}/${IMAGE_NAME}:latest..."
+    docker push ${REGISTRY}/${IMAGE_NAME}:latest
+    
+    echo "Pushing ${REGISTRY}/${IMAGE_NAME}:${VERSION}..."
+    docker push ${REGISTRY}/${IMAGE_NAME}:${VERSION}
+    
+    echo -e "${GREEN}✓ Images pushed successfully${NC}"
+    echo "  - ${REGISTRY}/${IMAGE_NAME}:latest"
+    echo "  - ${REGISTRY}/${IMAGE_NAME}:${VERSION}"
 }
 
 # Main script
@@ -91,6 +129,9 @@ case "${1:-}" in
         ;;
     run)
         run_container
+        ;;
+    push)
+        push_image
         ;;
     logs)
         show_logs
@@ -103,11 +144,12 @@ case "${1:-}" in
         run_container
         ;;
     *)
-        echo "Usage: $0 {build|run|logs|stop|restart}"
+        echo "Usage: $0 {build|run|push|logs|stop|restart}"
         echo ""
         echo "Commands:"
         echo "  build    - Build the Docker image"
         echo "  run      - Run the container (builds if needed)"
+        echo "  push     - Push image to GitHub Container Registry"
         echo "  logs     - Show container logs"
         echo "  stop     - Stop and remove the container"
         echo "  restart  - Stop and restart the container"
