@@ -4,6 +4,7 @@
 # Cloned repositories (managed separately)
 .github/
 app-portal/
+deploy-app-portal/
 
 # Service Template Repositories
 service-*-template/
