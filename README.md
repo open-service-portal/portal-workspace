@@ -7,7 +7,6 @@ This is a workspace directory containing multiple Open Service Portal repositori
 This workspace contains the following repositories:
 
 - **[app-portal/](https://github.com/open-service-portal/app-portal)** - Main Backstage application
-- **[deploy-backstage/](https://github.com/open-service-portal/deploy-backstage)** - Kubernetes deployment manifests
 - **[service-nodejs-template/](https://github.com/open-service-portal/service-nodejs-template)** - Node.js service template
 - **service-golang-template/** - Go service template (planned)
 - **service-python-template/** - Python service template (planned)
@@ -23,8 +22,10 @@ cd open-service-portal
 
 # Clone individual repositories
 git clone git@github.com:open-service-portal/app-portal.git
-git clone git@github.com:open-service-portal/deploy-backstage.git
-git clone git@github.com:open-service-portal/service-nodejs-template.git
+
+# Future: Clone templates when created
+# git clone git@github.com:open-service-portal/service-nodejs-template.git
+# git clone git@github.com:open-service-portal/service-golang-template.git
 ```
 
 ## Development
@@ -71,15 +72,7 @@ yarn start
 ```
 
 ### Secret Management
-```bash
-# Encrypt secrets with SOPS
-./scripts/encrypt-secrets.sh
-
-# Deploy Backstage
-kubectl apply -k deploy-backstage/overlays/development/
-```
-
-See [Docker and Kubernetes Deployment](./docker-and-kubernetes-deployment.md) for detailed deployment instructions.
+SOPS is used for encrypting secrets in Git repositories. See [SOPS Secret Management](./docs/sops-secret-management.md) for details.
 
 ## Note
 

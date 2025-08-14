@@ -27,8 +27,6 @@ open-service-portal/         # THIS directory = portal-workspace repo
 │
 ├── app-portal/             # NESTED repo (cloned separately)
 │   └── .git/               # app-portal's own git
-├── deploy-backstage/       # NESTED repo (cloned separately)
-│   └── .git/               # deployment manifests
 ├── service-nodejs-template/ # NESTED repo (cloned separately)  
 │   └── .git/               # template's own git
 └── .github/                # NESTED repo for org profile
@@ -46,10 +44,8 @@ git clone https://github.com/open-service-portal/portal-workspace.git
 # Navigate to the workspace
 cd portal-workspace
 
-# Clone the required repositories inside the workspace
+# Clone the app-portal code repository inside the workspace
 git clone https://github.com/open-service-portal/app-portal.git
-git clone https://github.com/open-service-portal/deploy-backstage.git
-git clone https://github.com/open-service-portal/service-nodejs-template.git
 ```
 
 ### GitHub Organization
@@ -65,14 +61,6 @@ git clone https://github.com/open-service-portal/service-nodejs-template.git
   - Scaffolded with `@backstage/create-app`
   - Contains frontend and backend packages
   - Configured for GitHub/GitLab integration
-  - Docker support with `scripts/docker-run-local.sh`
-
-#### Deployment
-- **deploy-backstage/** - Kubernetes deployment manifests (git@github.com:open-service-portal/deploy-backstage.git)
-  - Kustomize-based configuration
-  - Flux GitOps ready
-  - SOPS encryption for secrets
-  - Development and production overlays
 
 #### Service Templates
 - **service-nodejs-template/** - Template for Node.js services (git@github.com:open-service-portal/service-nodejs-template.git)
@@ -88,7 +76,6 @@ git clone https://github.com/open-service-portal/service-nodejs-template.git
 Each repository has its own `CLAUDE.md` file with specific development commands:
 
 - **app-portal/CLAUDE.md** - Backstage development commands, build instructions, plugin creation
-- **deploy-backstage/README.md** - Deployment instructions and GitOps configuration
 - **template-*/CLAUDE.md** - Template testing, scaffolding, and validation commands
 - **docs/CLAUDE.md** - Documentation build and preview commands
 
@@ -263,7 +250,6 @@ gh pr create --repo open-service-portal/app-portal \
 
 ### Repository Naming
 - `app-*` - Applications (e.g., app-portal)
-- `deploy-*` - Deployment configurations (e.g., deploy-backstage)
 - `service-*-template` - Service templates
 - `plugin-*` - Shared Backstage plugins (future)
 - `docs` - Documentation site
@@ -292,13 +278,3 @@ This makes complex infrastructure concepts accessible to all stakeholders.
 3. **Templates**: Scaffolder for service creation
 4. **Documentation**: TechDocs with MkDocs
 5. **Deployment**: GitOps workflow with Kubernetes
-
-## Next Steps
-
-1. Clone all required repositories
-2. Run `./scripts/setup-cluster.sh` to prepare Kubernetes
-3. Configure GitHub App authentication in app-portal
-4. Encrypt secrets with SOPS (see docs/sops-secret-management.md)
-5. Deploy Backstage using `kubectl apply -k deploy-backstage/overlays/development/`
-6. Set up Flux for GitOps automation
-7. Add service templates to the catalog
