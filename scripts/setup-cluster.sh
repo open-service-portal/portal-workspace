@@ -216,8 +216,8 @@ create_backstage_service_account() {
     
     # Check for existing token in app-portal config
     OLD_TOKEN=""
-    if [ -f "app-portal/app-config.local.yaml" ]; then
-        OLD_TOKEN=$(grep -A 5 "serviceAccountToken:" app-portal/app-config.local.yaml 2>/dev/null | grep "serviceAccountToken:" | sed 's/.*serviceAccountToken: *//' | tr -d '"' | tr -d "'" || echo "")
+    if [ -f "app-portal/app-config.local.yaml" ] && command -v yq &> /dev/null; then
+        OLD_TOKEN=$(yq '.kubernetes.clusterLocatorMethods[0].clusters[0].serviceAccountToken' app-portal/app-config.local.yaml 2>/dev/null || echo "")
     fi
     
     # Create service account
