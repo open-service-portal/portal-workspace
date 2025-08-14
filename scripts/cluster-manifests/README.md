@@ -1,11 +1,13 @@
-# Rancher K8s Setup Manifests
+# Cluster Setup Manifests
 
-This directory contains Kubernetes manifests used by the `setup-rancher-k8s.sh` script.
+This directory contains Kubernetes manifests used by the `setup-cluster.sh` script for setting up Crossplane and other cluster components.
 
 ## Files
 
 ### provider-kubernetes.yaml
 Installs the Crossplane Kubernetes provider which allows Crossplane to manage Kubernetes resources.
+- Version: v0.14.0
+- Provider: crossplane-contrib/provider-kubernetes
 
 ### provider-config.yaml
 Configures the Kubernetes provider to use injected identity for authentication.
@@ -25,7 +27,8 @@ kubectl wait --for=condition=Healthy provider/provider-kubernetes --timeout=300s
 kubectl apply -f provider-config.yaml
 ```
 
-## Testing
+## Notes
 
-For smoke tests and example Crossplane resources, see:
-- `../../examples/crossplane-rancher-examples/` - Contains smoke tests and Backstage-specific examples
+- These manifests are required by `setup-cluster.sh`
+- The script will fail if these files are not present
+- Works with any Kubernetes cluster (Kind, Rancher Desktop, EKS, GKE, etc.)
