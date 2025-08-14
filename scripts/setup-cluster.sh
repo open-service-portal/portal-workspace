@@ -208,7 +208,10 @@ install_provider_kubernetes() {
     # Wait for provider to be healthy
     echo "Waiting for provider-kubernetes to be healthy..."
     kubectl wait --for=condition=Healthy provider.pkg.crossplane.io/provider-kubernetes --timeout=300s || {
-        echo -e "${YELLOW}Provider may take additional time to become healthy${NC}"
+        echo -e "${YELLOW}Provider did not become healthy within the timeout period.${NC}"
+        echo -e "${YELLOW}You can check the status with:${NC} kubectl get provider.pkg.crossplane.io provider-kubernetes"
+        echo -e "${YELLOW}For more details, view the provider logs with:${NC} kubectl logs -l pkg.crossplane.io/provider=provider-kubernetes -n crossplane-system"
+        echo -e "${YELLOW}If the issue persists, review your provider configuration and try reapplying the manifest.${NC}"
     }
     
     # Apply ProviderConfig
