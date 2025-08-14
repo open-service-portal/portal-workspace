@@ -57,7 +57,7 @@ configure_sops_for_flux() {
         echo "  macOS: brew install sops"
         echo "  Linux: Download from https://github.com/getsops/sops/releases"
     else
-        echo "SOPS CLI version: $(sops --version)"
+        echo "SOPS CLI version: $(sops --check-for-updates --version)"
     fi
     
     # Check if age is available
@@ -67,27 +67,6 @@ configure_sops_for_flux() {
         echo "  macOS: brew install age"
         echo "  Linux: Download from https://github.com/FiloSottile/age/releases"
     fi
-    
-    echo ""
-    echo -e "${BLUE}SOPS Key Setup Instructions:${NC}"
-    echo ""
-    echo "For SOPS encryption/decryption to work:"
-    echo ""
-    echo "1. Each team member should have their own age key:"
-    echo "   age-keygen -o ~/.config/sops/age/keys.txt"
-    echo ""
-    echo "2. Share your PUBLIC key with the team:"
-    echo "   age-keygen -y ~/.config/sops/age/keys.txt"
-    echo ""
-    echo "3. Add all public keys to deploy-backstage/.sops.yaml"
-    echo ""
-    echo "4. For Flux to decrypt secrets in the cluster, upload a project key:"
-    echo "   kubectl create secret generic sops-age \\"
-    echo "     --namespace=flux-system \\"
-    echo "     --from-file=age.agekey=/path/to/project-key.txt"
-    echo ""
-    echo "See scripts/manage-sops-keys.sh for detailed key management"
-    echo ""
     
     # Create namespace for Flux (needed for later)
     kubectl create namespace flux-system --dry-run=client -o yaml | kubectl apply -f -
@@ -233,11 +212,27 @@ install_provider_kubernetes() {
 
 # Create Backstage service account
 create_backstage_service_account() {
-    echo -e "${YELLOW}Creating Backstage service account...${NC}"
+    echo -e "${YELLOW}Setting up Backstage service account...${NC}"
     
     # Check if service account already exists
     if kubectl get serviceaccount backstage-k8s-sa -n default &> /dev/null; then
-        echo "Service account already exists, generating new token..."
+        echo "Service account already exists"
+        
+        # Check if we have a valid token in environment
+        if [ -n "${K8S_SERVICE_ACCOUNT_TOKEN}" ]; then
+            echo "Using existing token from environment"
+            export K8S_SERVICE_ACCOUNT_TOKEN="${K8S_SERVICE_ACCOUNT_TOKEN}"
+        else
+            # Check if there's a long-lived token secret (for older K8s versions)
+            TOKEN_SECRET=$(kubectl get serviceaccount backstage-k8s-sa -n default -o jsonpath='{.secrets[0].name}' 2>/dev/null || echo "")
+            if [ -n "${TOKEN_SECRET}" ] && [ "${TOKEN_SECRET}" != "null" ]; then
+                echo "Found existing token secret: ${TOKEN_SECRET}"
+                export K8S_SERVICE_ACCOUNT_TOKEN=$(kubectl get secret "${TOKEN_SECRET}" -n default -o jsonpath='{.data.token}' | base64 -d)
+            else
+                echo "Generating new token..."
+                export K8S_SERVICE_ACCOUNT_TOKEN=$(kubectl create token backstage-k8s-sa -n default --duration=8760h)
+            fi
+        fi
     else
         # Create service account
         kubectl create serviceaccount backstage-k8s-sa -n default --dry-run=client -o yaml | kubectl apply -f -
@@ -247,10 +242,11 @@ create_backstage_service_account() {
             --clusterrole=cluster-admin \
             --serviceaccount=default:backstage-k8s-sa \
             --dry-run=client -o yaml | kubectl apply -f -
+        
+        # Generate new token
+        echo "Generating new token for new service account..."
+        export K8S_SERVICE_ACCOUNT_TOKEN=$(kubectl create token backstage-k8s-sa -n default --duration=8760h)
     fi
-    
-    # Generate token (valid for 1 year)
-    export K8S_SERVICE_ACCOUNT_TOKEN=$(kubectl create token backstage-k8s-sa -n default --duration=8760h)
     
     echo -e "${GREEN}✓ Backstage service account ready${NC}"
 }
