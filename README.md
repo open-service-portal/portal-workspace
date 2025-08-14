@@ -7,6 +7,7 @@ This is a workspace directory containing multiple Open Service Portal repositori
 This workspace contains the following repositories:
 
 - **[app-portal/](https://github.com/open-service-portal/app-portal)** - Main Backstage application
+- **[deploy-backstage/](https://github.com/open-service-portal/deploy-backstage)** - Kubernetes deployment manifests
 - **[service-nodejs-template/](https://github.com/open-service-portal/service-nodejs-template)** - Node.js service template
 - **service-golang-template/** - Go service template (planned)
 - **service-python-template/** - Python service template (planned)
@@ -22,10 +23,8 @@ cd open-service-portal
 
 # Clone individual repositories
 git clone git@github.com:open-service-portal/app-portal.git
-
-# Future: Clone templates when created
-# git clone git@github.com:open-service-portal/template-golang-service.git
-# git clone git@github.com:open-service-portal/template-nodejs-service.git
+git clone git@github.com:open-service-portal/deploy-backstage.git
+git clone git@github.com:open-service-portal/service-nodejs-template.git
 ```
 
 ## Development
@@ -48,24 +47,39 @@ yarn start
 
 - [CLAUDE.md](./CLAUDE.md) - Development instructions for Claude Code
 - [GitHub App Setup](./docs/github-app-setup.md) - Configure GitHub authentication
-- [Rancher Desktop Setup](./docs/rancher-desktop-setup.md) - Local Kubernetes with Rancher Desktop
+- [Local Kubernetes Setup](./docs/local-kubernetes-setup.md) - Set up Kubernetes locally
 - [Troubleshooting Guide](./docs/troubleshooting/) - Common issues and solutions
 
-## Local Development Environment
+## Kubernetes Setup
 
-**Rancher Desktop:**
+### Prerequisites
+- Kubernetes cluster (Kind, Rancher Desktop, Minikube, or cloud)
+- kubectl configured
+- Helm installed
+
+### Cluster Setup
 ```bash
-# Run automated setup
-./scripts/setup-rancher-k8s.sh
+# Run unified setup script for any Kubernetes cluster
+./scripts/setup-cluster.sh
 
-# After setup, access the cluster
-kubectl config use-context rancher-desktop
-kubectl get nodes
-
-# Export kubeconfig if needed
-kubectl config view --raw > rancher-kubeconfig.yaml
+# This installs:
+# - NGINX Ingress Controller
+# - Flux GitOps
+# - SOPS for secret management
+# - Crossplane v1.17
+# - Backstage service account
 ```
-See [Rancher Desktop Setup Guide](./docs/rancher-desktop-setup.md) for details.
+
+### Secret Management
+```bash
+# Encrypt secrets with SOPS
+./scripts/encrypt-secrets.sh
+
+# Deploy Backstage
+kubectl apply -k deploy-backstage/overlays/development/
+```
+
+See [Docker and Kubernetes Deployment](./docker-and-kubernetes-deployment.md) for detailed deployment instructions.
 
 ## Note
 

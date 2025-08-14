@@ -18,12 +18,17 @@ open-service-portal/         # THIS directory = portal-workspace repo
 ├── README.md               # Workspace overview
 ├── docs/                   # Shared documentation
 ├── concepts/               # Architecture decisions
+├── scripts/                # Unified setup and utility scripts
+│   ├── setup-cluster.sh    # Universal K8s cluster setup
+│   └── cluster-manifests/  # Crossplane configs
 ├── .claude/                # Claude Code configuration
 │   └── agents/             # Custom agents for specialized tasks
 ├── .gitignore              # Ignores nested repos below
 │
 ├── app-portal/             # NESTED repo (cloned separately)
 │   └── .git/               # app-portal's own git
+├── deploy-backstage/       # NESTED repo (cloned separately)
+│   └── .git/               # deployment manifests
 ├── service-nodejs-template/ # NESTED repo (cloned separately)  
 │   └── .git/               # template's own git
 └── .github/                # NESTED repo for org profile
@@ -41,8 +46,10 @@ git clone https://github.com/open-service-portal/portal-workspace.git
 # Navigate to the workspace
 cd portal-workspace
 
-# Clone the app-portal code repository inside the workspace
+# Clone the required repositories inside the workspace
 git clone https://github.com/open-service-portal/app-portal.git
+git clone https://github.com/open-service-portal/deploy-backstage.git
+git clone https://github.com/open-service-portal/service-nodejs-template.git
 ```
 
 ### GitHub Organization
@@ -58,6 +65,14 @@ git clone https://github.com/open-service-portal/app-portal.git
   - Scaffolded with `@backstage/create-app`
   - Contains frontend and backend packages
   - Configured for GitHub/GitLab integration
+  - Docker support with `scripts/docker-run-local.sh`
+
+#### Deployment
+- **deploy-backstage/** - Kubernetes deployment manifests (git@github.com:open-service-portal/deploy-backstage.git)
+  - Kustomize-based configuration
+  - Flux GitOps ready
+  - SOPS encryption for secrets
+  - Development and production overlays
 
 #### Service Templates
 - **service-nodejs-template/** - Template for Node.js services (git@github.com:open-service-portal/service-nodejs-template.git)
@@ -73,6 +88,7 @@ git clone https://github.com/open-service-portal/app-portal.git
 Each repository has its own `CLAUDE.md` file with specific development commands:
 
 - **app-portal/CLAUDE.md** - Backstage development commands, build instructions, plugin creation
+- **deploy-backstage/README.md** - Deployment instructions and GitOps configuration
 - **template-*/CLAUDE.md** - Template testing, scaffolding, and validation commands
 - **docs/CLAUDE.md** - Documentation build and preview commands
 
@@ -93,7 +109,10 @@ When encountering errors, check the troubleshooting guides first.
 - **Language**: TypeScript
 - **Database**: SQLite (dev) / PostgreSQL (production)
 - **Container**: Docker / Podman
-- **Orchestration**: Kubernetes (optional)
+- **Orchestration**: Kubernetes
+- **GitOps**: Flux
+- **Secret Management**: SOPS with age encryption
+- **Infrastructure**: Crossplane v1.17
 
 ### Core Components
 1. **Software Catalog** - Track services, libraries, and components
@@ -150,18 +169,34 @@ app-portal/
 
 ### Service Provisioning
 - Crossplane for infrastructure management
-- GitOps workflow with ArgoCD/Flux
+- GitOps workflow with Flux
 - Kubernetes-native service definitions
+- SOPS for encrypted secrets in Git
 
-### Local Development Environment
-We use Rancher Desktop for local Kubernetes development:
+### Kubernetes Setup
+We support any Kubernetes distribution with a unified setup:
 
-**Rancher Desktop**
-   - Open-source Docker Desktop alternative
-   - Built-in Kubernetes (K3s)
-   - No licensing restrictions
-   - Include Crossplane v1.17+ for infrastructure management.
-   - Setup: `./scripts/setup-rancher-k8s.sh`
+**Cluster Setup**
+```bash
+# Universal setup script for any K8s cluster
+./scripts/setup-cluster.sh
+
+# Installs:
+# - NGINX Ingress Controller
+# - Flux GitOps
+# - SOPS configuration with age keys
+# - Crossplane v1.17
+# - Backstage service account
+```
+
+**Secret Management**
+```bash
+# SOPS encryption is used for secrets
+# See docs/sops-secret-management.md for details
+
+# Secrets are encrypted in Git repositories
+# Flux automatically decrypts using sops-age secret
+```
 
 ## Best Practices
 
@@ -171,8 +206,10 @@ We use Rancher Desktop for local Kubernetes development:
    - Tag stable versions
 
 2. **Security**
-   - Never commit secrets or tokens
-   - Use environment variables for sensitive data
+   - Never commit plaintext secrets or tokens
+   - Use SOPS encryption for secrets in Git
+   - Age keys stored securely in cluster
+   - Use environment variables for local development
    - Follow Backstage security guidelines
 
 3. **Documentation**
@@ -226,7 +263,8 @@ gh pr create --repo open-service-portal/app-portal \
 
 ### Repository Naming
 - `app-*` - Applications (e.g., app-portal)
-- `template-*` - Service templates
+- `deploy-*` - Deployment configurations (e.g., deploy-backstage)
+- `service-*-template` - Service templates
 - `plugin-*` - Shared Backstage plugins (future)
 - `docs` - Documentation site
 
@@ -257,8 +295,10 @@ This makes complex infrastructure concepts accessible to all stakeholders.
 
 ## Next Steps
 
-1. Clone and set up app-portal
-2. Configure authentication providers
-3. Add service templates
-4. Set up CI/CD pipelines
-5. Deploy to Kubernetes cluster
+1. Clone all required repositories
+2. Run `./scripts/setup-cluster.sh` to prepare Kubernetes
+3. Configure GitHub App authentication in app-portal
+4. Encrypt secrets with SOPS (see docs/sops-secret-management.md)
+5. Deploy Backstage using `kubectl apply -k deploy-backstage/overlays/development/`
+6. Set up Flux for GitOps automation
+7. Add service templates to the catalog
