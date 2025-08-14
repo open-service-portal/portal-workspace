@@ -9,6 +9,9 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Global variables
+CONFIG_UPDATED=false
+
 echo -e "${BLUE}=== Backstage Kubernetes Cluster Setup ===${NC}"
 echo ""
 echo "This script will install all required components for Backstage in your Kubernetes cluster."
@@ -32,6 +35,33 @@ check_prerequisites() {
         exit 1
     fi
     
+    # Check yq
+    if ! command -v yq &> /dev/null; then
+        echo -e "${RED}Error: yq is not installed${NC}"
+        echo "Please install yq first:"
+        echo "  macOS: brew install yq"
+        echo "  Linux: Download from https://github.com/mikefarah/yq"
+        exit 1
+    fi
+    
+    # Check sops
+    if ! command -v sops &> /dev/null; then
+        echo -e "${RED}Error: sops is not installed${NC}"
+        echo "Please install sops first:"
+        echo "  macOS: brew install sops"
+        echo "  Linux: Download from https://github.com/getsops/sops"
+        exit 1
+    fi
+    
+    # Check age
+    if ! command -v age &> /dev/null; then
+        echo -e "${RED}Error: age is not installed${NC}"
+        echo "Please install age first:"
+        echo "  macOS: brew install age"
+        echo "  Linux: Download from https://github.com/FiloSottile/age"
+        exit 1
+    fi
+    
     # Check cluster connectivity
     if ! kubectl cluster-info &> /dev/null; then
         echo -e "${RED}Error: Cannot connect to Kubernetes cluster${NC}"
@@ -42,6 +72,9 @@ check_prerequisites() {
     echo -e "${GREEN}✓ Prerequisites check passed${NC}"
     echo "  - kubectl: $(kubectl version --client -o json 2>/dev/null | grep gitVersion | cut -d'"' -f4 | head -1)"
     echo "  - helm: $(helm version --short)"
+    echo "  - yq: $(yq --version | cut -d' ' -f4)"
+    echo "  - sops: $(sops --version 2>&1 | grep -o 'sops [0-9.]*' | cut -d' ' -f2)"
+    echo "  - age: $(age --version 2>&1 | cut -d' ' -f2)"
     echo "  - cluster: $(kubectl config current-context)"
     echo ""
 }
@@ -49,24 +82,6 @@ check_prerequisites() {
 # Configure SOPS for Flux
 configure_sops_for_flux() {
     echo -e "${YELLOW}Configuring SOPS for Flux...${NC}"
-    
-    # Check if sops CLI is available
-    if ! command -v sops &> /dev/null; then
-        echo -e "${YELLOW}SOPS CLI not found locally${NC}"
-        echo "To install SOPS CLI:"
-        echo "  macOS: brew install sops"
-        echo "  Linux: Download from https://github.com/getsops/sops/releases"
-    else
-        echo "SOPS CLI version: $(sops --check-for-updates --version)"
-    fi
-    
-    # Check if age is available
-    if ! command -v age &> /dev/null; then
-        echo -e "${YELLOW}age not found locally${NC}"
-        echo "To install age:"
-        echo "  macOS: brew install age"
-        echo "  Linux: Download from https://github.com/FiloSottile/age/releases"
-    fi
     
     # Create namespace for Flux (needed for later)
     kubectl create namespace flux-system --dry-run=client -o yaml | kubectl apply -f -
@@ -214,12 +229,6 @@ install_provider_kubernetes() {
 create_backstage_service_account() {
     echo -e "${YELLOW}Creating Backstage service account...${NC}"
     
-    # Check for existing token in app-portal config
-    OLD_TOKEN=""
-    if [ -f "app-portal/app-config.local.yaml" ] && command -v yq &> /dev/null; then
-        OLD_TOKEN=$(yq '.kubernetes.clusterLocatorMethods[0].clusters[0].serviceAccountToken' app-portal/app-config.local.yaml 2>/dev/null || echo "")
-    fi
-    
     # Create service account
     kubectl create serviceaccount backstage-k8s-sa -n default --dry-run=client -o yaml | kubectl apply -f -
     
@@ -232,9 +241,25 @@ create_backstage_service_account() {
     # Generate token (valid for 1 year)
     export K8S_SERVICE_ACCOUNT_TOKEN=$(kubectl create token backstage-k8s-sa -n default --duration=8760h)
     
-    # Check if token changed
-    if [ -n "$OLD_TOKEN" ] && [ "$OLD_TOKEN" != "$K8S_SERVICE_ACCOUNT_TOKEN" ]; then
-        echo -e "${YELLOW}⚠ Service account token has changed - update your app-config.local.yaml${NC}"
+    # Update or show configuration
+    if command -v yq &> /dev/null && [ -f "app-portal/app-config.local.yaml" ]; then
+        # Check if kubernetes config exists
+        if yq '.kubernetes' app-portal/app-config.local.yaml &> /dev/null; then
+            # Update the token
+            CLUSTER_URL=$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')
+            CLUSTER_NAME=$(kubectl config current-context)
+            
+            yq -i ".kubernetes.clusterLocatorMethods[0].clusters[0].serviceAccountToken = \"$K8S_SERVICE_ACCOUNT_TOKEN\"" app-portal/app-config.local.yaml
+            yq -i ".kubernetes.clusterLocatorMethods[0].clusters[0].url = \"$CLUSTER_URL\"" app-portal/app-config.local.yaml
+            yq -i ".kubernetes.clusterLocatorMethods[0].clusters[0].name = \"$CLUSTER_NAME\"" app-portal/app-config.local.yaml
+            
+            echo -e "${GREEN}✓ Updated app-portal/app-config.local.yaml with new token${NC}"
+            CONFIG_UPDATED=true
+        else
+            CONFIG_UPDATED=false
+        fi
+    else
+        CONFIG_UPDATED=false
     fi
     
     echo -e "${GREEN}✓ Backstage service account ready${NC}"
@@ -259,19 +284,23 @@ print_summary() {
     echo "  API Server: $(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')"
     echo ""
     echo "Backstage Configuration:"
-    echo "Create or update app-portal/app-config.local.yaml with:"
-    echo ""
-    echo "kubernetes:"
-    echo "  serviceLocatorMethod:"
-    echo "    type: 'multiTenant'"
-    echo "  clusterLocatorMethods:"
-    echo "    - type: 'config'"
-    echo "      clusters:"
-    echo "        - url: $(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')"
-    echo "          name: $(kubectl config current-context)"
-    echo "          authProvider: 'serviceAccount'"
-    echo "          skipTLSVerify: true"
-    echo "          serviceAccountToken: $K8S_SERVICE_ACCOUNT_TOKEN"
+    if [ "$CONFIG_UPDATED" = true ]; then
+        echo "✓ app-portal/app-config.local.yaml has been updated with new token"
+    else
+        echo "Create or update app-portal/app-config.local.yaml with:"
+        echo ""
+        echo "kubernetes:"
+        echo "  serviceLocatorMethod:"
+        echo "    type: 'multiTenant'"
+        echo "  clusterLocatorMethods:"
+        echo "    - type: 'config'"
+        echo "      clusters:"
+        echo "        - url: $(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')"
+        echo "          name: $(kubectl config current-context)"
+        echo "          authProvider: 'serviceAccount'"
+        echo "          skipTLSVerify: true"
+        echo "          serviceAccountToken: $K8S_SERVICE_ACCOUNT_TOKEN"
+    fi
     echo ""
     echo "To verify installation:"
     echo "  kubectl get pods -n ingress-nginx"
