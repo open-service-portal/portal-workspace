@@ -300,9 +300,6 @@ print_summary() {
     echo "  kubectl get pods -n crossplane-system"
     echo "  kubectl get providers.pkg.crossplane.io"
     echo ""
-    echo "To deploy Backstage:"
-    echo "  1. Encrypt secrets with SOPS"
-    echo "  2. Apply manifests: kubectl apply -k deploy-backstage/overlays/development/"
     echo ""
     echo "============================================================"
 }
