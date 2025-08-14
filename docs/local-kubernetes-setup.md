@@ -7,19 +7,29 @@ This guide walks through setting up a local Kubernetes environment with Crosspla
 - **Kubernetes cluster** - Any local Kubernetes cluster (Rancher Desktop, Kind, Docker Desktop, Minikube, etc.)
 - **kubectl** - Configured to access your cluster
 - **Helm** - For installing Crossplane
+- **yq** - For YAML manipulation
+- **SOPS** - For secret encryption
+- **age** - For SOPS encryption backend
 
-## Verify Prerequisites
+## Install Prerequisites
 
 ```bash
-# Check kubectl access
-kubectl cluster-info
-kubectl get nodes
+# macOS (using Homebrew)
+brew install kubectl helm yq sops age
 
-# Check Helm
+# Linux
+# Install kubectl: https://kubernetes.io/docs/tasks/tools/
+# Install helm: https://helm.sh/docs/intro/install/
+# Install yq: https://github.com/mikefarah/yq
+# Install sops: https://github.com/getsops/sops
+# Install age: https://github.com/FiloSottile/age
+
+# Verify all tools are installed
+kubectl version --client
 helm version
-
-# Wait for cluster to be ready
-kubectl wait --for=condition=Ready nodes --all --timeout=300s
+yq --version
+sops --version
+age --version
 ```
 
 ## Automated Setup
@@ -32,12 +42,14 @@ We provide a script that automates the entire setup process:
 ```
 
 This script will:
-1. Verify kubectl access to your cluster
-2. Install Flux for GitOps
-3. Install Crossplane v1.17.0
-4. Install provider-kubernetes
-5. Configure SOPS for secret management
-6. Create a service account for Backstage
+1. Verify all required tools are installed
+2. Install NGINX Ingress Controller
+3. Install Flux for GitOps
+4. Install Crossplane v1.17.0
+5. Install provider-kubernetes
+6. Configure SOPS for secret management
+7. Create a service account for Backstage
+8. Automatically update `app-portal/app-config.local.yaml` with cluster credentials (if present)
 
 The script works with any Kubernetes cluster and uses manifests from `scripts/cluster-manifests/`.
 
@@ -110,9 +122,16 @@ echo "Service Account Token: $K8S_SERVICE_ACCOUNT_TOKEN"
 
 ## Backstage Configuration
 
-### 1. Configure Kubernetes Plugin
+### Automatic Configuration
 
-Add to your `app-config.local.yaml`:
+If you have the `app-portal` directory in your workspace, the setup script will automatically update `app-portal/app-config.local.yaml` with:
+- Cluster URL
+- Cluster name  
+- Service account token
+
+### Manual Configuration
+
+If configuring manually, create or update `app-config.local.yaml`:
 
 ```yaml
 kubernetes:
@@ -125,17 +144,7 @@ kubernetes:
           name: local-cluster
           authProvider: 'serviceAccount'
           skipTLSVerify: true  # For local development only
-          serviceAccountToken: ${K8S_SERVICE_ACCOUNT_TOKEN}
-```
-
-### 2. Set Environment Variable
-
-```bash
-# Add to your .envrc file
-export K8S_SERVICE_ACCOUNT_TOKEN='<your-token-here>'
-
-# If using direnv
-direnv allow
+          serviceAccountToken: <YOUR_SERVICE_ACCOUNT_TOKEN>  # From setup script output
 ```
 
 ## Verification

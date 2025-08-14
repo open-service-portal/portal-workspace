@@ -241,25 +241,16 @@ create_backstage_service_account() {
     # Generate token (valid for 1 year)
     export K8S_SERVICE_ACCOUNT_TOKEN=$(kubectl create token backstage-k8s-sa -n default --duration=8760h)
     
-    # Update or show configuration
-    if command -v yq &> /dev/null && [ -f "app-portal/app-config.local.yaml" ]; then
+    # Update configuration
+    CONFIG_UPDATED=false
+    if [ -f "app-portal/app-config.local.yaml" ]; then
         # Check if kubernetes config exists
         if yq '.kubernetes' app-portal/app-config.local.yaml &> /dev/null; then
-            # Update the token
-            CLUSTER_URL=$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')
-            CLUSTER_NAME=$(kubectl config current-context)
-            
             yq -i ".kubernetes.clusterLocatorMethods[0].clusters[0].serviceAccountToken = \"$K8S_SERVICE_ACCOUNT_TOKEN\"" app-portal/app-config.local.yaml
-            yq -i ".kubernetes.clusterLocatorMethods[0].clusters[0].url = \"$CLUSTER_URL\"" app-portal/app-config.local.yaml
-            yq -i ".kubernetes.clusterLocatorMethods[0].clusters[0].name = \"$CLUSTER_NAME\"" app-portal/app-config.local.yaml
             
             echo -e "${GREEN}✓ Updated app-portal/app-config.local.yaml with new token${NC}"
             CONFIG_UPDATED=true
-        else
-            CONFIG_UPDATED=false
         fi
-    else
-        CONFIG_UPDATED=false
     fi
     
     echo -e "${GREEN}✓ Backstage service account ready${NC}"
@@ -310,7 +301,7 @@ print_summary() {
     echo "  kubectl get providers.pkg.crossplane.io"
     echo ""
     echo "To deploy Backstage:"
-    echo "  1. Encrypt secrets with SOPS: ./scripts/encrypt-secrets.sh"
+    echo "  1. Encrypt secrets with SOPS"
     echo "  2. Apply manifests: kubectl apply -k deploy-backstage/overlays/development/"
     echo ""
     echo "============================================================"
