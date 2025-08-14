@@ -18,6 +18,9 @@ open-service-portal/         # THIS directory = portal-workspace repo
 ├── README.md               # Workspace overview
 ├── docs/                   # Shared documentation
 ├── concepts/               # Architecture decisions
+├── scripts/                # Unified setup and utility scripts
+│   ├── setup-cluster.sh    # Universal K8s cluster setup
+│   └── cluster-manifests/  # Crossplane configs
 ├── .claude/                # Claude Code configuration
 │   └── agents/             # Custom agents for specialized tasks
 ├── .gitignore              # Ignores nested repos below
@@ -93,7 +96,10 @@ When encountering errors, check the troubleshooting guides first.
 - **Language**: TypeScript
 - **Database**: SQLite (dev) / PostgreSQL (production)
 - **Container**: Docker / Podman
-- **Orchestration**: Kubernetes (optional)
+- **Orchestration**: Kubernetes
+- **GitOps**: Flux
+- **Secret Management**: SOPS with age encryption
+- **Infrastructure**: Crossplane v1.17
 
 ### Core Components
 1. **Software Catalog** - Track services, libraries, and components
@@ -150,18 +156,34 @@ app-portal/
 
 ### Service Provisioning
 - Crossplane for infrastructure management
-- GitOps workflow with ArgoCD/Flux
+- GitOps workflow with Flux
 - Kubernetes-native service definitions
+- SOPS for encrypted secrets in Git
 
-### Local Development Environment
-We use Rancher Desktop for local Kubernetes development:
+### Kubernetes Setup
+We support any Kubernetes distribution with a unified setup:
 
-**Rancher Desktop**
-   - Open-source Docker Desktop alternative
-   - Built-in Kubernetes (K3s)
-   - No licensing restrictions
-   - Include Crossplane v1.17+ for infrastructure management.
-   - Setup: `./scripts/setup-rancher-k8s.sh`
+**Cluster Setup**
+```bash
+# Universal setup script for any K8s cluster
+./scripts/setup-cluster.sh
+
+# Installs:
+# - NGINX Ingress Controller
+# - Flux GitOps
+# - SOPS configuration with age keys
+# - Crossplane v1.17
+# - Backstage service account
+```
+
+**Secret Management**
+```bash
+# SOPS encryption is used for secrets
+# See docs/sops-secret-management.md for details
+
+# Secrets are encrypted in Git repositories
+# Flux automatically decrypts using sops-age secret
+```
 
 ## Best Practices
 
@@ -171,8 +193,10 @@ We use Rancher Desktop for local Kubernetes development:
    - Tag stable versions
 
 2. **Security**
-   - Never commit secrets or tokens
-   - Use environment variables for sensitive data
+   - Never commit plaintext secrets or tokens
+   - Use SOPS encryption for secrets in Git
+   - Age keys stored securely in cluster
+   - Use environment variables for local development
    - Follow Backstage security guidelines
 
 3. **Documentation**
@@ -226,7 +250,7 @@ gh pr create --repo open-service-portal/app-portal \
 
 ### Repository Naming
 - `app-*` - Applications (e.g., app-portal)
-- `template-*` - Service templates
+- `service-*-template` - Service templates
 - `plugin-*` - Shared Backstage plugins (future)
 - `docs` - Documentation site
 
@@ -254,11 +278,3 @@ This makes complex infrastructure concepts accessible to all stakeholders.
 3. **Templates**: Scaffolder for service creation
 4. **Documentation**: TechDocs with MkDocs
 5. **Deployment**: GitOps workflow with Kubernetes
-
-## Next Steps
-
-1. Clone and set up app-portal
-2. Configure authentication providers
-3. Add service templates
-4. Set up CI/CD pipelines
-5. Deploy to Kubernetes cluster
