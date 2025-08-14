@@ -50,8 +50,7 @@ run_container() {
         --env-file .env \
         -v $(pwd)/github-app-key.pem:/app/github-app-key.pem:ro \
         -e AUTH_GITHUB_APP_PRIVATE_KEY_FILE=/app/github-app-key.pem \
-        -p 7007:7007 \
-        -p 3000:3000"
+        -p 7007:7007"
     
     # Add app-config.local.yaml if it exists
     if [ -f app-config.local.yaml ]; then
@@ -67,8 +66,7 @@ run_container() {
     eval "$DOCKER_CMD backstage:latest node packages/backend $CONFIG_ARGS"
     
     echo -e "${GREEN}✓ Container started${NC}"
-    echo "Backend: http://localhost:7007"
-    echo "Frontend: http://localhost:3000"
+    echo "Backstage is available at: http://localhost:7007"
     echo ""
     echo "View logs: docker logs -f backstage"
     echo "Stop: docker stop backstage"
