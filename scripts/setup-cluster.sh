@@ -212,40 +212,29 @@ install_provider_kubernetes() {
 
 # Create Backstage service account
 create_backstage_service_account() {
-    echo -e "${YELLOW}Setting up Backstage service account...${NC}"
+    echo -e "${YELLOW}Creating Backstage service account...${NC}"
     
-    # Check if service account already exists
-    if kubectl get serviceaccount backstage-k8s-sa -n default &> /dev/null; then
-        echo "Service account already exists"
-        
-        # Check if we have a valid token in environment
-        if [ -n "${K8S_SERVICE_ACCOUNT_TOKEN}" ]; then
-            echo "Using existing token from environment"
-            export K8S_SERVICE_ACCOUNT_TOKEN="${K8S_SERVICE_ACCOUNT_TOKEN}"
-        else
-            # Check if there's a long-lived token secret (for older K8s versions)
-            TOKEN_SECRET=$(kubectl get serviceaccount backstage-k8s-sa -n default -o jsonpath='{.secrets[0].name}' 2>/dev/null || echo "")
-            if [ -n "${TOKEN_SECRET}" ] && [ "${TOKEN_SECRET}" != "null" ]; then
-                echo "Found existing token secret: ${TOKEN_SECRET}"
-                export K8S_SERVICE_ACCOUNT_TOKEN=$(kubectl get secret "${TOKEN_SECRET}" -n default -o jsonpath='{.data.token}' | base64 -d)
-            else
-                echo "Generating new token..."
-                export K8S_SERVICE_ACCOUNT_TOKEN=$(kubectl create token backstage-k8s-sa -n default --duration=8760h)
-            fi
-        fi
-    else
-        # Create service account
-        kubectl create serviceaccount backstage-k8s-sa -n default --dry-run=client -o yaml | kubectl apply -f -
-        
-        # Create cluster role binding
-        kubectl create clusterrolebinding backstage-k8s-sa-binding \
-            --clusterrole=cluster-admin \
-            --serviceaccount=default:backstage-k8s-sa \
-            --dry-run=client -o yaml | kubectl apply -f -
-        
-        # Generate new token
-        echo "Generating new token for new service account..."
-        export K8S_SERVICE_ACCOUNT_TOKEN=$(kubectl create token backstage-k8s-sa -n default --duration=8760h)
+    # Check for existing token in app-portal config
+    OLD_TOKEN=""
+    if [ -f "app-portal/app-config.local.yaml" ]; then
+        OLD_TOKEN=$(grep -A 5 "serviceAccountToken:" app-portal/app-config.local.yaml 2>/dev/null | grep "serviceAccountToken:" | sed 's/.*serviceAccountToken: *//' | tr -d '"' | tr -d "'" || echo "")
+    fi
+    
+    # Create service account
+    kubectl create serviceaccount backstage-k8s-sa -n default --dry-run=client -o yaml | kubectl apply -f -
+    
+    # Create cluster role binding
+    kubectl create clusterrolebinding backstage-k8s-sa-binding \
+        --clusterrole=cluster-admin \
+        --serviceaccount=default:backstage-k8s-sa \
+        --dry-run=client -o yaml | kubectl apply -f -
+    
+    # Generate token (valid for 1 year)
+    export K8S_SERVICE_ACCOUNT_TOKEN=$(kubectl create token backstage-k8s-sa -n default --duration=8760h)
+    
+    # Check if token changed
+    if [ -n "$OLD_TOKEN" ] && [ "$OLD_TOKEN" != "$K8S_SERVICE_ACCOUNT_TOKEN" ]; then
+        echo -e "${YELLOW}⚠ Service account token has changed - update your app-config.local.yaml${NC}"
     fi
     
     echo -e "${GREEN}✓ Backstage service account ready${NC}"
