@@ -44,28 +44,30 @@ yarn start
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:7007
 
-## Documentation
+## 📚 Documentation
 
 - [CLAUDE.md](./CLAUDE.md) - Development instructions for Claude Code
+- [Docker Development](./docs/docker-development.md) - Building and running Backstage in Docker
 - [GitHub App Setup](./docs/github-app-setup.md) - Configure GitHub authentication
-- [Rancher Desktop Setup](./docs/rancher-desktop-setup.md) - Local Kubernetes with Rancher Desktop
+- [SOPS Secret Management](./docs/sops-secret-management.md) - How we manage secrets securely
+- [Local Kubernetes Setup](./docs/local-kubernetes-setup.md) - Setting up local Kubernetes with Crossplane
 - [Troubleshooting Guide](./docs/troubleshooting/) - Common issues and solutions
 
 ## Local Development Environment
 
-**Rancher Desktop:**
+For local Kubernetes development:
 ```bash
-# Run automated setup
-./scripts/setup-rancher-k8s.sh
+# Run automated setup (requires kubectl, helm, etc.)
+./scripts/setup-cluster.sh
 
-# After setup, access the cluster
-kubectl config use-context rancher-desktop
+# After setup, verify the cluster
 kubectl get nodes
+kubectl get pods -n crossplane-system
 
 # Export kubeconfig if needed
-kubectl config view --raw > rancher-kubeconfig.yaml
+kubectl config view --raw > kubeconfig.yaml
 ```
-See [Rancher Desktop Setup Guide](./docs/rancher-desktop-setup.md) for details.
+See [Local Kubernetes Setup](./docs/local-kubernetes-setup.md) for details.
 
 ## Note
 
