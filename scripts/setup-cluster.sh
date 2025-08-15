@@ -86,6 +86,13 @@ configure_sops_for_flux() {
     # Create namespace for Flux (needed for later)
     kubectl create namespace flux-system --dry-run=client -o yaml | kubectl apply -f -
     
+    # TODO: Implement actual SOPS configuration for Flux
+    # - Generate age key: age-keygen -o age.key
+    # - Create secret: kubectl create secret generic sops-age \
+    #     --namespace=flux-system --from-file=age.agekey=age.key
+    # - Output public key for .sops.yaml configuration
+    # This is currently just a placeholder!
+    
     echo -e "${GREEN}✓ SOPS configuration info provided${NC}"
 }
 
