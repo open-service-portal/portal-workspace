@@ -1,0 +1,74 @@
+---
+# XRD for Crossplane v2 - Firewall Rules
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: xfirewallrules.platform.example.com
+  labels:
+    terasky.backstage.io/generate-form: "true"
+spec:
+  group: platform.example.com
+  names:
+    kind: XFirewallRule
+    plural: xfirewallrules
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          required:
+            - spec
+          properties:
+            spec:
+              type: object
+              required:
+                - protocol
+                - port
+                - source
+              properties:
+                protocol:
+                  title: 'Protocol'
+                  description: 'Network protocol'
+                  type: string
+                  default: "tcp"
+                  enum:
+                    - "tcp"
+                    - "udp"
+                    - "icmp"
+                port:
+                  title: 'Port'
+                  description: 'Port number (0 for all ports)'
+                  type: integer
+                  minimum: 0
+                  maximum: 65535
+                  default: 443
+                source:
+                  title: 'Source CIDR'
+                  description: 'Source IP range in CIDR notation'
+                  type: string
+                  default: "0.0.0.0/0"
+                  pattern: '^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]{1,2}$'
+                  example: "10.0.0.0/8"
+                destination:
+                  title: 'Destination CIDR'
+                  description: 'Destination IP range in CIDR notation'
+                  type: string
+                  default: "0.0.0.0/0"
+                  pattern: '^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]{1,2}$'
+                action:
+                  title: 'Action'
+                  description: 'Action to take on matching traffic'
+                  type: string
+                  default: "allow"
+                  enum:
+                    - "allow"
+                    - "deny"
+                priority:
+                  title: 'Priority'
+                  description: 'Rule priority (lower number = higher priority)'
+                  type: integer
+                  minimum: 1
+                  maximum: 1000
+                  default: 100

@@ -1,0 +1,61 @@
+---
+# XRD for Crossplane v2 - without claimNames
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: xmongodbs.platform.example.com
+  labels:
+    terasky.backstage.io/generate-form: "true"
+spec:
+  group: platform.example.com
+  names:
+    kind: XMongoDB
+    plural: xmongodbs
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          required:
+            - spec
+          properties:
+            spec:
+              type: object
+              required:
+                - storageSize
+              properties:
+                storageSize:
+                  title: 'Storage Size'
+                  description: 'Size of the MongoDB storage in GB'
+                  type: integer
+                  minimum: 1
+                  maximum: 100
+                  default: 10
+                  example: 10
+                version:
+                  title: 'MongoDB Version'
+                  description: 'Version of MongoDB to deploy'
+                  type: string
+                  default: "7.0"
+                  enum:
+                    - "6.0"
+                    - "7.0"
+                    - "8.0"
+                replicas:
+                  title: 'Number of Replicas'
+                  description: 'Number of MongoDB replicas'
+                  type: integer
+                  minimum: 1
+                  maximum: 7
+                  default: 3
+                resourceClass:
+                  title: 'Resource Class'
+                  description: 'Size of compute resources'
+                  type: string
+                  default: "small"
+                  enum:
+                    - "small"   # 1 CPU, 2Gi RAM
+                    - "medium"  # 2 CPU, 4Gi RAM
+                    - "large"   # 4 CPU, 8Gi RAM
