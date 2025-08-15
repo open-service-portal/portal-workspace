@@ -99,7 +99,7 @@ When encountering errors, check the troubleshooting guides first.
 - **Orchestration**: Kubernetes
 - **GitOps**: Flux
 - **Secret Management**: SOPS with age encryption
-- **Infrastructure**: Crossplane v1.17
+- **Infrastructure**: Crossplane v2.0
 
 ### Core Components
 1. **Software Catalog** - Track services, libraries, and components
@@ -172,9 +172,19 @@ We support any Kubernetes distribution with a unified setup:
 # - NGINX Ingress Controller
 # - Flux GitOps
 # - SOPS configuration with age keys
-# - Crossplane v1.17
+# - Crossplane v2.0
 # - Backstage service account
 ```
+
+**Version Philosophy: Latest + Greatest**
+We intentionally use the latest stable versions of all components, especially Crossplane and its providers. This approach:
+- **Identifies compatibility issues early** - We discover breaking changes and API incompatibilities before they impact production deployments
+- **Tests new features proactively** - We can evaluate and adopt new capabilities like namespaced resources and v2 APIs immediately
+- **Provides feedback to upstream** - Early adoption helps the Crossplane community by identifying edge cases
+- **Keeps our platform modern** - Ensures we're not building on deprecated or soon-to-be-obsolete APIs
+- **Simplifies future migrations** - Incremental updates are easier than massive version jumps
+
+This is a deliberate testing strategy for our local development environment. Production deployments should use pinned, thoroughly tested versions.
 
 **Secret Management**
 ```bash

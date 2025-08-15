@@ -164,7 +164,7 @@ install_flux() {
 
 # Install Crossplane
 install_crossplane() {
-    echo -e "${YELLOW}Installing Crossplane v1.17...${NC}"
+    echo -e "${YELLOW}Installing Crossplane v2.0...${NC}"
     
     # Check if already installed
     if helm list -n crossplane-system 2>/dev/null | grep -q crossplane; then
@@ -182,7 +182,7 @@ install_crossplane() {
     # Install Crossplane
     helm upgrade --install crossplane \
         --namespace crossplane-system \
-        --version 1.17.0 \
+        --version 2.0.0 \
         crossplane-stable/crossplane \
         --wait --timeout=5m
     
@@ -291,7 +291,7 @@ print_summary() {
     echo "  ✓ NGINX Ingress Controller"
     echo "  ✓ Flux GitOps"
     echo "  ✓ SOPS for secret management"
-    echo "  ✓ Crossplane v1.17.0"
+    echo "  ✓ Crossplane v2.0.0"
     echo "  ✓ provider-kubernetes"
     echo "  ✓ Backstage service account"
     echo ""

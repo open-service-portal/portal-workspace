@@ -67,7 +67,7 @@ yarn start
 # - NGINX Ingress Controller
 # - Flux GitOps
 # - SOPS for secret management
-# - Crossplane v1.17
+# - Crossplane v2.0
 # - Backstage service account
 ```
 
