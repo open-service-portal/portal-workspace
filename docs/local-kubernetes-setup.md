@@ -45,7 +45,7 @@ This script will:
 1. Verify all required tools are installed
 2. Install NGINX Ingress Controller
 3. Install Flux for GitOps
-4. Install Crossplane v1.17.0
+4. Install Crossplane v2.0.0
 5. Install provider-kubernetes
 6. Configure SOPS for secret management
 7. Create a service account for Backstage
@@ -68,7 +68,7 @@ helm repo update
 helm install crossplane \
   --namespace crossplane-system \
   --create-namespace \
-  --version 1.17.0 \
+  --version 2.0.0 \
   crossplane-stable/crossplane \
   --wait
 
