@@ -12,13 +12,10 @@ catalog/
 template-*/
 service-*-template/
 
-<<<<<<< HEAD
 # K8s Configs
 *.kubeconfig
 *-kubeconfig
 *kubeconfig.yaml
-=======
->>>>>>> f30f4ce (feat: add Crossplane v2 setup with namespaced XRs and Flux catalog)
 
 # OS
 .DS_Store

@@ -1,11 +1,7 @@
 ---
 # Platform-wide Environment Configurations
 # These are shared across all Crossplane templates
-<<<<<<< HEAD
 apiVersion: apiextensions.crossplane.io/v1beta1
-=======
-apiVersion: apiextensions.crossplane.io/v1alpha1
->>>>>>> f30f4ce (feat: add Crossplane v2 setup with namespaced XRs and Flux catalog)
 kind: EnvironmentConfig
 metadata:
   name: dns-config
@@ -14,12 +10,8 @@ metadata:
     description: "DNS zone configuration for the platform"
 data:
   # DNS zone for all DNS records
-<<<<<<< HEAD
   zone: openportal.dev
-=======
-  zone: portal.example.com
->>>>>>> f30f4ce (feat: add Crossplane v2 setup with namespaced XRs and Flux catalog)
-  
+
   # Additional configuration that could be used
   # nameservers:
   #   - ns1.example.com
