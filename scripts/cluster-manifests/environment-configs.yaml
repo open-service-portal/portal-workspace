@@ -1,0 +1,19 @@
+---
+# Platform-wide Environment Configurations
+# These are shared across all Crossplane templates
+apiVersion: apiextensions.crossplane.io/v1alpha1
+kind: EnvironmentConfig
+metadata:
+  name: dns-config
+  annotations:
+    crossplane.io/version: "v2.0"
+    description: "DNS zone configuration for the platform"
+data:
+  # DNS zone for all DNS records
+  zone: portal.example.com
+  
+  # Additional configuration that could be used
+  # nameservers:
+  #   - ns1.example.com
+  #   - ns2.example.com
+  # contact: admin@example.com

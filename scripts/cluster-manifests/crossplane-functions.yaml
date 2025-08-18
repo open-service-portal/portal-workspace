@@ -1,0 +1,42 @@
+---
+# Common Crossplane Composition Functions
+# These are installed by default to support advanced compositions
+apiVersion: pkg.crossplane.io/v1
+kind: Function
+metadata:
+  name: function-go-templating
+  annotations:
+    crossplane.io/version: "v2.0"
+    description: "Go templating for flexible resource generation"
+spec:
+  package: xpkg.upbound.io/crossplane-contrib/function-go-templating:v0.4.0
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Function
+metadata:
+  name: function-patch-and-transform
+  annotations:
+    crossplane.io/version: "v2.0"
+    description: "Traditional patching and transformation"
+spec:
+  package: xpkg.upbound.io/crossplane-contrib/function-patch-and-transform:v0.4.0
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Function
+metadata:
+  name: function-auto-ready
+  annotations:
+    crossplane.io/version: "v2.0"
+    description: "Automatically mark resources as ready"
+spec:
+  package: xpkg.upbound.io/crossplane-contrib/function-auto-ready:v0.2.1
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Function
+metadata:
+  name: function-environment-configs
+  annotations:
+    crossplane.io/version: "v2.0"
+    description: "Load shared environment configurations"
+spec:
+  package: xpkg.upbound.io/crossplane-contrib/function-environment-configs:v0.1.0

@@ -5,9 +5,12 @@
 .github/
 app-portal/
 deploy-app-portal/
+catalog/
 
 # Service Template Repositories
+template-*/
 service-*-template/
+
 
 # OS
 .DS_Store

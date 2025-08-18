@@ -12,6 +12,16 @@ Installs the Crossplane Kubernetes provider which allows Crossplane to manage Ku
 ### provider-config.yaml
 Configures the Kubernetes provider to use injected identity for authentication.
 
+### crossplane-functions.yaml
+Installs common Crossplane composition functions for advanced compositions:
+- function-go-templating: Go templating for flexible resource generation
+- function-patch-and-transform: Traditional patching and transformation
+- function-auto-ready: Automatically mark resources as ready
+- function-environment-configs: Load shared environment configurations
+
+### flux-catalog.yaml
+Configures Flux to watch the catalog repository for Crossplane templates.
+
 ## Usage
 
 These manifests are automatically applied by the setup script. You can also apply them manually:
