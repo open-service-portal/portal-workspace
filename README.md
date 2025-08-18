@@ -6,7 +6,15 @@ This is a workspace directory containing multiple Open Service Portal repositori
 
 This workspace contains the following repositories:
 
+### Core Application
 - **[app-portal/](https://github.com/open-service-portal/app-portal)** - Main Backstage application
+
+### Crossplane Templates
+- **[catalog/](https://github.com/open-service-portal/catalog)** - Template catalog repository (GitOps registry)
+- **[template-dns-record/](https://github.com/open-service-portal/template-dns-record)** - DNS record management template
+- Additional templates to be added via catalog pattern
+
+### Service Templates (Backstage)
 - **[service-nodejs-template/](https://github.com/open-service-portal/service-nodejs-template)** - Node.js service template
 - **service-golang-template/** - Go service template (planned)
 - **service-python-template/** - Python service template (planned)
@@ -47,8 +55,10 @@ yarn start
 ## Documentation
 
 - [CLAUDE.md](./CLAUDE.md) - Development instructions for Claude Code
+- [Crossplane v2 Architecture](./docs/crossplane-v2-architecture.md) - Overview of our Crossplane v2 implementation
+- [Crossplane Catalog Setup](./docs/crossplane-catalog-setup.md) - How to create and manage Crossplane templates
+- [Local Kubernetes Setup](./docs/local-kubernetes-setup.md) - Set up Kubernetes locally with Crossplane
 - [GitHub App Setup](./docs/github-app-setup.md) - Configure GitHub authentication
-- [Local Kubernetes Setup](./docs/local-kubernetes-setup.md) - Set up Kubernetes locally
 - [Troubleshooting Guide](./docs/troubleshooting/) - Common issues and solutions
 
 ## Kubernetes Setup
@@ -58,28 +68,54 @@ yarn start
 - kubectl configured
 - Helm installed
 
-### Cluster Setup
+### Automated Cluster Setup
 ```bash
 # Run unified setup script for any Kubernetes cluster
 ./scripts/setup-cluster.sh
 
 # This installs:
 # - NGINX Ingress Controller
-# - Flux GitOps
-# - SOPS for secret management
-# - Crossplane v2.0
+# - Flux GitOps with catalog watcher
+# - Crossplane v2.0 with namespaced XRs
+# - Composition functions (go-templating, patch-and-transform, etc.)
+# - Platform-wide environment configurations
+# - provider-kubernetes
 # - Backstage service account
 ```
 
-### Secret Management
-SOPS is used for encrypting secrets in Git repositories. See [SOPS Secret Management](./docs/sops-secret-management.md) for details.
+### Crossplane Templates
+We use a GitOps catalog pattern for managing Crossplane templates:
+
+1. **Create Template**: Follow the pattern in `template-dns-record/`
+2. **Register in Catalog**: Add to `catalog/templates/`
+3. **Flux Syncs**: Automatically discovers and installs templates
+4. **Use Template**: Create XRs directly in your namespace (no claims needed!)
+
+See [Crossplane Catalog Setup](./docs/crossplane-catalog-setup.md) for details.
+
+## Key Features
+
+### Crossplane v2 with Namespaced XRs
+- Developers create XRs directly in their namespaces
+- No need for separate claim resources
+- Better namespace isolation and standard RBAC
+
+### GitOps Everything
+- Flux manages all deployments
+- Central catalog for template discovery
+- Git as single source of truth
+
+### Modern Infrastructure as Code
+- Pipeline mode compositions with functions
+- Shared environment configurations
+- Reusable transformation logic
 
 ## Note
 
 This workspace parent directory is version controlled separately to maintain:
 - Workspace-level documentation (this README, CLAUDE.md)
-- Shared configurations
-- Cross-repository scripts or tools
-- Troubleshooting guides
+- Shared configurations and setup scripts
+- Cross-repository documentation
+- Unified cluster setup (`scripts/setup-cluster.sh`)
 
 The actual repository directories are excluded via `.gitignore`.

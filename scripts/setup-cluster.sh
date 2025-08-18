@@ -44,23 +44,6 @@ check_prerequisites() {
         exit 1
     fi
     
-    # Check sops
-    if ! command -v sops &> /dev/null; then
-        echo -e "${RED}Error: sops is not installed${NC}"
-        echo "Please install sops first:"
-        echo "  macOS: brew install sops"
-        echo "  Linux: Download from https://github.com/getsops/sops"
-        exit 1
-    fi
-    
-    # Check age
-    if ! command -v age &> /dev/null; then
-        echo -e "${RED}Error: age is not installed${NC}"
-        echo "Please install age first:"
-        echo "  macOS: brew install age"
-        echo "  Linux: Download from https://github.com/FiloSottile/age"
-        exit 1
-    fi
     
     # Check cluster connectivity
     if ! kubectl cluster-info &> /dev/null; then
@@ -73,27 +56,8 @@ check_prerequisites() {
     echo "  - kubectl: $(kubectl version --client -o json 2>/dev/null | grep gitVersion | cut -d'"' -f4 | head -1)"
     echo "  - helm: $(helm version --short)"
     echo "  - yq: $(yq --version | cut -d' ' -f4)"
-    echo "  - sops: $(sops --version 2>&1 | grep -o 'sops [0-9.]*' | cut -d' ' -f2)"
-    echo "  - age: $(age --version 2>&1 | cut -d' ' -f2)"
     echo "  - cluster: $(kubectl config current-context)"
     echo ""
-}
-
-# Configure SOPS for Flux
-configure_sops_for_flux() {
-    echo -e "${YELLOW}Configuring SOPS for Flux...${NC}"
-    
-    # Create namespace for Flux (needed for later)
-    kubectl create namespace flux-system --dry-run=client -o yaml | kubectl apply -f -
-    
-    # TODO: Implement actual SOPS configuration for Flux
-    # - Generate age key: age-keygen -o age.key
-    # - Create secret: kubectl create secret generic sops-age \
-    #     --namespace=flux-system --from-file=age.agekey=age.key
-    # - Output public key for .sops.yaml configuration
-    # This is currently just a placeholder!
-    
-    echo -e "${GREEN}✓ SOPS configuration info provided${NC}"
 }
 
 # Install NGINX Ingress Controller
@@ -138,16 +102,15 @@ install_nginx_ingress() {
 install_flux() {
     echo -e "${YELLOW}Installing Flux...${NC}"
     
+    # Create namespace for Flux
+    kubectl create namespace flux-system --dry-run=client -o yaml | kubectl apply -f -
+    
     # Check if already installed
-    if kubectl get namespace flux-system &> /dev/null && \
-       kubectl get deployments -n flux-system &> /dev/null && \
+    if kubectl get deployments -n flux-system &> /dev/null && \
        [ $(kubectl get deployments -n flux-system --no-headers 2>/dev/null | wc -l) -gt 0 ]; then
         echo -e "${GREEN}✓ Flux already installed${NC}"
         return
     fi
-    
-    # Install Flux using the install manifests
-    kubectl create namespace flux-system --dry-run=client -o yaml | kubectl apply -f -
     
     # Apply Flux install manifests
     kubectl apply -f https://github.com/fluxcd/flux2/releases/latest/download/install.yaml
@@ -235,6 +198,89 @@ install_provider_kubernetes() {
     echo -e "${GREEN}✓ provider-kubernetes installed and configured${NC}"
 }
 
+# Install Crossplane composition functions
+install_crossplane_functions() {
+    echo -e "${YELLOW}Installing Crossplane composition functions...${NC}"
+    
+    MANIFEST_DIR="$(cd "$(dirname "$0")" && pwd)/cluster-manifests"
+    FUNCTIONS_MANIFEST="$MANIFEST_DIR/crossplane-functions.yaml"
+    
+    if [ ! -f "$FUNCTIONS_MANIFEST" ]; then
+        echo -e "${YELLOW}Warning: Functions manifest not found at $FUNCTIONS_MANIFEST${NC}"
+        echo "Skipping functions installation"
+        return
+    fi
+    
+    # Apply functions manifest
+    kubectl apply -f "$FUNCTIONS_MANIFEST"
+    
+    # Wait for functions to be installed
+    echo "Waiting for functions to be installed..."
+    sleep 10
+    
+    # Check each function
+    for function in function-go-templating function-patch-and-transform function-auto-ready function-environment-configs; do
+        echo "  Checking $function..."
+        kubectl wait --for=condition=Installed function.pkg.crossplane.io/$function --timeout=90s 2>/dev/null || {
+            echo -e "${YELLOW}  $function is still installing...${NC}"
+        }
+    done
+    
+    echo -e "${GREEN}✓ Crossplane functions installed${NC}"
+    echo "  - function-go-templating: Go templating for resource generation"
+    echo "  - function-patch-and-transform: Traditional patching"
+    echo "  - function-auto-ready: Automatic readiness"
+    echo "  - function-environment-configs: Shared configurations"
+}
+
+# Install platform-wide environment configs
+install_environment_configs() {
+    echo -e "${YELLOW}Installing platform environment configurations...${NC}"
+    
+    MANIFEST_DIR="$(cd "$(dirname "$0")" && pwd)/cluster-manifests"
+    ENV_CONFIGS_MANIFEST="$MANIFEST_DIR/environment-configs.yaml"
+    
+    if [ ! -f "$ENV_CONFIGS_MANIFEST" ]; then
+        echo -e "${YELLOW}Warning: Environment configs not found at $ENV_CONFIGS_MANIFEST${NC}"
+        echo "Skipping environment config installation"
+        return
+    fi
+    
+    # Apply environment configs (CRD is included with Crossplane v2.0)
+    kubectl apply -f "$ENV_CONFIGS_MANIFEST" && {
+        echo -e "${GREEN}✓ Environment configurations installed${NC}"
+        echo "  - dns-config: DNS zone settings for all templates"
+    } || {
+        echo -e "${RED}Error: Failed to apply environment configs${NC}"
+        echo "Please check the error message above"
+        return 1
+    }
+}
+
+# Configure Flux to watch catalog repository
+configure_flux_catalog() {
+    echo -e "${YELLOW}Configuring Flux to watch Crossplane template catalog...${NC}"
+    
+    MANIFEST_DIR="$(cd "$(dirname "$0")" && pwd)/cluster-manifests"
+    FLUX_CATALOG_MANIFEST="$MANIFEST_DIR/flux-catalog.yaml"
+    
+    # Apply Flux catalog configuration
+    kubectl apply -f "$FLUX_CATALOG_MANIFEST"
+    
+    # Wait a moment for the resources to be created
+    sleep 2
+    
+    # Check if the GitRepository was created
+    if kubectl get gitrepository catalog -n flux-system &>/dev/null; then
+        echo -e "${GREEN}✓ Flux configured to watch catalog repository${NC}"
+        echo "  Repository: https://github.com/open-service-portal/catalog"
+        echo "  Sync interval: 1 minute"
+    else
+        echo -e "${YELLOW}Note: Flux catalog resources created but not yet syncing${NC}"
+        echo "  This is normal if the catalog repository doesn't exist yet"
+    fi
+}
+
 # Create Backstage service account
 create_backstage_service_account() {
     echo -e "${YELLOW}Creating Backstage service account...${NC}"
@@ -297,9 +343,18 @@ print_summary() {
     echo "Installed components:"
     echo "  ✓ NGINX Ingress Controller"
     echo "  ✓ Flux GitOps"
-    echo "  ✓ SOPS for secret management"
+    echo "  ✓ Flux catalog watcher for Crossplane templates"
     echo "  ✓ Crossplane v2.0.0"
     echo "  ✓ provider-kubernetes"
+    echo "  ✓ Crossplane composition functions"
+    
+    # Check if environment configs were installed
+    if kubectl get environmentconfig dns-config &>/dev/null 2>&1; then
+        echo "  ✓ Platform environment configurations"
+    else
+        echo "  ⚠ Platform environment configurations (pending CRD availability)"
+    fi
+    
     echo "  ✓ Backstage service account"
     echo ""
     echo "Cluster Information:"
@@ -333,9 +388,10 @@ print_summary() {
     echo "To verify installation:"
     echo "  kubectl get pods -n ingress-nginx"
     echo "  kubectl get pods -n flux-system"
-    echo "  kubectl get secret -n flux-system sops-age"
+    echo "  kubectl get gitrepository -n flux-system"
     echo "  kubectl get pods -n crossplane-system"
     echo "  kubectl get providers.pkg.crossplane.io"
+    echo "  kubectl get functions.pkg.crossplane.io"
     echo ""
     echo ""
     echo "============================================================"
@@ -346,9 +402,11 @@ main() {
     check_prerequisites
     install_nginx_ingress
     install_flux
-    configure_sops_for_flux  # SOPS configuration info after Flux
+    configure_flux_catalog  # Configure Flux to watch catalog
     install_crossplane
     install_provider_kubernetes
+    install_crossplane_functions  # Install common functions
+    install_environment_configs  # Install platform-wide configs
     create_backstage_service_account
     print_summary
 }

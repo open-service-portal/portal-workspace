@@ -17,21 +17,26 @@ open-service-portal/         # THIS directory = portal-workspace repo
 ├── CLAUDE.md               # Workspace-level context (this file)
 ├── README.md               # Workspace overview
 ├── docs/                   # Shared documentation
-├── concepts/               # Architecture decisions
+│   ├── crossplane-v2-architecture.md  # Crossplane v2 overview
+│   ├── crossplane-catalog-setup.md    # Template management
+│   └── local-kubernetes-setup.md      # K8s setup guide
 ├── scripts/                # Unified setup and utility scripts
 │   ├── setup-cluster.sh    # Universal K8s cluster setup
-│   └── cluster-manifests/  # Crossplane configs
-├── .claude/                # Claude Code configuration
-│   └── agents/             # Custom agents for specialized tasks
+│   └── cluster-manifests/  # Platform-wide configs
+│       ├── crossplane-functions.yaml  # Composition functions
+│       ├── environment-configs.yaml   # Shared configs
+│       └── flux-catalog.yaml         # Catalog watcher
 ├── .gitignore              # Ignores nested repos below
 │
 ├── app-portal/             # NESTED repo (cloned separately)
 │   └── .git/               # app-portal's own git
-├── service-nodejs-template/ # NESTED repo (cloned separately)  
-│   └── .git/               # template's own git
-└── .github/                # NESTED repo for org profile
-    └── .git/               # .github's own git
-```
+├── catalog/                # NESTED repo - template registry
+│   └── templates/          # Template references
+├── template-dns-record/    # NESTED repo - Crossplane template
+│   ├── xrd.yaml           # API definition (namespaced v2)
+│   ├── composition.yaml   # Implementation
+│   └── examples/xr.yaml   # Usage examples
+└── service-*-template/     # NESTED repos - Backstage templates
 
 ## Setup
 
@@ -62,14 +67,18 @@ git clone https://github.com/open-service-portal/app-portal.git
   - Contains frontend and backend packages
   - Configured for GitHub/GitLab integration
 
-#### Service Templates
+#### Crossplane Templates (Infrastructure)
+- **catalog/** - Central registry for Crossplane templates (git@github.com:open-service-portal/catalog.git)
+- **template-dns-record/** - DNS management template (git@github.com:open-service-portal/template-dns-record.git)
+- Additional templates registered via catalog pattern
+
+#### Backstage Templates (Services)
 - **service-nodejs-template/** - Template for Node.js services (git@github.com:open-service-portal/service-nodejs-template.git)
 - **service-golang-template/** - Template for Go microservices (planned)
 - **service-python-template/** - Template for Python services (planned)
 
 #### Documentation
-- **docs/** - Documentation website (planned)
-- **portal-workspace/** - This workspace repository with meta-documentation
+- **portal-workspace/** - This workspace repository with documentation and setup scripts
 
 ## Development
 
@@ -97,9 +106,9 @@ When encountering errors, check the troubleshooting guides first.
 - **Database**: SQLite (dev) / PostgreSQL (production)
 - **Container**: Docker / Podman
 - **Orchestration**: Kubernetes
-- **GitOps**: Flux
-- **Secret Management**: SOPS with age encryption
-- **Infrastructure**: Crossplane v2.0
+- **GitOps**: Flux with catalog pattern
+- **Infrastructure**: Crossplane v2.0 with namespaced XRs
+- **Composition Functions**: go-templating, patch-and-transform, auto-ready, environment-configs
 
 ### Core Components
 1. **Software Catalog** - Track services, libraries, and components
@@ -117,12 +126,23 @@ When encountering errors, check the troubleshooting guides first.
 - Use Material-UI components for consistency
 
 ### Template Development
-When creating service templates:
+
+#### Backstage Service Templates
 1. Follow the naming convention: `service-{name}-template`
 2. Add `template.yaml` in repository root
-3. Templates are auto-discovered via GitHub provider (pattern: `service-*-template`)
+3. Templates are auto-discovered via GitHub provider
 4. Include comprehensive documentation
 5. Add example service scaffolding in `content/` directory
+
+#### Crossplane Infrastructure Templates
+1. Follow the naming convention: `template-{resource}`
+2. Structure:
+   - `xrd.yaml` - API definition (use v2 with namespaced scope)
+   - `composition.yaml` - Implementation (use Pipeline mode)
+   - `rbac.yaml` - Required permissions
+   - `examples/xr.yaml` - Usage examples (XRs, not claims)
+3. Register in catalog repository
+4. Flux automatically syncs from catalog
 
 ### Environment Variables
 Required environment variables should be documented and include:
@@ -155,10 +175,10 @@ app-portal/
 - Templates: GitHub Actions for CI/CD
 
 ### Service Provisioning
-- Crossplane for infrastructure management
-- GitOps workflow with Flux
-- Kubernetes-native service definitions
-- SOPS for encrypted secrets in Git
+- Crossplane v2 with namespaced XRs (no claims needed)
+- GitOps workflow with Flux catalog pattern
+- Pipeline mode compositions with functions
+- Platform-wide environment configurations
 
 ### Kubernetes Setup
 We support any Kubernetes distribution with a unified setup:
@@ -170,9 +190,11 @@ We support any Kubernetes distribution with a unified setup:
 
 # Installs:
 # - NGINX Ingress Controller
-# - Flux GitOps
-# - SOPS configuration with age keys
-# - Crossplane v2.0
+# - Flux GitOps with catalog watcher
+# - Crossplane v2.0 with namespaced XRs
+# - Composition functions (globally installed)
+# - Environment configurations (platform-wide)
+# - provider-kubernetes
 # - Backstage service account
 ```
 
@@ -186,13 +208,20 @@ We intentionally use the latest stable versions of all components, especially Cr
 
 This is a deliberate testing strategy for our local development environment. Production deployments should use pinned, thoroughly tested versions.
 
-**Secret Management**
+**Crossplane Template Usage**
 ```bash
-# SOPS encryption is used for secrets
-# See docs/sops-secret-management.md for details
-
-# Secrets are encrypted in Git repositories
-# Flux automatically decrypts using sops-age secret
+# Create XRs directly in your namespace (v2 style)
+kubectl apply -f - <<EOF
+apiVersion: platform.io/v1alpha1
+kind: XDNSRecord  # Direct XR, no claim needed!
+metadata:
+  name: my-app
+  namespace: my-team  # Namespaced!
+spec:
+  type: A
+  name: my-app
+  value: "192.168.1.100"
+EOF
 ```
 
 ## Best Practices
@@ -204,10 +233,9 @@ This is a deliberate testing strategy for our local development environment. Pro
 
 2. **Security**
    - Never commit plaintext secrets or tokens
-   - Use SOPS encryption for secrets in Git
-   - Age keys stored securely in cluster
    - Use environment variables for local development
    - Follow Backstage security guidelines
+   - Use RBAC for namespace isolation with XRs
 
 3. **Documentation**
    - Update TechDocs with service changes
@@ -260,9 +288,10 @@ gh pr create --repo open-service-portal/app-portal \
 
 ### Repository Naming
 - `app-*` - Applications (e.g., app-portal)
-- `service-*-template` - Service templates
+- `catalog` - Crossplane template registry
+- `template-*` - Crossplane infrastructure templates
+- `service-*-template` - Backstage service templates
 - `plugin-*` - Shared Backstage plugins (future)
-- `docs` - Documentation site
 
 ### Documentation Structure
 Each repository should contain:
@@ -276,7 +305,7 @@ We use **restaurant industry analogies** to explain technical concepts, especial
 - **Kitchen** = Composition - how to prepare what was ordered
 - **Supplier** = Provider (e.g., provider-helm) - source of ingredients
 - **Customer** = Developer using the platform
-- **Order** = Claim - request for resources
+- **Order** = XR - direct resource request (v2 style, no claim)
 - **Soft Opening** = Testing phase before production
 
 This makes complex infrastructure concepts accessible to all stakeholders.
@@ -284,7 +313,9 @@ This makes complex infrastructure concepts accessible to all stakeholders.
 ## Key Patterns
 
 1. **Service Discovery**: Use Backstage Software Catalog
-2. **Authentication**: GitHub/GitLab OAuth
-3. **Templates**: Scaffolder for service creation
-4. **Documentation**: TechDocs with MkDocs
-5. **Deployment**: GitOps workflow with Kubernetes
+2. **Authentication**: GitHub/GitLab OAuth  
+3. **Service Templates**: Backstage Scaffolder for service creation
+4. **Infrastructure Templates**: Crossplane with catalog pattern
+5. **Documentation**: TechDocs with MkDocs
+6. **Deployment**: GitOps workflow with Flux
+7. **Resource Management**: Namespaced XRs (Crossplane v2)

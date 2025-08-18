@@ -8,28 +8,22 @@ This guide walks through setting up a local Kubernetes environment with Crosspla
 - **kubectl** - Configured to access your cluster
 - **Helm** - For installing Crossplane
 - **yq** - For YAML manipulation
-- **SOPS** - For secret encryption
-- **age** - For SOPS encryption backend
 
 ## Install Prerequisites
 
 ```bash
 # macOS (using Homebrew)
-brew install kubectl helm yq sops age
+brew install kubectl helm yq
 
 # Linux
 # Install kubectl: https://kubernetes.io/docs/tasks/tools/
 # Install helm: https://helm.sh/docs/intro/install/
 # Install yq: https://github.com/mikefarah/yq
-# Install sops: https://github.com/getsops/sops
-# Install age: https://github.com/FiloSottile/age
 
 # Verify all tools are installed
 kubectl version --client
 helm version
 yq --version
-sops --version
-age --version
 ```
 
 ## Automated Setup
@@ -45,11 +39,13 @@ This script will:
 1. Verify all required tools are installed
 2. Install NGINX Ingress Controller
 3. Install Flux for GitOps
-4. Install Crossplane v2.0.0
-5. Install provider-kubernetes
-6. Configure SOPS for secret management
-7. Create a service account for Backstage
-8. Automatically update `app-portal/app-config.local.yaml` with cluster credentials (if present)
+4. Configure Flux to watch the Crossplane template catalog
+5. Install Crossplane v2.0.0
+6. Install provider-kubernetes
+7. Install Crossplane composition functions (go-templating, patch-and-transform, auto-ready, environment-configs)
+8. Install platform-wide environment configurations
+9. Create a service account for Backstage
+10. Automatically update `app-portal/app-config.local.yaml` with cluster credentials (if present)
 
 The script works with any Kubernetes cluster and uses manifests from `scripts/cluster-manifests/`.
 
@@ -89,20 +85,40 @@ kubectl wait --for=condition=Healthy provider/provider-kubernetes --timeout=300s
 kubectl apply -f scripts/cluster-manifests/provider-config.yaml
 ```
 
-### 3. Install Flux (Optional, for GitOps)
+### 3. Install Crossplane Functions
 
 ```bash
-# Check prerequisites
-flux check --pre
+# Apply functions manifest
+kubectl apply -f scripts/cluster-manifests/crossplane-functions.yaml
 
+# Verify functions are installed
+kubectl get functions
+```
+
+### 4. Install Environment Configurations
+
+```bash
+# Apply platform-wide environment configs
+kubectl apply -f scripts/cluster-manifests/environment-configs.yaml
+
+# Verify environment configs
+kubectl get environmentconfig
+```
+
+### 5. Install Flux (Optional, for GitOps)
+
+```bash
 # Install Flux
-flux install
+kubectl apply -f https://github.com/fluxcd/flux2/releases/latest/download/install.yaml
+
+# Configure Flux to watch catalog
+kubectl apply -f scripts/cluster-manifests/flux-catalog.yaml
 
 # Verify installation
 kubectl get pods -n flux-system
 ```
 
-### 4. Create Service Account for Backstage
+### 6. Create Service Account for Backstage
 
 ```bash
 # Create service account
@@ -148,6 +164,17 @@ kubernetes:
 ```
 
 ## Verification
+
+### Test Crossplane Functions and Environment Configs
+
+```bash
+# Check installed functions
+kubectl get functions
+
+# Check environment configs
+kubectl get environmentconfig
+kubectl describe environmentconfig dns-config
+```
 
 ### Test Crossplane
 
@@ -268,15 +295,15 @@ kubectl config current-context
 
 ## Next Steps
 
-1. Install additional Crossplane providers as needed
-2. Set up SOPS for secret management (see `docs/sops-secret-management.md`)
+1. Create Crossplane templates using namespaced XRs (Crossplane v2)
+2. Push templates to GitHub for Flux to discover
 3. Configure monitoring with Prometheus
 4. Integrate with your Backstage plugins
-5. Explore GitOps workflows with Flux
+5. Explore GitOps workflows with Flux and the catalog pattern
 
 ## Additional Resources
 
 - [Crossplane Documentation](https://docs.crossplane.io/)
 - [Flux Documentation](https://fluxcd.io/docs/)
 - [Backstage Kubernetes Plugin](https://backstage.io/docs/features/kubernetes/)
-- [SOPS Secret Management](./sops-secret-management.md)
+- [Crossplane Catalog Setup](./crossplane-catalog-setup.md)
