@@ -1,5 +1,6 @@
 # Claude settings
 .claude/settings.local.json
+.claude/*.local.*
 
 # Cloned repositories (managed separately)
 .github/
@@ -11,6 +12,10 @@ catalog/
 template-*/
 service-*-template/
 
+# K8s Configs
+*.kubeconfig
+*-kubeconfig
+*kubeconfig.yaml
 
 # OS
 .DS_Store
@@ -19,10 +24,6 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
-
-# Claude Code local settings
-.claude/settings.local.json
-.claude/*.local.*
 
 # Temporary
 *.swp

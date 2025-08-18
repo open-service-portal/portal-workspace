@@ -1,7 +1,7 @@
 ---
 # Platform-wide Environment Configurations
 # These are shared across all Crossplane templates
-apiVersion: apiextensions.crossplane.io/v1alpha1
+apiVersion: apiextensions.crossplane.io/v1beta1
 kind: EnvironmentConfig
 metadata:
   name: dns-config
@@ -10,7 +10,7 @@ metadata:
     description: "DNS zone configuration for the platform"
 data:
   # DNS zone for all DNS records
-  zone: portal.example.com
+  zone: openportal.dev
   
   # Additional configuration that could be used
   # nameservers:
