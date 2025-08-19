@@ -17,10 +17,12 @@ This directory contains all the manifests installed by `setup-cluster.sh` to con
 
 ## How Functions Work with Providers
 
-The composition functions (go-templating, patch-and-transform, etc.) are **provider-agnostic**. They work in the pipeline to:
+The composition functions are **provider-agnostic** and work in the pipeline to:
 1. Generate or transform resource specifications
 2. Pass the resources to the appropriate provider
 3. The provider then creates the actual resources
+
+**Recommended approach**: Use `function-go-templating` for new compositions as it's more modern, flexible, and easier to maintain than patch-and-transform.
 
 ### Example: Using provider-kubernetes with functions
 ```yaml
@@ -44,25 +46,37 @@ pipeline:
                 # ...
 ```
 
-### Example: Using provider-helm with functions
+### Example: Using provider-helm with go-templating (Modern Approach)
 ```yaml
 pipeline:
   - step: deploy-postgresql
     functionRef:
-      name: function-patch-and-transform
+      name: function-go-templating
     input:
-      apiVersion: pt.crossplane.io/v1
-      kind: Resources
-      resources:
-        - name: postgresql
-          base:
-            apiVersion: helm.crossplane.io/v1beta1
-            kind: Release  # This will be handled by provider-helm
-            spec:
-              forProvider:
-                chart:
-                  name: postgresql
-                  repository: https://charts.bitnami.com/bitnami
+      apiVersion: gotemplating.crossplane.io/v1beta1
+      kind: GoTemplate
+      source: Inline
+      inline:
+        template: |
+          apiVersion: helm.crossplane.io/v1beta1
+          kind: Release  # This will be handled by provider-helm
+          metadata:
+            name: {{ .observed.composite.resource.metadata.name }}-postgresql
+          spec:
+            forProvider:
+              chart:
+                name: postgresql
+                repository: https://charts.bitnami.com/bitnami
+                version: "13.2.24"
+              namespace: {{ .observed.composite.resource.spec.namespace }}
+              values:
+                auth:
+                  database: {{ .observed.composite.resource.spec.databaseName }}
+                primary:
+                  persistence:
+                    size: {{ .observed.composite.resource.spec.size | default "10Gi" }}
+            providerConfigRef:
+              name: helm-provider
 ```
 
 ## No Additional Functions Needed

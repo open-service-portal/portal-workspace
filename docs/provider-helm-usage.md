@@ -3,6 +3,8 @@
 ## Overview
 Provider-helm enables Crossplane to deploy Helm charts as managed resources. Think of it as the **supplier** that provides pre-packaged ingredients (Helm charts) like Bitnami PostgreSQL, Redis, or any other Helm chart.
 
+**Best Practice**: Use `function-go-templating` for new compositions instead of `function-patch-and-transform`. Go templating is more modern, provides better flexibility with conditionals and loops, and makes compositions easier to read and maintain.
+
 ## Installation
 Provider-helm is automatically installed by our setup script:
 ```bash
@@ -32,7 +34,7 @@ spec:
     name: helm-provider
 ```
 
-### 2. Use in a Composition
+### 2. Use in a Composition (Modern Go Templating)
 ```yaml
 apiVersion: apiextensions.crossplane.io/v2
 kind: Composition
@@ -46,27 +48,41 @@ spec:
   pipeline:
     - step: deploy-postgresql
       functionRef:
-        name: function-patch-and-transform
+        name: function-go-templating
       input:
-        apiVersion: pt.crossplane.io/v1
-        kind: Resources
-        resources:
-          - name: postgresql
-            base:
-              apiVersion: helm.crossplane.io/v1beta1
-              kind: Release
-              spec:
-                forProvider:
-                  chart:
-                    name: postgresql
-                    repository: https://charts.bitnami.com/bitnami
-                  namespace: databases
-                providerConfigRef:
-                  name: helm-provider
-            patches:
-              - type: FromCompositeFieldPath
-                fromFieldPath: spec.size
-                toFieldPath: spec.forProvider.values.primary.persistence.size
+        apiVersion: gotemplating.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            apiVersion: helm.crossplane.io/v1beta1
+            kind: Release
+            metadata:
+              name: {{ .observed.composite.resource.metadata.name }}-postgresql
+              annotations:
+                crossplane.io/external-name: {{ .observed.composite.resource.metadata.name }}-postgresql
+            spec:
+              forProvider:
+                chart:
+                  name: postgresql
+                  repository: https://charts.bitnami.com/bitnami
+                  version: "13.2.24"
+                namespace: {{ .observed.composite.resource.spec.namespace | default "databases" }}
+                values:
+                  auth:
+                    database: {{ .observed.composite.resource.spec.databaseName }}
+                    username: {{ .observed.composite.resource.spec.username | default "dbuser" }}
+                  primary:
+                    persistence:
+                      enabled: true
+                      size: {{ .observed.composite.resource.spec.size | default "10Gi" }}
+                  metrics:
+                    enabled: {{ .observed.composite.resource.spec.monitoring | default false }}
+              providerConfigRef:
+                name: helm-provider
+    - step: auto-ready
+      functionRef:
+        name: function-auto-ready
 ```
 
 ## Common Helm Charts
