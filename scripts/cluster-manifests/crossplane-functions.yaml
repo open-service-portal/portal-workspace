@@ -46,4 +46,4 @@ metadata:
     crossplane.io/version: "v2.0"
     description: "Load shared environment configurations"
 spec:
-  package: xpkg.upbound.io/crossplane-contrib/function-environment-configs:v0.1.0
+  package: xpkg.upbound.io/crossplane-contrib/function-environment-configs:v0.4.0

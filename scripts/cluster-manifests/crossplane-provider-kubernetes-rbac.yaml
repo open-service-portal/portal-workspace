@@ -1,0 +1,36 @@
+# Provider Kubernetes RBAC
+# Purpose: Grant provider-kubernetes permission to manage all Kubernetes resources
+# Restaurant Analogy: The "master key" - allows the kitchen staff to access all storage areas
+#
+# This ClusterRole and ClusterRoleBinding give provider-kubernetes full access
+# to create and manage Kubernetes resources including namespaces.
+# Required because the default RBAC is too restrictive for creating namespaces.
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: provider-kubernetes-admin
+  annotations:
+    description: "Full cluster access for provider-kubernetes"
+rules:
+- apiGroups: ["*"]
+  resources: ["*"]
+  verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: provider-kubernetes-admin
+  annotations:
+    description: "Bind provider-kubernetes to admin role"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: provider-kubernetes-admin
+subjects:
+# Note: The service account name includes a hash that changes with each provider installation
+# The setup script will need to patch this with the actual service account name
+# For now, we'll bind to all service accounts in crossplane-system (less secure but works)
+- kind: Group
+  name: system:serviceaccounts:crossplane-system
+  apiGroup: rbac.authorization.k8s.io

@@ -185,17 +185,13 @@ install_provider_kubernetes() {
     }
     
     # Apply ProviderConfig
-    PROVIDER_CONFIG="$MANIFEST_DIR/crossplane-provider-kubernetes-config.yaml"
-    
-    if [ ! -f "$PROVIDER_CONFIG" ]; then
-        echo -e "${RED}Error: Provider config not found at $PROVIDER_CONFIG${NC}"
-        echo "Please ensure cluster-manifests directory exists with required files"
-        exit 1
-    fi
-    
     kubectl apply -f "$MANIFEST_DIR/crossplane-provider-kubernetes-config.yaml"
     
-    echo -e "${GREEN}✓ provider-kubernetes installed and configured${NC}"
+    # Apply RBAC for provider-kubernetes to manage all resources
+    echo "Applying RBAC for provider-kubernetes..."
+    kubectl apply -f "$MANIFEST_DIR/crossplane-provider-kubernetes-rbac.yaml"
+    
+    echo -e "${GREEN}✓ provider-kubernetes installed and configured with full RBAC${NC}"
 }
 
 # Install Crossplane provider-helm
@@ -228,12 +224,6 @@ install_crossplane_functions() {
     MANIFEST_DIR="$(cd "$(dirname "$0")" && pwd)/cluster-manifests"
     FUNCTIONS_MANIFEST="$MANIFEST_DIR/crossplane-functions.yaml"
     
-    if [ ! -f "$FUNCTIONS_MANIFEST" ]; then
-        echo -e "${YELLOW}Warning: Functions manifest not found at $FUNCTIONS_MANIFEST${NC}"
-        echo "Skipping functions installation"
-        return
-    fi
-    
     # Apply functions manifest
     kubectl apply -f "$FUNCTIONS_MANIFEST"
     
@@ -262,12 +252,6 @@ install_environment_configs() {
     
     MANIFEST_DIR="$(cd "$(dirname "$0")" && pwd)/cluster-manifests"
     ENV_CONFIGS_MANIFEST="$MANIFEST_DIR/environment-configs.yaml"
-    
-    if [ ! -f "$ENV_CONFIGS_MANIFEST" ]; then
-        echo -e "${YELLOW}Warning: Environment configs not found at $ENV_CONFIGS_MANIFEST${NC}"
-        echo "Skipping environment config installation"
-        return
-    fi
     
     # Apply environment configs (CRD is included with Crossplane v2.0)
     kubectl apply -f "$ENV_CONFIGS_MANIFEST" && {
