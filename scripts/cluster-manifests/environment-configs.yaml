@@ -14,9 +14,10 @@ metadata:
     crossplane.io/version: "v2.0"
     description: "DNS zone configuration for the platform"
 data:
-  # DNS zone for all DNS records
-  zone: openportal.dev
-
+  # Default to local development settings
+  zone: localhost
+  provider: mock
+  
   # Additional configuration that could be used
   # nameservers:
   #   - ns1.example.com
