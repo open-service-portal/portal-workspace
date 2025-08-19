@@ -3,7 +3,8 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Important
-- Never push to main branch, always open a PR.
+- Never git push to main branch, always open a PR.
+- Webresearch, today is 2025
 
 ## Workspace Structure
 
@@ -200,6 +201,28 @@ We support any Kubernetes distribution with a unified setup:
 # - provider-kubernetes
 # - Backstage service account
 ```
+
+**Environment Configuration**
+We provide configuration scripts to switch between local and production environments:
+
+```bash
+# Switch to local development cluster
+./scripts/config-local.sh
+# - Switches kubectl context (default: rancher-desktop)
+# - Loads settings from .env.local
+# - Configures mock DNS provider for localhost
+
+# Switch to OpenPortal production cluster
+./scripts/config-openportal.sh
+# - Switches kubectl context to OpenPortal cluster
+# - Loads settings from .env.openportal
+# - Configures Cloudflare credentials and zone settings
+# - Updates EnvironmentConfigs for production DNS
+```
+
+**Environment Files**
+- `.env.local` - Local cluster configuration (copy from `.env.local.example`)
+- `.env.openportal` - Production cluster configuration (copy from `.env.openportal.example`)
 
 **Version Philosophy: Latest + Greatest**
 We intentionally use the latest stable versions of all components, especially Crossplane and its providers. This approach:

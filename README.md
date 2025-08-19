@@ -55,11 +55,12 @@ yarn start
 ## Documentation
 
 - [CLAUDE.md](./CLAUDE.md) - Development instructions for Claude Code
-- [Crossplane v2 Architecture](./docs/crossplane-v2-architecture.md) - Overview of our Crossplane v2 implementation
-- [Crossplane Catalog Setup](./docs/crossplane-catalog-setup.md) - How to create and manage Crossplane templates
-- [Local Kubernetes Setup](./docs/local-kubernetes-setup.md) - Set up Kubernetes locally with Crossplane
-- [GitHub App Setup](./docs/github-app-setup.md) - Configure GitHub authentication
-- [Troubleshooting Guide](./docs/troubleshooting/) - Common issues and solutions
+- [Cluster Overview](./docs/cluster/overview.md) - Kubernetes cluster architecture
+- [Cluster Setup](./docs/cluster/setup.md) - Set up Kubernetes locally with Crossplane
+- [Catalog Setup](./docs/cluster/catalog-setup.md) - How to create and manage Crossplane templates
+- [Configuration](./docs/cluster/configuration.md) - Environment and provider configuration
+- [GitHub App Setup](./docs/backstage/github-app-setup.md) - Configure GitHub authentication
+- [Secret Management](./docs/backstage/secret-management.md) - Managing secrets with SOPS
 
 ## Kubernetes Setup
 
@@ -82,6 +83,26 @@ yarn start
 # - provider-kubernetes
 # - Backstage service account
 ```
+
+### Environment Configuration
+
+After cluster setup, configure your environment for local or production use:
+
+```bash
+# For local development (uses mock DNS provider)
+cp .env.local.example .env.local
+# Edit .env.local with your local cluster context (e.g., rancher-desktop)
+./scripts/config-local.sh
+
+# For OpenPortal production (uses Cloudflare)
+cp .env.openportal.example .env.openportal
+# Edit .env.openportal with your Cloudflare credentials
+./scripts/config-openportal.sh
+```
+
+**Configuration Scripts:**
+- `config-local.sh` - Switches to local cluster, configures mock DNS for localhost
+- `config-openportal.sh` - Switches to production, configures Cloudflare DNS and credentials
 
 ### Crossplane Templates
 We use a GitOps catalog pattern for managing Crossplane templates:
