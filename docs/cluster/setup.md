@@ -1,10 +1,12 @@
-# Local Kubernetes Setup for Backstage
+# Kubernetes Cluster Setup
 
-This guide walks through setting up a local Kubernetes environment with Crossplane and Flux for Backstage development.
+This guide walks through setting up any Kubernetes cluster (local or cloud) with Crossplane and Flux for the Open Service Portal platform.
 
 ## Prerequisites
 
-- **Kubernetes cluster** - Any local Kubernetes cluster (Rancher Desktop, Kind, Docker Desktop, Minikube, etc.)
+- **Kubernetes cluster** - Any Kubernetes cluster:
+  - Local: Rancher Desktop, Kind, Docker Desktop, Minikube
+  - Cloud: EKS, GKE, AKS, or any managed Kubernetes service
 - **kubectl** - Configured to access your cluster
 - **Helm** - For installing Crossplane
 - **yq** - For YAML manipulation
@@ -35,6 +37,12 @@ We provide a script that automates the entire setup process:
 ./scripts/setup-cluster.sh
 ```
 
+After setup, configure your environment using the appropriate config script:
+- For local development: `./scripts/config-local.sh`
+- For OpenPortal production: `./scripts/config-openportal.sh`
+
+See [Cluster Configuration](./configuration.md) for details on environment-specific configuration.
+
 This script will:
 1. Verify all required tools are installed
 2. Install NGINX Ingress Controller
@@ -48,6 +56,8 @@ This script will:
 10. Automatically update `app-portal/app-config.local.yaml` with cluster credentials (if present)
 
 The script works with any Kubernetes cluster and uses manifests from `scripts/cluster-manifests/`.
+
+**Note**: The setup script installs everything with local development defaults (mock DNS, localhost domain). For production environments, you'll need to run the appropriate configuration script afterward - see [Cluster Configuration](./configuration.md).
 
 ## Manual Setup
 
@@ -295,15 +305,16 @@ kubectl config current-context
 
 ## Next Steps
 
-1. Create Crossplane templates using namespaced XRs (Crossplane v2)
-2. Push templates to GitHub for Flux to discover
-3. Configure monitoring with Prometheus
-4. Integrate with your Backstage plugins
-5. Explore GitOps workflows with Flux and the catalog pattern
+1. Configure your environment - see [Cluster Configuration](./configuration.md)
+2. Create Crossplane templates using namespaced XRs (Crossplane v2)
+3. Push templates to GitHub for Flux to discover
+4. Configure monitoring with Prometheus
+5. Integrate with your Backstage plugins
+6. Explore GitOps workflows with Flux and the catalog pattern
 
 ## Additional Resources
 
 - [Crossplane Documentation](https://docs.crossplane.io/)
 - [Flux Documentation](https://fluxcd.io/docs/)
 - [Backstage Kubernetes Plugin](https://backstage.io/docs/features/kubernetes/)
-- [Crossplane Catalog Setup](./crossplane-catalog-setup.md)
+- [Template Catalog Setup](./catalog-setup.md)
