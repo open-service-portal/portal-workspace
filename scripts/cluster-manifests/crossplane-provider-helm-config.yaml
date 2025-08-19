@@ -1,0 +1,15 @@
+# Crossplane ProviderConfig: Helm
+# Purpose: Configures how provider-helm authenticates to deploy Helm charts
+# Auth Method: InjectedIdentity - Uses the provider pod's service account
+#
+# This configuration tells provider-helm to use its own service account
+# to interact with the Kubernetes API when deploying Helm charts.
+# The provider automatically uses in-cluster configuration.
+
+apiVersion: helm.crossplane.io/v1beta1
+kind: ProviderConfig
+metadata:
+  name: helm-provider
+spec:
+  credentials:
+    source: InjectedIdentity

@@ -165,7 +165,7 @@ install_provider_kubernetes() {
     
     # Apply provider manifest
     MANIFEST_DIR="$(cd "$(dirname "$0")" && pwd)/cluster-manifests"
-    PROVIDER_MANIFEST="$MANIFEST_DIR/provider-kubernetes.yaml"
+    PROVIDER_MANIFEST="$MANIFEST_DIR/crossplane-provider-kubernetes.yaml"
     
     if [ ! -f "$PROVIDER_MANIFEST" ]; then
         echo -e "${RED}Error: Provider manifest not found at $PROVIDER_MANIFEST${NC}"
@@ -173,7 +173,7 @@ install_provider_kubernetes() {
         exit 1
     fi
     
-    kubectl apply -f "$PROVIDER_MANIFEST"
+    kubectl apply -f "$MANIFEST_DIR/crossplane-provider-kubernetes.yaml"
     
     # Wait for provider to be healthy
     echo "Waiting for provider-kubernetes to be healthy..."
@@ -185,7 +185,7 @@ install_provider_kubernetes() {
     }
     
     # Apply ProviderConfig
-    PROVIDER_CONFIG="$MANIFEST_DIR/provider-config.yaml"
+    PROVIDER_CONFIG="$MANIFEST_DIR/crossplane-provider-kubernetes-config.yaml"
     
     if [ ! -f "$PROVIDER_CONFIG" ]; then
         echo -e "${RED}Error: Provider config not found at $PROVIDER_CONFIG${NC}"
@@ -193,9 +193,32 @@ install_provider_kubernetes() {
         exit 1
     fi
     
-    kubectl apply -f "$PROVIDER_CONFIG"
+    kubectl apply -f "$MANIFEST_DIR/crossplane-provider-kubernetes-config.yaml"
     
     echo -e "${GREEN}✓ provider-kubernetes installed and configured${NC}"
+}
+
+# Install Crossplane provider-helm
+install_provider_helm() {
+    echo -e "${YELLOW}Installing Crossplane provider-helm...${NC}"
+    
+    # Apply provider manifest
+    MANIFEST_DIR="$(cd "$(dirname "$0")" && pwd)/cluster-manifests"
+    kubectl apply -f "$MANIFEST_DIR/crossplane-provider-helm.yaml"
+    
+    # Wait for provider to be healthy
+    echo "Waiting for provider-helm to be healthy..."
+    kubectl wait --for=condition=Healthy provider.pkg.crossplane.io/provider-helm --timeout=300s || {
+        echo -e "${YELLOW}Provider did not become healthy within the timeout period.${NC}"
+        echo -e "${YELLOW}You can check the status with:${NC} kubectl get provider.pkg.crossplane.io provider-helm"
+        echo -e "${YELLOW}For more details, view the provider logs with:${NC} kubectl logs -l pkg.crossplane.io/provider=provider-helm -n crossplane-system"
+        echo -e "${YELLOW}If the issue persists, review your provider configuration and try reapplying the manifest.${NC}"
+    }
+    
+    # Apply ProviderConfig
+    kubectl apply -f "$MANIFEST_DIR/crossplane-provider-helm-config.yaml"
+    
+    echo -e "${GREEN}✓ provider-helm installed and configured${NC}"
 }
 
 # Install Crossplane composition functions
@@ -405,6 +428,7 @@ main() {
     configure_flux_catalog  # Configure Flux to watch catalog
     install_crossplane
     install_provider_kubernetes
+    install_provider_helm  # Install provider-helm for Helm chart deployments
     install_crossplane_functions  # Install common functions
     install_environment_configs  # Install platform-wide configs
     create_backstage_service_account

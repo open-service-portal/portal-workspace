@@ -1,0 +1,15 @@
+# Provider: Helm
+# Purpose: Enables Crossplane to deploy and manage Helm charts as managed resources
+# Restaurant Analogy: The "pre-packaged meal supplier" - provides ready-to-heat dishes
+# Version: v1.0.0 - Latest stable, compatible with Crossplane v2.0
+#
+# This provider allows Compositions to deploy any Helm chart from any repository,
+# perfect for databases (PostgreSQL, Redis), monitoring (Prometheus), and more.
+# Supports Helm 3, OCI registries, and namespace-scoped releases.
+
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-helm
+spec:
+  package: xpkg.upbound.io/crossplane-contrib/provider-helm:v1.0.0

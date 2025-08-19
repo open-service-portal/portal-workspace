@@ -1,6 +1,13 @@
+# Crossplane Composition Functions
+# Purpose: Pipeline-mode functions for advanced resource composition
+# Restaurant Analogy: The "recipe processors" - transform ingredients using different techniques
+#
+# These functions are installed globally and can be used by any Composition:
+# - go-templating: Generate resources using Go templates (most flexible)
+# - patch-and-transform: Traditional field mapping and transformation
+# - auto-ready: Automatically mark composite resources as ready
+# - environment-configs: Load shared configuration from the platform
 ---
-# Common Crossplane Composition Functions
-# These are installed by default to support advanced compositions
 apiVersion: pkg.crossplane.io/v1
 kind: Function
 metadata:

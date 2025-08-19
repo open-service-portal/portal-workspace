@@ -1,6 +1,10 @@
-# Flux configuration for Crossplane template catalog
+# Flux GitOps: Catalog Watcher
+# Purpose: Monitors and syncs Crossplane templates from the catalog repository
+# Restaurant Analogy: The "menu updater" - automatically updates available dishes
+#
 # This configures Flux to watch the catalog repository which contains
-# references to all template-* repositories
+# references to all template-* repositories. When new templates are added
+# to the catalog, Flux automatically deploys them to the cluster.
 ---
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: GitRepository
