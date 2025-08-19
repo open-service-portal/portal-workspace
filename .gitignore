@@ -18,6 +18,11 @@ service-*-template/
 *-kubeconfig
 *kubeconfig.yaml
 
+# Environment Variables
+.env
+.env.local
+.env.openportal
+
 # OS
 .DS_Store
 Thumbs.db

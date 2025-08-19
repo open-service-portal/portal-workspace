@@ -1,0 +1,48 @@
+# Crossplane Provider Cloudflare
+# Purpose: Enables management of Cloudflare resources (DNS, Workers, etc.)
+# Restaurant Analogy: The "supplier" that provides DNS hosting services
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-cloudflare
+  annotations:
+    crossplane.io/version: "v2.0"
+    description: "Cloudflare provider for DNS and CDN management"
+spec:
+  # Using crossplane-contrib provider-cloudflare
+  # Alternative options:
+  # - ghcr.io/cdloh/provider-cloudflare:v0.1.0
+  # - xpkg.crossplane.io/crossplane-contrib/provider-cloudflare (if available)
+  package: ghcr.io/cdloh/provider-cloudflare:v0.1.0
+---
+apiVersion: cloudflare.upbound.io/v1beta1
+kind: ProviderConfig
+metadata:
+  name: cloudflare-provider
+spec:
+  credentials:
+    source: Secret
+    secretRef:
+      name: cloudflare-credentials
+      namespace: crossplane-system
+      key: credentials
+
+# NOTE: The secret is created by the config-openportal.sh script
+# 
+# To configure Cloudflare credentials:
+# 1. Copy .env.openportal.example to .env.openportal
+# 2. Add your Cloudflare API token and IDs to .env.openportal
+# 3. Run: ./scripts/config-openportal.sh
+#
+# The script will create the cloudflare-credentials secret automatically.
+#
+# How to get the Cloudflare token:
+# 1. Go to https://dash.cloudflare.com/profile/api-tokens
+# 2. Create Token → Use "Edit zone DNS" template
+# 3. Set permissions: Zone:DNS:Edit for your specific zone
+# 4. Add the token to .env.openportal as CLOUDFLARE_API_TOKEN
+#
+# For local development:
+# - Run: ./scripts/config-local.sh
+# - No Cloudflare credentials needed (uses mock DNS provider)
