@@ -1,0 +1,15 @@
+# ProviderConfig: Kubernetes
+# Purpose: Configures how provider-kubernetes authenticates to the cluster
+# Auth Method: InjectedIdentity - Uses the provider pod's service account
+#
+# This configuration tells provider-kubernetes to use its own service account
+# to interact with the Kubernetes API. This is the most secure method for
+# in-cluster operations as it uses Kubernetes RBAC.
+
+apiVersion: kubernetes.crossplane.io/v1alpha1
+kind: ProviderConfig
+metadata:
+  name: kubernetes-provider
+spec:
+  credentials:
+    source: InjectedIdentity

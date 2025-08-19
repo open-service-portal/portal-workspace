@@ -1,6 +1,11 @@
+# Crossplane Environment Configurations
+# Purpose: Platform-wide shared configuration accessible to all Compositions
+# Restaurant Analogy: The "house recipes and standards" - shared ingredients and settings
+#
+# EnvironmentConfigs provide a way to share configuration across all templates
+# without hardcoding values. Compositions can load these using the
+# function-environment-configs in their pipeline.
 ---
-# Platform-wide Environment Configurations
-# These are shared across all Crossplane templates
 apiVersion: apiextensions.crossplane.io/v1beta1
 kind: EnvironmentConfig
 metadata:

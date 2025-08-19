@@ -1,0 +1,14 @@
+# Provider: Kubernetes
+# Purpose: Enables Crossplane to create and manage Kubernetes resources (Services, ConfigMaps, etc.)
+# Restaurant Analogy: The "kitchen equipment supplier" - provides basic tools like pots, pans, and utensils
+# Version: v1.0.0 - Latest stable, compatible with Crossplane v2.0
+#
+# This provider allows Compositions to create any Kubernetes resource type,
+# making it essential for service deployments, config management, and RBAC.
+
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-kubernetes
+spec:
+  package: xpkg.upbound.io/crossplane-contrib/provider-kubernetes:v1.0.0
