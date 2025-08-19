@@ -2,6 +2,9 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Important
+- Never push to main branch, always open a PR.
+
 ## Workspace Structure
 
 **IMPORTANT**: This directory IS the portal-workspace repository itself!
