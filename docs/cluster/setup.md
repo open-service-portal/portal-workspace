@@ -48,6 +48,10 @@ This script will:
 2. Install NGINX Ingress Controller
 3. Install Flux for GitOps
 4. Configure Flux to watch the Crossplane template catalog
+5. Install Crossplane v2.0 with namespaced resources
+6. Install composition functions (go-templating, patch-and-transform, etc.)
+7. Install providers (kubernetes, helm, cloudflare)
+8. Create Backstage service account for K8s integration
 5. Install Crossplane v2.0.0
 6. Install provider-kubernetes
 7. Install Crossplane composition functions (go-templating, patch-and-transform, auto-ready, environment-configs)

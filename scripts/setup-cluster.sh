@@ -164,12 +164,12 @@ install_provider_kubernetes() {
     echo -e "${YELLOW}Installing Crossplane provider-kubernetes...${NC}"
     
     # Apply provider manifest
-    MANIFEST_DIR="$(cd "$(dirname "$0")" && pwd)/cluster-manifests"
+    MANIFEST_DIR="$(cd "$(dirname "$0")" && pwd)/manifests-setup-cluster"
     PROVIDER_MANIFEST="$MANIFEST_DIR/crossplane-provider-kubernetes.yaml"
     
     if [ ! -f "$PROVIDER_MANIFEST" ]; then
         echo -e "${RED}Error: Provider manifest not found at $PROVIDER_MANIFEST${NC}"
-        echo "Please ensure cluster-manifests directory exists with required files"
+        echo "Please ensure manifests-setup-cluster directory exists with required files"
         exit 1
     fi
     
@@ -194,12 +194,34 @@ install_provider_kubernetes() {
     echo -e "${GREEN}✓ provider-kubernetes installed and configured with full RBAC${NC}"
 }
 
+# Install Crossplane provider-cloudflare
+install_provider_cloudflare() {
+    echo -e "${YELLOW}Installing Crossplane provider-cloudflare...${NC}"
+    
+    # Apply provider manifest
+    MANIFEST_DIR="$(cd "$(dirname "$0")" && pwd)/manifests-setup-cluster"
+    
+    kubectl apply -f "$MANIFEST_DIR/crossplane-provider-cloudflare.yaml"
+    
+    # Wait for provider to be healthy
+    echo "Waiting for provider-cloudflare to be healthy..."
+    kubectl wait --for=condition=Healthy provider.pkg.crossplane.io/provider-cloudflare --timeout=300s || {
+        echo -e "${YELLOW}Provider did not become healthy within the timeout period.${NC}"
+        echo -e "${YELLOW}You can check the status with:${NC} kubectl get provider.pkg.crossplane.io provider-cloudflare"
+    }
+    
+    # Apply ProviderConfig (will be configured by config scripts)
+    kubectl apply -f "$MANIFEST_DIR/crossplane-provider-cloudflare-config.yaml"
+    
+    echo -e "${GREEN}✓ provider-cloudflare installed (configure with config-openportal.sh)${NC}"
+}
+
 # Install Crossplane provider-helm
 install_provider_helm() {
     echo -e "${YELLOW}Installing Crossplane provider-helm...${NC}"
     
     # Apply provider manifest
-    MANIFEST_DIR="$(cd "$(dirname "$0")" && pwd)/cluster-manifests"
+    MANIFEST_DIR="$(cd "$(dirname "$0")" && pwd)/manifests-setup-cluster"
     kubectl apply -f "$MANIFEST_DIR/crossplane-provider-helm.yaml"
     
     # Wait for provider to be healthy
@@ -221,7 +243,7 @@ install_provider_helm() {
 install_crossplane_functions() {
     echo -e "${YELLOW}Installing Crossplane composition functions...${NC}"
     
-    MANIFEST_DIR="$(cd "$(dirname "$0")" && pwd)/cluster-manifests"
+    MANIFEST_DIR="$(cd "$(dirname "$0")" && pwd)/manifests-setup-cluster"
     FUNCTIONS_MANIFEST="$MANIFEST_DIR/crossplane-functions.yaml"
     
     # Apply functions manifest
@@ -250,7 +272,7 @@ install_crossplane_functions() {
 install_environment_configs() {
     echo -e "${YELLOW}Installing platform environment configurations...${NC}"
     
-    MANIFEST_DIR="$(cd "$(dirname "$0")" && pwd)/cluster-manifests"
+    MANIFEST_DIR="$(cd "$(dirname "$0")" && pwd)/manifests-setup-cluster"
     ENV_CONFIGS_MANIFEST="$MANIFEST_DIR/environment-configs.yaml"
     
     # Apply environment configs (CRD is included with Crossplane v2.0)
@@ -268,7 +290,7 @@ install_environment_configs() {
 configure_flux_catalog() {
     echo -e "${YELLOW}Configuring Flux to watch Crossplane template catalog...${NC}"
     
-    MANIFEST_DIR="$(cd "$(dirname "$0")" && pwd)/cluster-manifests"
+    MANIFEST_DIR="$(cd "$(dirname "$0")" && pwd)/manifests-setup-cluster"
     FLUX_CATALOG_MANIFEST="$MANIFEST_DIR/flux-catalog.yaml"
     
     # Apply Flux catalog configuration
@@ -353,6 +375,7 @@ print_summary() {
     echo "  ✓ Flux catalog watcher for Crossplane templates"
     echo "  ✓ Crossplane v2.0.0"
     echo "  ✓ provider-kubernetes"
+    echo "  ✓ provider-cloudflare (configure with config-openportal.sh)"
     echo "  ✓ Crossplane composition functions"
     
     # Check if environment configs were installed
@@ -412,6 +435,7 @@ main() {
     configure_flux_catalog  # Configure Flux to watch catalog
     install_crossplane
     install_provider_kubernetes
+    install_provider_cloudflare
     install_provider_helm  # Install provider-helm for Helm chart deployments
     install_crossplane_functions  # Install common functions
     install_environment_configs  # Install platform-wide configs
