@@ -66,9 +66,9 @@ KUBE_CONTEXT=rancher-desktop
 KUBE_CONTEXT=openportal
 
 # Cloudflare Configuration
-CLOUDFLARE_API_TOKEN=your-api-token
-CLOUDFLARE_ZONE_ID=your-zone-id
-CLOUDFLARE_ACCOUNT_ID=your-account-id
+CLOUDFLARE_USER_API_TOKEN=your-api-token  # User-scoped API token
+CLOUDFLARE_ZONE_ID=your-zone-id           # From Cloudflare dashboard
+CLOUDFLARE_ACCOUNT_ID=your-account-id     # From Cloudflare dashboard
 
 # DNS Configuration
 DNS_ZONE=openportal.dev
@@ -93,7 +93,7 @@ The `setup-cluster.sh` script creates default EnvironmentConfigs suitable for lo
 - DNS zone: `localhost`
 - DNS provider: `mock`
 
-These defaults are defined in `scripts/cluster-manifests/environment-configs.yaml`.
+These defaults are defined in `scripts/manifests-setup-cluster/environment-configs.yaml`.
 
 ### Environment-Specific Configuration
 
@@ -105,8 +105,9 @@ These defaults are defined in `scripts/cluster-manifests/environment-configs.yam
 2. **OpenPortal Production** (`config-openportal.sh`):
    - Switches kubectl context
    - Creates Cloudflare credentials secret
+   - Imports Cloudflare Zone resources
    - Updates EnvironmentConfigs with production values
-   - Configures real DNS provider
+   - Uses `set -a` to export variables for `envsubst`
 
 ### EnvironmentConfigs
 
@@ -121,6 +122,28 @@ EnvironmentConfigs are used by Crossplane compositions via `function-environment
 - Configuration is applied to the `crossplane-system` namespace
 - EnvironmentConfigs are used by Crossplane compositions to determine DNS behavior
 - The Cloudflare Provider and ProviderConfig are installed by setup, only credentials are added later
+- Manifests are organized in:
+  - `scripts/manifests-setup-cluster/` - Infrastructure components
+  - `scripts/manifests-config-openportal/` - Environment-specific configurations
+
+## Cloudflare DNS Debugging
+
+A comprehensive debug suite is available for testing Cloudflare DNS:
+
+```bash
+# Validate entire setup
+./scripts/cloudflare/validate.sh
+
+# Test XR creation with zoneIdRef
+./scripts/cloudflare/test-xr.sh create
+./scripts/cloudflare/test-xr.sh status
+./scripts/cloudflare/test-xr.sh remove
+
+# Complete cleanup
+./scripts/cloudflare/remove.sh
+```
+
+See [Cloudflare Debug Suite](../../scripts/cloudflare/README.md) for details.
 
 ## Related Documentation
 
