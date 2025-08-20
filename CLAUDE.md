@@ -199,7 +199,7 @@ We support any Kubernetes distribution with a unified setup:
 # - Composition functions (globally installed)
 # - Environment configurations (platform-wide)
 # - provider-kubernetes
-# - Backstage service account
+# - Backstage service account + app-config.local.yaml
 ```
 
 **Environment Configuration**

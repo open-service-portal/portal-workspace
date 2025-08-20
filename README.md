@@ -81,12 +81,14 @@ yarn start
 # - Composition functions (go-templating, patch-and-transform, etc.)
 # - Platform-wide environment configurations
 # - provider-kubernetes
-# - Backstage service account
+# - Backstage service account + app-config.local.yaml
 ```
 
 ### Environment Configuration
 
-After cluster setup, configure your environment for local or production use:
+The setup script automatically creates `app-portal/app-config.local.yaml` with Kubernetes credentials. For local development with self-signed certificates, uncomment `skipTLSVerify: true` in the generated config.
+
+Configure your environment for local or production use:
 
 ```bash
 # For local development (uses mock DNS provider)
