@@ -46,20 +46,15 @@ See [Cluster Configuration](./configuration.md) for details on environment-speci
 This script will:
 1. Verify all required tools are installed
 2. Install NGINX Ingress Controller
-3. Install Flux for GitOps
-4. Configure Flux to watch the Crossplane template catalog
-5. Install Crossplane v2.0 with namespaced resources
-6. Install composition functions (go-templating, patch-and-transform, etc.)
-7. Install providers (kubernetes, helm, cloudflare)
-8. Create Backstage service account for K8s integration
-5. Install Crossplane v2.0.0
-6. Install provider-kubernetes
-7. Install Crossplane composition functions (go-templating, patch-and-transform, auto-ready, environment-configs)
-8. Install platform-wide environment configurations
-9. Create a service account for Backstage
-10. Automatically update `app-portal/app-config.local.yaml` with cluster credentials (if present)
+3. Install Flux for GitOps with catalog watcher
+4. Install Crossplane v2.0 with namespaced resources
+5. Install providers (kubernetes, helm, cloudflare)
+6. Install composition functions (go-templating, patch-and-transform, auto-ready, environment-configs)
+7. Install platform-wide environment configurations
+8. Create Backstage service account with K8s integration
+9. Automatically update `app-portal/app-config.local.yaml` with cluster credentials (if present)
 
-The script works with any Kubernetes cluster and uses manifests from `scripts/cluster-manifests/`.
+The script works with any Kubernetes cluster and uses manifests from [`scripts/manifests-setup-cluster/`](../../scripts/manifests-setup-cluster/).
 
 **Note**: The setup script installs everything with local development defaults (mock DNS, localhost domain). For production environments, you'll need to run the appropriate configuration script afterward - see [Cluster Configuration](./configuration.md).
 
