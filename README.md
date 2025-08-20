@@ -79,8 +79,10 @@ yarn start
 # - Flux GitOps with catalog watcher
 # - Crossplane v2.0 with namespaced XRs
 # - Composition functions (go-templating, patch-and-transform, etc.)
-# - Platform-wide environment configurations
-# - provider-kubernetes
+# - Base environment configurations
+# - provider-kubernetes with RBAC
+# - provider-helm for chart deployments
+# - provider-cloudflare for DNS management
 # - Backstage service account + app-config.local.yaml
 ```
 
@@ -89,6 +91,49 @@ yarn start
 The setup script automatically creates `app-portal/app-config.local.yaml` with Kubernetes credentials. For local development with self-signed certificates, uncomment `skipTLSVerify: true` in the generated config.
 
 Configure your environment for local or production use:
+
+```bash
+# For local development
+./scripts/config-local.sh
+
+# For OpenPortal production (requires .env.openportal)
+./scripts/config-openportal.sh
+```
+
+### Cloudflare DNS Management
+
+For production DNS management with Cloudflare:
+
+1. **Setup credentials** in `.env.openportal`:
+   ```bash
+   CLOUDFLARE_USER_API_TOKEN=your-api-token
+   CLOUDFLARE_ZONE_ID=your-zone-id
+   CLOUDFLARE_ACCOUNT_ID=your-account-id
+   DNS_ZONE=your-domain.com
+   ```
+
+2. **Configure the cluster**:
+   ```bash
+   ./scripts/config-openportal.sh
+   ```
+
+3. **Validate the setup**:
+   ```bash
+   ./scripts/cloudflare/validate.sh
+   ```
+
+4. **Create DNS records** using Crossplane:
+   ```yaml
+   apiVersion: platform.io/v1alpha1
+   kind: CloudflareDNSRecord
+   metadata:
+     name: my-app
+   spec:
+     type: A
+     name: my-app
+     value: "192.168.1.100"
+     zone: openportal-zone  # References imported Zone
+   ```
 
 ```bash
 # For local development (uses mock DNS provider)

@@ -34,7 +34,6 @@ if ! kubectl config use-context "${KUBE_CONTEXT}"; then
 fi
 echo "✓ Switched to context: ${KUBE_CONTEXT}"
 
-# The default EnvironmentConfig is already set to local values in setup
 echo ""
 echo -e "${GREEN}Local cluster active!${NC}"
 echo ""

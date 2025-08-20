@@ -26,17 +26,27 @@ open-service-portal/         # THIS directory = portal-workspace repo
 │   └── local-kubernetes-setup.md      # K8s setup guide
 ├── scripts/                # Unified setup and utility scripts
 │   ├── setup-cluster.sh    # Universal K8s cluster setup
-│   └── cluster-manifests/  # Platform-wide configs
-│       ├── crossplane-functions.yaml  # Composition functions
-│       ├── environment-configs.yaml   # Shared configs
-│       └── flux-catalog.yaml         # Catalog watcher
+│   ├── config-local.sh     # Switch to local cluster
+│   ├── config-openportal.sh # Configure OpenPortal production
+│   ├── manifests-setup-cluster/  # Infrastructure manifests
+│   │   ├── crossplane-functions.yaml  # Composition functions
+│   │   ├── crossplane-provider-*.yaml # Provider definitions
+│   │   └── flux-catalog.yaml         # Catalog watcher
+│   ├── manifests-config-openportal/ # Environment configs
+│   │   ├── cloudflare-zone-openportal-dev.yaml
+│   │   └── environment-configs.yaml
+│   └── cloudflare/         # Cloudflare debug suite
+│       ├── setup.sh        # Test setup
+│       ├── validate.sh     # Comprehensive validation
+│       ├── remove.sh       # Cleanup
+│       └── test-xr.sh      # XR testing
 ├── .gitignore              # Ignores nested repos below
 │
 ├── app-portal/             # NESTED repo (cloned separately)
 │   └── .git/               # app-portal's own git
 ├── catalog/                # NESTED repo - template registry
 │   └── templates/          # Template references
-├── template-dns-record/    # NESTED repo - Crossplane template
+├── template-cloudflare-dnsrecord/  # NESTED repo - Cloudflare DNS template
 │   ├── xrd.yaml           # API definition (namespaced v2)
 │   ├── composition.yaml   # Implementation
 │   └── examples/xr.yaml   # Usage examples
@@ -187,7 +197,7 @@ app-portal/
 ### Kubernetes Setup
 We support any Kubernetes distribution with a unified setup:
 
-**Cluster Setup**
+**Infrastructure Setup**
 ```bash
 # Universal setup script for any K8s cluster
 ./scripts/setup-cluster.sh
@@ -197,8 +207,10 @@ We support any Kubernetes distribution with a unified setup:
 # - Flux GitOps with catalog watcher
 # - Crossplane v2.0 with namespaced XRs
 # - Composition functions (globally installed)
-# - Environment configurations (platform-wide)
-# - provider-kubernetes
+# - Base environment configurations
+# - provider-kubernetes with RBAC
+# - provider-helm for chart deployments
+# - provider-cloudflare for DNS management
 # - Backstage service account + app-config.local.yaml
 ```
 
@@ -215,9 +227,28 @@ We provide configuration scripts to switch between local and production environm
 # Switch to OpenPortal production cluster
 ./scripts/config-openportal.sh
 # - Switches kubectl context to OpenPortal cluster
-# - Loads settings from .env.openportal
-# - Configures Cloudflare credentials and zone settings
+# - Loads settings from .env.openportal (uses set -a for envsubst)
+# - Creates Cloudflare credentials secret
+# - Imports Cloudflare Zone resources
 # - Updates EnvironmentConfigs for production DNS
+```
+
+**Cloudflare DNS Management**
+Comprehensive debug suite for Cloudflare DNS provider:
+
+```bash
+# Validate Cloudflare setup
+./scripts/cloudflare/validate.sh
+# - Tests API token and permissions
+# - Validates provider health
+# - Tests CRUD operations
+# - Cleans up test resources
+
+# Test XR with zoneIdRef pattern
+./scripts/cloudflare/test-xr.sh [create|status|remove]
+
+# Complete cleanup
+./scripts/cloudflare/remove.sh
 ```
 
 **Environment Files**

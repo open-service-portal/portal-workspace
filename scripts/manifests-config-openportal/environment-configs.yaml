@@ -1,0 +1,21 @@
+# Environment Configurations for OpenPortal
+# Purpose: Environment-specific settings for compositions
+# Applied by: config-openportal.sh after variable substitution
+---
+apiVersion: apiextensions.crossplane.io/v1beta1
+kind: EnvironmentConfig
+metadata:
+  name: dns-config
+  namespace: crossplane-system
+data:
+  zone: "${DNS_ZONE}"
+  provider: "${DNS_PROVIDER}"
+---
+apiVersion: apiextensions.crossplane.io/v1beta1
+kind: EnvironmentConfig
+metadata:
+  name: cloudflare-config
+  namespace: crossplane-system
+data:
+  zone_id: "${CLOUDFLARE_ZONE_ID}"
+  account_id: "${CLOUDFLARE_ACCOUNT_ID}"

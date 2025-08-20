@@ -4,7 +4,11 @@ This document describes the Kubernetes manifests used to set up the Open Service
 
 ## Overview
 
-The manifests in `scripts/cluster-manifests/` are applied by the `setup-cluster.sh` script to configure:
+The manifests are organized in two directories:
+- `scripts/manifests-setup-cluster/` - Infrastructure components (applied by setup-cluster.sh)
+- `scripts/manifests-config-openportal/` - Environment configurations (applied by config-openportal.sh)
+
+These manifests configure:
 - Crossplane providers for infrastructure management
 - Composition functions for resource transformation
 - Environment configurations for platform settings
@@ -30,8 +34,9 @@ The manifests in `scripts/cluster-manifests/` are applied by the `setup-cluster.
 #### provider-cloudflare
 - **File**: `crossplane-provider-cloudflare.yaml`
 - **Purpose**: Manages Cloudflare resources (DNS records, zones)
-- **Version**: ghcr.io/cdloh/provider-cloudflare:v0.1.0
-- **Config**: References `cloudflare-credentials` secret (created by config-openportal.sh)
+- **Version**: ghcr.io/cdloh/provider-cloudflare:v0.1.0 (Upjet-based)
+- **Config**: `crossplane-provider-cloudflare-config.yaml` - References `cloudflare-credentials` secret
+- **Note**: Uses zoneIdRef pattern for DNS records
 
 ### Composition Functions
 
@@ -46,11 +51,15 @@ Functions transform resource specifications in the composition pipeline:
 
 ### Environment Configurations
 
-**File**: `environment-configs.yaml`
+**Setup Manifests** (`manifests-setup-cluster/`):
+- **environment-configs.yaml** - Base defaults for local development
+  - dns-config: zone=localhost, provider=mock
 
-Platform-wide shared configuration accessible to all compositions:
-- **dns-config** - DNS zone and provider settings (defaults to localhost/mock)
-- Can be overridden for production environments
+**Config Manifests** (`manifests-config-openportal/`):
+- **environment-configs.yaml** - Production overrides (uses envsubst)
+  - dns-config: zone=${DNS_ZONE}, provider=${DNS_PROVIDER}
+  - cloudflare-config: zone_id=${CLOUDFLARE_ZONE_ID}, account_id=${CLOUDFLARE_ACCOUNT_ID}
+- **cloudflare-zone-openportal-dev.yaml** - Zone import for openportal.dev
 
 ### GitOps Integration
 
