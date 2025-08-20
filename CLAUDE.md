@@ -211,7 +211,7 @@ We support any Kubernetes distribution with a unified setup:
 # - provider-kubernetes with RBAC
 # - provider-helm for chart deployments
 # - provider-cloudflare for DNS management
-# - Backstage service account
+# - Backstage service account + app-config.local.yaml
 ```
 
 **Environment Configuration**
