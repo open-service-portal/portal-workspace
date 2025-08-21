@@ -287,14 +287,14 @@ For efficient documentation search, we maintain local clones of key Backstage re
 
 ### Clone Commands
 ```bash
-# Clone Backstage core repository
-git clone git@github.com:backstage/backstage.git
+# Clone Backstage core repository (shallow clone for faster download)
+git clone --depth 1 git@github.com:backstage/backstage.git
 
 # Clone Community Plugins
-git clone git@github.com:backstage/community-plugins.git backstage-community-plugins
+git clone --depth 1 git@github.com:backstage/community-plugins.git backstage-community-plugins
 
 # Clone TeraSky Plugins
-git clone git@github.com:TeraSky-OSS/backstage-plugins.git backstage-terasky-plugins
+git clone --depth 1 git@github.com:TeraSky-OSS/backstage-plugins.git backstage-terasky-plugins
 ```
 
 ### Core Documentation Paths
@@ -313,7 +313,10 @@ git clone git@github.com:TeraSky-OSS/backstage-plugins.git backstage-terasky-plu
 - **Kubernetes Integration**: `backstage/docs/features/kubernetes/`
 - **TechDocs**: `backstage/docs/features/techdocs/`
 
-Note: These paths are gitignored via `/backstage*` pattern.
+Note: These paths are gitignored via the following pattern in `.gitignore`:
+```
+/backstage*
+```
 
 ## Best Practices
 
