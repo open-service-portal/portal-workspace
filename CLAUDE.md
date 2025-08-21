@@ -281,6 +281,40 @@ spec:
 EOF
 ```
 
+## Local Backstage Reference Documentation
+
+For efficient documentation search, we maintain local clones of key Backstage repositories:
+
+### Clone Commands
+```bash
+# Clone Backstage core repository
+git clone git@github.com:backstage/backstage.git
+
+# Clone Community Plugins
+git clone git@github.com:backstage/community-plugins.git backstage-community-plugins
+
+# Clone TeraSky Plugins
+git clone git@github.com:TeraSky-OSS/backstage-plugins.git backstage-terasky-plugins
+```
+
+### Core Documentation Paths
+- **Backstage Core**: `/backstage/docs/` - Architecture, auth providers, plugins, tutorials
+- **Community Plugins**: `/backstage-community-plugins/docs/` - Compatibility guides, maintainer docs
+- **Community Plugins List**: `/backstage-community-plugins/workspaces/*/` - 100+ plugin READMEs
+- **TeraSky Plugins**: `/backstage-terasky-plugins/site/docs/` - Crossplane, Kubernetes, GitOps plugins
+
+### Key Documentation Areas
+- **Getting Started**: `backstage/docs/getting-started/`
+- **Auth Providers**: `backstage/docs/auth/*/provider.md`
+- **Plugin Development**: `backstage/docs/plugins/`
+- **Backend System**: `backstage/docs/backend-system/`
+- **Frontend System**: `backstage/docs/frontend-system/`
+- **Software Templates**: `backstage/docs/features/software-templates/`
+- **Kubernetes Integration**: `backstage/docs/features/kubernetes/`
+- **TechDocs**: `backstage/docs/features/techdocs/`
+
+Note: These paths are gitignored via `/backstage*` pattern.
+
 ## Best Practices
 
 1. **Version Control**
