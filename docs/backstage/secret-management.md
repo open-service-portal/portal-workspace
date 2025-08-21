@@ -30,6 +30,9 @@ cat ~/.ssh/id_ed25519.pub  # or ~/.ssh/id_rsa.pub
 
 # 3. Test decryption
 cd app-portal
+# SOPS only looks for ~/.ssh/id_ed25519 and falls back to ~/.ssh/id_rsa.
+# You can specify a non-standard location by setting the environment variable SOPS_AGE_SSH_PRIVATE_KEY_FILE.
+#export SOPS_AGE_SSH_PRIVATE_KEY_FILE=/path/to/your/private_key.id_ed25519
 sops -d --input-type dotenv --output-type dotenv .env.enc
 
 # 4. Enable direnv
