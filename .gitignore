@@ -13,6 +13,10 @@ docusaurus/
 template-*/
 service-*-template/
 
+# Dev repos
+backstage/
+backstage-terasky-plugins-fork/
+
 # K8s Configs
 *.kubeconfig
 *-kubeconfig
