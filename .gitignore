@@ -14,7 +14,7 @@ template-*/
 service-*-template/
 
 # Backstage Reference Repositories (for documentation search)
-/backstage*
+backstage*/
 
 # K8s Configs
 *.kubeconfig
