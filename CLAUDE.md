@@ -42,15 +42,39 @@ open-service-portal/         # THIS directory = portal-workspace repo
 │       └── test-xr.sh      # XR testing
 ├── .gitignore              # Ignores nested repos below
 │
-├── app-portal/             # NESTED repo (cloned separately)
-│   └── .git/               # app-portal's own git
-├── catalog/                # NESTED repo - template registry
+├── app-portal/             # NESTED repo - Main Backstage application
+│   ├── packages/           # Frontend and backend packages
+│   ├── plugins/            # Custom plugins (scaffolder, kubernetes-ingestor)
+│   └── app-config.yaml     # Main configuration with XRD publishing
+├── catalog/                # NESTED repo - Template registry for Flux
 │   └── templates/          # Template references
-├── template-cloudflare-dnsrecord/  # NESTED repo - Cloudflare DNS template
-│   ├── xrd.yaml           # API definition (namespaced v2)
-│   ├── composition.yaml   # Implementation
-│   └── examples/xr.yaml   # Usage examples
-└── service-*-template/     # NESTED repos - Backstage templates
+├── concepts/               # Architecture and design documentation
+├── deploy-app-portal/      # NESTED repo - Kubernetes deployment manifests
+│
+├── template-dns-record/    # NESTED repo - Mock DNS template
+│   └── configuration/
+│       └── xrd.yaml       # XRD with openportal.dev/tags label
+├── template-cloudflare-dnsrecord/  # NESTED repo - Real Cloudflare DNS
+│   ├── xrd.yaml           # XRD with publishPhase annotations
+│   ├── composition.yaml   # Pipeline mode composition
+│   └── examples/          # XR examples
+├── template-whoami/        # NESTED repo - Demo application template
+│   ├── xrd.yaml           # Simple app deployment XRD
+│   └── composition.yaml   # Helm + DNS composition
+├── template-whoami-service/  # NESTED repo - Composite service template
+│   ├── xrd.yaml           # Composition of compositions
+│   └── composition.yaml   # Combines whoami + DNS
+│
+├── service-nodejs-template/      # NESTED repo - Node.js service template
+├── service-mongodb-template/     # NESTED repo - MongoDB service template
+├── service-mongodb-golden-path-template/  # NESTED repo - MongoDB with best practices
+├── service-firewall-template/    # NESTED repo - Firewall rules template
+├── service-dnsrecord-template/   # NESTED repo - DNS record service
+├── service-cluster-template/     # NESTED repo - Cluster provisioning
+│
+├── backstage/              # LOCAL CLONE - Backstage core docs (gitignored)
+├── backstage-terasky-plugins-fork/  # LOCAL CLONE - TeraSky plugins fork
+└── scripts/                # Unified setup and utility scripts
 
 ## Setup
 
@@ -83,16 +107,29 @@ git clone https://github.com/open-service-portal/app-portal.git
 
 #### Crossplane Templates (Infrastructure)
 - **catalog/** - Central registry for Crossplane templates (git@github.com:open-service-portal/catalog.git)
-- **template-dns-record/** - DNS management template (git@github.com:open-service-portal/template-dns-record.git)
-- Additional templates registered via catalog pattern
+- **template-dns-record/** - Mock DNS template for testing (git@github.com:open-service-portal/template-dns-record.git)
+- **template-cloudflare-dnsrecord/** - Real Cloudflare DNS management (git@github.com:open-service-portal/template-cloudflare-dnsrecord.git)
+- **template-whoami/** - Demo application deployment (git@github.com:open-service-portal/template-whoami.git)
+- **template-whoami-service/** - Composite service (app + DNS) (git@github.com:open-service-portal/template-whoami-service.git)
 
 #### Backstage Templates (Services)
 - **service-nodejs-template/** - Template for Node.js services (git@github.com:open-service-portal/service-nodejs-template.git)
-- **service-golang-template/** - Template for Go microservices (planned)
-- **service-python-template/** - Template for Python services (planned)
+- **service-mongodb-template/** - MongoDB database service (git@github.com:open-service-portal/service-mongodb-template.git)
+- **service-mongodb-golden-path-template/** - MongoDB with best practices (git@github.com:open-service-portal/service-mongodb-golden-path-template.git)
+- **service-firewall-template/** - Network firewall rules (git@github.com:open-service-portal/service-firewall-template.git)
+- **service-dnsrecord-template/** - DNS record management (git@github.com:open-service-portal/service-dnsrecord-template.git)
+- **service-cluster-template/** - Kubernetes cluster provisioning (git@github.com:open-service-portal/service-cluster-template.git)
 
-#### Documentation
-- **portal-workspace/** - This workspace repository with documentation and setup scripts
+#### Deployment & Infrastructure
+- **deploy-app-portal/** - Kubernetes deployment manifests for Backstage (git@github.com:open-service-portal/deploy-app-portal.git)
+
+#### Documentation & Workspace
+- **portal-workspace/** - This workspace repository with documentation and setup scripts (git@github.com:open-service-portal/portal-workspace.git)
+- **concepts/** - Architecture and design documentation (part of workspace)
+
+#### Local Reference Repositories (gitignored)
+- **backstage/** - Local clone of Backstage core for documentation reference
+- **backstage-terasky-plugins-fork/** - Fork of TeraSky plugins for development
 
 ## Development
 
