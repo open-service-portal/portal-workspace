@@ -47,7 +47,9 @@ open-service-portal/         # THIS directory = portal-workspace repo
 │   ├── plugins/            # Custom plugins (scaffolder, kubernetes-ingestor)
 │   └── app-config.yaml     # Main configuration with XRD publishing
 ├── catalog/                # NESTED repo - Template registry for Flux
-│   └── templates/          # Template references
+│   └── templates/          # Template references (XRDs/Compositions)
+├── catalog-orders/         # NESTED repo - XR instances from Backstage
+│   └── (structure managed by template publishPhase)
 ├── concepts/               # Architecture and design documentation
 ├── deploy-app-portal/      # NESTED repo - Kubernetes deployment manifests
 │
@@ -105,8 +107,9 @@ git clone https://github.com/open-service-portal/app-portal.git
   - Contains frontend and backend packages
   - Configured for GitHub/GitLab integration
 
-#### Crossplane Templates (Infrastructure)
-- **catalog/** - Central registry for Crossplane templates (git@github.com:open-service-portal/catalog.git)
+#### Crossplane Templates & GitOps
+- **catalog/** - Central registry for Crossplane templates/XRDs (git@github.com:open-service-portal/catalog.git)
+- **catalog-orders/** - GitOps repository for XR instances created via Backstage (git@github.com:open-service-portal/catalog-orders.git)
 - **template-dns-record/** - Mock DNS template for testing (git@github.com:open-service-portal/template-dns-record.git)
 - **template-cloudflare-dnsrecord/** - Real Cloudflare DNS management (git@github.com:open-service-portal/template-cloudflare-dnsrecord.git)
 - **template-whoami/** - Demo application deployment (git@github.com:open-service-portal/template-whoami.git)
@@ -230,6 +233,18 @@ app-portal/
 - GitOps workflow with Flux catalog pattern
 - Pipeline mode compositions with functions
 - Platform-wide environment configurations
+
+### GitOps Workflow
+Two repositories work together for complete GitOps:
+
+1. **catalog/** - Contains Crossplane templates (XRDs/Compositions)
+   - Watched by Flux to deploy template definitions
+   - Templates define what resources CAN be created
+   
+2. **catalog-orders/** - Contains XR instances (actual resource requests)
+   - Populated by Backstage when users create resources
+   - Watched by Flux to deploy XR instances
+   - Structure determined by template publishPhase configuration
 
 ### Kubernetes Setup
 We support any Kubernetes distribution with a unified setup:

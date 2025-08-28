@@ -27,14 +27,14 @@ else
 fi
 
 # Switch to OpenPortal context
-echo -e "${GREEN}Switching to context: ${KUBE_CONTEXT}${NC}"
-if ! kubectl config use-context "${KUBE_CONTEXT}"; then
-    echo -e "${RED}Error: Failed to switch to context '${KUBE_CONTEXT}'${NC}"
+echo -e "${GREEN}Switching to context: ${CLUSTER_NAME}${NC}"
+if ! kubectl config use-context "${CLUSTER_NAME}"; then
+    echo -e "${RED}Error: Failed to switch to context '${CLUSTER_NAME}'${NC}"
     echo "Available contexts:"
     kubectl config get-contexts
     exit 1
 fi
-echo "✓ Switched to context: ${KUBE_CONTEXT}"
+echo "✓ Switched to context: ${CLUSTER_NAME}"
 
 # Create Cloudflare credentials secret
 echo -e "${GREEN}Configuring Cloudflare credentials...${NC}"
@@ -84,7 +84,7 @@ update_backstage_config() {
     if [ -z "$TOKEN" ]; then
         echo -e "${RED}Error: No Backstage token found in OpenPortal cluster${NC}"
         echo "Run setup-cluster.sh first on the OpenPortal cluster to create the service account:"
-        echo "  kubectl config use-context ${KUBE_CONTEXT}"
+        echo "  kubectl config use-context ${CLUSTER_NAME}"
         echo "  ./scripts/setup-cluster.sh"
         return 1
     fi
@@ -119,13 +119,36 @@ EOF
     echo -e "${GREEN}✓ Created app-portal/app-config.openportal.local.yaml${NC}"
 }
 
+# Configure Flux for catalog-orders with cluster-specific path
+configure_flux_catalog_orders() {
+    echo ""
+    echo -e "${YELLOW}Configuring Flux to watch catalog-orders for cluster: ${CLUSTER_NAME}...${NC}"
+    
+    MANIFEST_DIR="$SCRIPT_DIR/manifests-config"
+    
+    # Apply catalog-orders configuration with environment substitution
+    # Skip if Cloudflare is not needed (local clusters)
+    if envsubst < "$MANIFEST_DIR/flux-catalog-orders.yaml" | kubectl apply -f -; then
+        echo -e "${GREEN}✓ Flux configured to watch catalog-orders at ./${CLUSTER_NAME}${NC}"
+        
+        # Force reconciliation
+        flux reconcile source git catalog-orders 2>/dev/null || true
+    else
+        echo -e "${YELLOW}Note: Could not configure catalog-orders (Flux may not be installed)${NC}"
+    fi
+}
+
+
 # Call the update function
 update_backstage_config
+
+# Apply Flux configuration
+configure_flux_catalog_orders
 
 echo ""
 echo -e "${GREEN}OpenPortal cluster configuration complete!${NC}"
 echo ""
-echo "Cluster: ${KUBE_CONTEXT}"
+echo "Cluster: ${CLUSTER_NAME}"
 echo "DNS Zone: ${DNS_ZONE}"
 echo "DNS Provider: ${DNS_PROVIDER}"
 echo "Cloudflare Zone ID: ${CLOUDFLARE_ZONE_ID}"
