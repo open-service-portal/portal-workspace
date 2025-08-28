@@ -9,10 +9,12 @@ In the past two weeks, we've transformed the Open Service Portal from a proof-of
 
 ### Key Achievements
 - ✅ Full GitOps workflow with Flux (catalog → deploy → monitor)
-- ✅ 10+ ready-to-use templates (4 infrastructure, 6+ services)
+- ✅ 10+ ready-to-use templates (5 infrastructure, 6+ services)
 - ✅ Automated XRD form generation with Kubernetes Ingestor
 - ✅ Production-ready Cloudflare DNS integration
 - ✅ Unified setup script for any Kubernetes distribution
+- ✅ Namespace provisioning with quotas, policies, and RBAC
+- ✅ GitHub Container Registry packaging for versioned releases
 
 ---
 
@@ -95,6 +97,7 @@ cat template-whoami/xrd.yaml | head -50
 **Live Demo - Browse Templates:**
 1. Open http://localhost:3000/create
 2. Show the auto-generated forms from XRDs:
+   - **Namespace** - Full namespace provisioning with quotas & RBAC
    - **DNSRecord** - Mock DNS for testing
    - **CloudflareDNSRecord** - Real DNS management
    - **WhoAmIApp** - Demo application with auto-DNS
@@ -116,13 +119,34 @@ ls -la service-*-template/
 
 ### Part 4: Live Demo - Create Real Infrastructure (10 min)
 
-#### 4.1 Create a WhoAmI Application
+#### 4.1 Create a Namespace First
+1. Navigate to http://localhost:3000/create
+2. Select "Namespace" template
+3. Fill the form:
+   ```yaml
+   name: demo-namespace
+   team: platform-team
+   environment: dev
+   quotas:
+     enabled: true
+     limits:
+       cpu: "10"
+       memory: "16Gi"
+   ```
+4. **CREATE** and watch GitOps deploy it
+5. Verify:
+   ```bash
+   kubectl get namespace demo-namespace
+   kubectl get resourcequota -n demo-namespace
+   ```
+
+#### 4.2 Create a WhoAmI Application
 1. Navigate to http://localhost:3000/create
 2. Select "WhoAmIApp" template
 3. Fill the form:
    ```yaml
    name: demo-app-aug29
-   namespace: default
+   namespace: demo-namespace  # Use our new namespace!
    replicas: 2
    ```
 4. Show the publish step:
@@ -183,7 +207,19 @@ kubectl get xrd -o yaml | grep -A2 "openportal.dev/version"
 # "WhoAmIApp v1.0.2"
 ```
 
-#### 5.3 Cloudflare DNS Integration (Production Ready)
+#### 5.3 Container Registry Packaging
+```bash
+# Show the published package
+gh release view v1.0.0 --repo open-service-portal/template-namespace
+
+# Show automatic catalog update PR
+gh pr view 10 --repo open-service-portal/catalog
+
+# Package is available at:
+# ghcr.io/open-service-portal/configuration-namespace:v1.0.0
+```
+
+#### 5.4 Cloudflare DNS Integration (Production Ready)
 ```bash
 # Show the Cloudflare provider setup
 kubectl get provider provider-cloudflare
@@ -257,9 +293,10 @@ kubectl get managed -A
 
 ### Development Velocity
 - **14 days**: From zero to functional platform
-- **10+ templates**: Ready for immediate use
+- **11 templates**: Ready for immediate use (including Namespace)
 - **3 providers**: Kubernetes, Helm, Cloudflare
-- **2 GitOps repos**: Full separation of concerns
+- **3 GitOps repos**: catalog, catalog-orders, templates
+- **v1.0.0 releases**: Production-ready packages in ghcr.io
 
 ### Platform Capabilities
 | Feature | Status | Business Value |
@@ -267,6 +304,8 @@ kubectl get managed -A
 | Self-service infrastructure | ✅ Live | 10x faster provisioning |
 | GitOps workflow | ✅ Live | Full audit trail |
 | Auto-generated forms | ✅ Live | No manual form creation |
+| Namespace provisioning | ✅ Live | Complete with quotas & policies |
+| Container registry | ✅ Live | Versioned template packages |
 | Multi-cloud ready | ✅ Ready | AWS/GCP/Azure support |
 | RBAC & Security | ✅ Live | Enterprise-ready |
 
@@ -327,7 +366,9 @@ A: Proven architectures - both Backstage and Crossplane run at massive scale
 
 ```bash
 # Remove demo resources
-kubectl delete whoamiapp demo-app-aug29 -n default
+kubectl delete whoamiapp demo-app-aug29 -n demo-namespace
+kubectl delete namespace demo-namespace -n default  # XR
+kubectl delete namespace demo-namespace  # Actual namespace
 
 # Remove from Git
 cd ../catalog-orders
