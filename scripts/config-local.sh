@@ -16,23 +16,24 @@ echo -e "${GREEN}Switching to local cluster...${NC}"
 
 # Load local environment variables
 if [ -f "$WORKSPACE_DIR/.env.local" ]; then
+    set -a  # Auto-export all variables
     source "$WORKSPACE_DIR/.env.local"
+    set +a  # Turn off auto-export
     echo "✓ Loaded .env.local"
 else
     echo -e "${YELLOW}Warning: .env.local not found${NC}"
-    echo "Using default: rancher-desktop"
-    KUBE_CONTEXT="rancher-desktop"
+    exit 1
 fi
 
 # Switch to local context
-echo -e "${GREEN}Switching to context: ${KUBE_CONTEXT}${NC}"
-if ! kubectl config use-context "${KUBE_CONTEXT}"; then
-    echo -e "${RED}Error: Failed to switch to context '${KUBE_CONTEXT}'${NC}"
+echo -e "${GREEN}Switching to context: ${CLUSTER_NAME}${NC}"
+if ! kubectl config use-context "${CLUSTER_NAME}"; then
+    echo -e "${RED}Error: Failed to switch to context '${CLUSTER_NAME}'${NC}"
     echo "Available contexts:"
     kubectl config get-contexts
     exit 1
 fi
-echo "✓ Switched to context: ${KUBE_CONTEXT}"
+echo "✓ Switched to context: ${CLUSTER_NAME}"
 
 # Update Backstage configuration for local cluster
 update_backstage_config() {
@@ -88,13 +89,35 @@ EOF
     echo -e "${GREEN}✓ Updated app-portal/app-config.local.yaml${NC}"
 }
 
+# Configure Flux for catalog-orders with cluster-specific path
+configure_flux_catalog_orders() {
+    echo ""
+    echo -e "${YELLOW}Configuring Flux to watch catalog-orders for cluster: ${CLUSTER_NAME}...${NC}"
+    
+    MANIFEST_DIR="$SCRIPT_DIR/manifests-config"
+    
+    # Apply catalog-orders configuration with environment substitution
+    if envsubst < "$MANIFEST_DIR/flux-catalog-orders.yaml" | kubectl apply -f -; then
+        echo -e "${GREEN}✓ Flux configured to watch catalog-orders at ./${CLUSTER_NAME}${NC}"
+        
+        # Force reconciliation
+        flux reconcile source git catalog-orders 2>/dev/null || true
+    else
+        echo -e "${YELLOW}Note: Could not configure catalog-orders (Flux may not be installed)${NC}"
+    fi
+}
+
+
 # Call the update function
 update_backstage_config
+
+# Apply Flux configuration
+configure_flux_catalog_orders
 
 echo ""
 echo -e "${GREEN}Local cluster active!${NC}"
 echo ""
-echo "Cluster: ${KUBE_CONTEXT}"
+echo "Cluster: ${CLUSTER_NAME}"
 echo "DNS Zone: localhost (default)"
 echo "DNS Provider: mock (default)"
 echo ""

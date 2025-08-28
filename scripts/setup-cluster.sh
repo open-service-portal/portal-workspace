@@ -310,6 +310,7 @@ configure_flux_catalog() {
     fi
 }
 
+
 # Create Backstage service account
 create_backstage_service_account() {
     echo -e "${YELLOW}Creating Backstage service account...${NC}"

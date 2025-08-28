@@ -9,9 +9,12 @@ This workspace contains the following repositories:
 ### Core Application
 - **[app-portal/](https://github.com/open-service-portal/app-portal)** - Main Backstage application
 
-### Crossplane Templates
-- **[catalog/](https://github.com/open-service-portal/catalog)** - Template catalog repository (GitOps registry)
+### Crossplane Templates & GitOps
+- **[catalog/](https://github.com/open-service-portal/catalog)** - Template catalog (XRDs/Compositions definitions)
+- **[catalog-orders/](https://github.com/open-service-portal/catalog-orders)** - XR instances created from Backstage templates
 - **[template-dns-record/](https://github.com/open-service-portal/template-dns-record)** - DNS record management template
+- **[template-cloudflare-dnsrecord/](https://github.com/open-service-portal/template-cloudflare-dnsrecord)** - Cloudflare DNS template
+- **[template-whoami/](https://github.com/open-service-portal/template-whoami)** - Demo application template
 - Additional templates to be added via catalog pattern
 
 ### Service Templates (Backstage)
@@ -76,7 +79,8 @@ yarn start
 
 # This installs:
 # - NGINX Ingress Controller
-# - Flux GitOps with catalog watcher
+# - Flux GitOps with catalog watcher (for XRDs/Compositions)
+# - Flux GitOps with catalog-orders watcher (for XR instances)
 # - Crossplane v2.0 with namespaced XRs
 # - Composition functions (go-templating, patch-and-transform, etc.)
 # - Base environment configurations

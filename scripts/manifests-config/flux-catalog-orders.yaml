@@ -1,0 +1,31 @@
+# Flux GitOps: Catalog Orders Watcher
+# Purpose: Monitors and syncs XR instances created by Backstage templates
+# Uses ${CLUSTER_NAME} environment variable to determine path
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: catalog-orders
+  namespace: flux-system
+spec:
+  interval: 1m0s
+  url: https://github.com/open-service-portal/catalog-orders
+  ref:
+    branch: main
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: catalog-orders
+  namespace: flux-system
+spec:
+  interval: 1m0s
+  sourceRef:
+    kind: GitRepository
+    name: catalog-orders
+  # Path based on cluster name from environment
+  path: "./${CLUSTER_NAME}"
+  prune: true
+  # Important: XRs should be applied after XRDs from catalog
+  dependsOn:
+    - name: catalog
