@@ -105,6 +105,104 @@ spec:
         # Function configuration
 ```
 
+## Namespaced XRs and Object Resources
+
+### Critical Requirements for Namespaced XRs
+
+Since all XRs use `scope: Namespaced` in Crossplane v2, special care must be taken when using `provider-kubernetes` Object resources.
+
+**IMPORTANT DISCOVERY:** Provider-kubernetes has TWO Object APIs:
+- `kubernetes.crossplane.io/v1alpha2` - **cluster-scoped** (CANNOT be used with namespaced XRs)
+- `kubernetes.m.crossplane.io/v1alpha1` - **namespace-scoped** (CAN be used with namespaced XRs)
+
+### The Solution: Use Namespace-Scoped Object API
+
+```yaml
+# CORRECT: Use the namespace-scoped v1alpha1 API
+apiVersion: kubernetes.m.crossplane.io/v1alpha1  # Note the .m. in the API group!
+kind: Object
+metadata:
+  name: {{ $xrName }}-deployment
+  namespace: {{ $xrNamespace }}  # REQUIRED: Object must be in XR's namespace
+spec:
+  forProvider:
+    manifest:
+      # Your Kubernetes resource here
+  providerConfigRef:
+    kind: ProviderConfig  # REQUIRED: kind field for v1alpha1
+    name: kubernetes-provider
+```
+
+**Important Guidelines:**
+
+1. **Use the correct Object API version**
+   - Use `kubernetes.m.crossplane.io/v1alpha1` (namespace-scoped)
+   - NOT `kubernetes.crossplane.io/v1alpha2` (cluster-scoped)
+   - The `.m.` stands for "managed" and indicates namespace-scoped resources
+
+2. **Add namespace to Object metadata**
+   - Object resources need `metadata.namespace: {{ $xrNamespace }}`
+   - This places the Object resource itself in the XR's namespace
+
+3. **Include kind in providerConfigRef**
+   - The v1alpha1 API requires `kind: ProviderConfig`
+   - This is different from v1alpha2 which has a default
+
+4. **Create namespaced ProviderConfig**
+   - Create a ProviderConfig in the same namespace as your XRs
+   - Use `kubernetes.m.crossplane.io/v1alpha1` API for the ProviderConfig
+
+5. **Do NOT create namespaces from namespaced XRs**
+   - The XR already exists in a namespace
+   - Deploy all resources to the XR's namespace
+   - Use `{{ .observed.composite.resource.metadata.namespace }}` in templates
+
+6. **Resource naming must be unique**
+   - Include XR name in resource names: `name: {{ $xrName }}-deployment`
+   - This prevents conflicts when multiple XRs exist in the same namespace
+
+### Example: Complete Working Pattern
+
+```yaml
+# In your go-templating function:
+{{- $xrName := .observed.composite.resource.metadata.name }}
+{{- $xrNamespace := .observed.composite.resource.metadata.namespace }}
+
+apiVersion: kubernetes.m.crossplane.io/v1alpha1  # Namespace-scoped API
+kind: Object
+metadata:
+  name: {{ $xrName }}-service
+  namespace: {{ $xrNamespace }}  # Object in XR's namespace
+spec:
+  forProvider:
+    manifest:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: {{ $xrName }}           # Unique name
+        namespace: {{ $xrNamespace }} # Service in XR's namespace
+  providerConfigRef:
+    kind: ProviderConfig  # Required for v1alpha1
+    name: kubernetes-provider
+```
+
+### Setting up ProviderConfig
+
+You need a namespaced ProviderConfig:
+
+```yaml
+apiVersion: kubernetes.m.crossplane.io/v1alpha1
+kind: ProviderConfig
+metadata:
+  name: kubernetes-provider
+  namespace: your-namespace  # Same namespace as XRs
+spec:
+  credentials:
+    source: InjectedIdentity
+```
+
+For more details, see [Crossplane PR #6588](https://github.com/crossplane/crossplane/pull/6588) which enforces that namespaced XRs cannot create cluster-scoped resources.
+
 ## Configuration Package (crossplane.yaml)
 
 ```yaml
@@ -255,6 +353,13 @@ Before releasing a template:
 - [ ] Has `terasky.backstage.io/generate-form` label
 - [ ] Has `backstage.io/source-location` annotation
 - [ ] Composition uses Pipeline mode
+- [ ] Object resources use `kubernetes.m.crossplane.io/v1alpha1` API (namespace-scoped)
+- [ ] Object resources have `metadata.namespace: {{ $xrNamespace }}`
+- [ ] providerConfigRef includes `kind: ProviderConfig`
+- [ ] Namespaced ProviderConfig exists in target namespace
+- [ ] No namespace creation from namespaced XRs
+- [ ] Resources use XR's namespace via template variable
+- [ ] Resource names include XR name for uniqueness
 - [ ] All required files present
 - [ ] RBAC permissions are minimal but sufficient
 - [ ] Examples work when applied
@@ -271,6 +376,12 @@ Before releasing a template:
 6. ❌ Missing rbac.yaml
 7. ❌ Including examples in kustomization.yaml
 8. ❌ Missing backstage annotations
+9. ❌ Using `kubernetes.crossplane.io/v1alpha2` Object API (cluster-scoped) with namespaced XRs
+10. ❌ Missing `metadata.namespace` on Object resources
+11. ❌ Missing `kind: ProviderConfig` in providerConfigRef for v1alpha1 API
+12. ❌ No namespaced ProviderConfig in the XR's namespace
+13. ❌ Creating namespaces from namespaced XRs
+14. ❌ Not using unique resource names (missing XR name prefix)
 
 ## Reference Templates
 
