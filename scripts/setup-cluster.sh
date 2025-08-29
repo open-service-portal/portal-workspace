@@ -184,14 +184,20 @@ install_provider_kubernetes() {
         echo -e "${YELLOW}If the issue persists, review your provider configuration and try reapplying the manifest.${NC}"
     }
     
-    # Apply ProviderConfig
+    # Apply ProviderConfig for cluster-scoped API
     kubectl apply -f "$MANIFEST_DIR/crossplane-provider-kubernetes-config.yaml"
+    
+    # Apply ClusterProviderConfig for managed API (namespace-scoped, v2 compatible)
+    echo "Applying ClusterProviderConfig for managed API..."
+    kubectl apply -f "$MANIFEST_DIR/crossplane-provider-kubernetes-managed-config.yaml"
     
     # Apply RBAC for provider-kubernetes to manage all resources
     echo "Applying RBAC for provider-kubernetes..."
     kubectl apply -f "$MANIFEST_DIR/crossplane-provider-kubernetes-rbac.yaml"
     
     echo -e "${GREEN}✓ provider-kubernetes installed and configured with full RBAC${NC}"
+    echo "  - Cluster-scoped API (kubernetes.crossplane.io) configured"
+    echo "  - Managed API (kubernetes.m.crossplane.io) configured for namespaced XRs"
 }
 
 # Install Crossplane provider-cloudflare
@@ -386,7 +392,7 @@ print_summary() {
     echo "  ✓ Flux GitOps"
     echo "  ✓ Flux catalog watcher for Crossplane templates"
     echo "  ✓ Crossplane v2.0.0"
-    echo "  ✓ provider-kubernetes"
+    echo "  ✓ provider-kubernetes (both cluster & managed APIs)"
     echo "  ✓ provider-cloudflare (configure with config-openportal.sh)"
     echo "  ✓ Crossplane composition functions"
     

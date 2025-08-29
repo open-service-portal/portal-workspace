@@ -1,0 +1,19 @@
+# ClusterProviderConfig: Kubernetes Managed API
+# Purpose: Configures how provider-kubernetes managed API authenticates to the cluster
+# Auth Method: InjectedIdentity - Uses the provider pod's service account
+#
+# This configuration enables the kubernetes.m.crossplane.io API which supports
+# namespaced XRs (Crossplane v2 style). The "m" stands for "managed" and this
+# API is required when using namespaced composite resources.
+#
+# Key Differences:
+# - kubernetes.crossplane.io = cluster-scoped Objects (legacy)
+# - kubernetes.m.crossplane.io = namespace-scoped Objects (v2 compatible)
+
+apiVersion: kubernetes.m.crossplane.io/v1alpha1
+kind: ClusterProviderConfig
+metadata:
+  name: kubernetes-provider
+spec:
+  credentials:
+    source: InjectedIdentity
