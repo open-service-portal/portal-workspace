@@ -129,7 +129,7 @@ spec:
     manifest:
       # Your Kubernetes resource here
   providerConfigRef:
-    kind: ProviderConfig  # REQUIRED: kind field for v1alpha1
+    kind: ClusterProviderConfig  # Use cluster-wide config
     name: kubernetes-provider
 ```
 
@@ -144,20 +144,17 @@ spec:
    - Object resources need `metadata.namespace: {{ $xrNamespace }}`
    - This places the Object resource itself in the XR's namespace
 
-3. **Include kind in providerConfigRef**
-   - The v1alpha1 API requires `kind: ProviderConfig`
-   - This is different from v1alpha2 which has a default
+3. **Use ClusterProviderConfig in providerConfigRef**
+   - The v1alpha1 API requires `kind: ClusterProviderConfig`
+   - This references the cluster-wide configuration set up by `setup-cluster.sh`
+   - Do NOT use `kind: ProviderConfig` unless you have namespace-specific configs
 
-4. **Create namespaced ProviderConfig**
-   - Create a ProviderConfig in the same namespace as your XRs
-   - Use `kubernetes.m.crossplane.io/v1alpha1` API for the ProviderConfig
-
-5. **Do NOT create namespaces from namespaced XRs**
+4. **Do NOT create namespaces from namespaced XRs**
    - The XR already exists in a namespace
    - Deploy all resources to the XR's namespace
    - Use `{{ .observed.composite.resource.metadata.namespace }}` in templates
 
-6. **Resource naming must be unique**
+5. **Resource naming must be unique**
    - Include XR name in resource names: `name: {{ $xrName }}-deployment`
    - This prevents conflicts when multiple XRs exist in the same namespace
 
@@ -182,24 +179,25 @@ spec:
         name: {{ $xrName }}           # Unique name
         namespace: {{ $xrNamespace }} # Service in XR's namespace
   providerConfigRef:
-    kind: ProviderConfig  # Required for v1alpha1
+    kind: ClusterProviderConfig  # Use cluster-wide config
     name: kubernetes-provider
 ```
 
-### Setting up ProviderConfig
+### Provider Configuration
 
-You need a namespaced ProviderConfig:
+The setup script (`scripts/setup-cluster.sh`) creates a ClusterProviderConfig:
 
 ```yaml
 apiVersion: kubernetes.m.crossplane.io/v1alpha1
-kind: ProviderConfig
+kind: ClusterProviderConfig
 metadata:
   name: kubernetes-provider
-  namespace: your-namespace  # Same namespace as XRs
 spec:
   credentials:
     source: InjectedIdentity
 ```
+
+This cluster-wide configuration is used by all templates. You don't need to create namespace-specific ProviderConfigs unless you have special multi-tenancy requirements.
 
 For more details, see [Crossplane PR #6588](https://github.com/crossplane/crossplane/pull/6588) which enforces that namespaced XRs cannot create cluster-scoped resources.
 
@@ -355,8 +353,8 @@ Before releasing a template:
 - [ ] Composition uses Pipeline mode
 - [ ] Object resources use `kubernetes.m.crossplane.io/v1alpha1` API (namespace-scoped)
 - [ ] Object resources have `metadata.namespace: {{ $xrNamespace }}`
-- [ ] providerConfigRef includes `kind: ProviderConfig`
-- [ ] Namespaced ProviderConfig exists in target namespace
+- [ ] providerConfigRef uses `kind: ClusterProviderConfig`
+- [ ] References `kubernetes-provider` ClusterProviderConfig
 - [ ] No namespace creation from namespaced XRs
 - [ ] Resources use XR's namespace via template variable
 - [ ] Resource names include XR name for uniqueness
@@ -378,10 +376,9 @@ Before releasing a template:
 8. ❌ Missing backstage annotations
 9. ❌ Using `kubernetes.crossplane.io/v1alpha2` Object API (cluster-scoped) with namespaced XRs
 10. ❌ Missing `metadata.namespace` on Object resources
-11. ❌ Missing `kind: ProviderConfig` in providerConfigRef for v1alpha1 API
-12. ❌ No namespaced ProviderConfig in the XR's namespace
-13. ❌ Creating namespaces from namespaced XRs
-14. ❌ Not using unique resource names (missing XR name prefix)
+11. ❌ Missing `kind: ClusterProviderConfig` in providerConfigRef
+12. ❌ Creating namespaces from namespaced XRs
+13. ❌ Not using unique resource names (missing XR name prefix)
 
 ## Reference Templates
 
