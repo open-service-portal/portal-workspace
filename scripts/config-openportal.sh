@@ -5,7 +5,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_DIR="$(dirname "$SCRIPT_DIR")"
-MANIFEST_DIR="${SCRIPT_DIR}/manifests-config-openportal"
+MANIFEST_DIR="${SCRIPT_DIR}/manifests-config"
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -123,8 +123,6 @@ EOF
 configure_flux_catalog_orders() {
     echo ""
     echo -e "${YELLOW}Configuring Flux to watch catalog-orders for cluster: ${CLUSTER_NAME}...${NC}"
-    
-    MANIFEST_DIR="$SCRIPT_DIR/manifests-config"
     
     # Apply catalog-orders configuration with environment substitution
     # Skip if Cloudflare is not needed (local clusters)
