@@ -105,6 +105,71 @@ spec:
         # Function configuration
 ```
 
+## Namespaced XRs and Object Resources
+
+### Critical Requirements for Namespaced XRs
+
+Since all XRs use `scope: Namespaced` in Crossplane v2, special care must be taken when using `provider-kubernetes` Object resources:
+
+```yaml
+# CORRECT: Object resource with namespaceSelector
+apiVersion: kubernetes.crossplane.io/v1alpha2
+kind: Object
+metadata:
+  name: {{ $xrName }}-deployment
+spec:
+  forProvider:
+    manifest:
+      # Your Kubernetes resource here
+  providerConfigRef:
+    name: kubernetes-provider
+  namespaceSelector:           # REQUIRED for namespaced XRs!
+    matchControllerRef: true   # Use the XR's namespace
+```
+
+**Important Guidelines:**
+
+1. **Always include `namespaceSelector`** on Object resources
+   - Without it, Objects are cluster-scoped
+   - Namespaced XRs CANNOT create cluster-scoped resources (blocked by Crossplane v2)
+   - This will cause: "cannot apply cluster scoped composed resource for a namespaced composite resource"
+
+2. **Do NOT create namespaces from namespaced XRs**
+   - The XR already exists in a namespace
+   - Deploy all resources to the XR's namespace
+   - Use `{{ .observed.composite.resource.metadata.namespace }}` in templates
+
+3. **Resource naming must be unique**
+   - Include XR name in resource names: `name: {{ $xrName }}-deployment`
+   - This prevents conflicts when multiple XRs exist in the same namespace
+
+### Example: Correct Namespaced XR Pattern
+
+```yaml
+# In your go-templating function:
+{{- $xrName := .observed.composite.resource.metadata.name }}
+{{- $xrNamespace := .observed.composite.resource.metadata.namespace }}
+
+apiVersion: kubernetes.crossplane.io/v1alpha2
+kind: Object
+metadata:
+  name: {{ $xrName }}-service
+spec:
+  forProvider:
+    manifest:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: {{ $xrName }}           # Unique name
+        namespace: {{ $xrNamespace }} # Use XR's namespace
+  providerConfigRef:
+    name: kubernetes-provider
+  namespaceSelector:
+    matchControllerRef: true          # CRITICAL!
+```
+
+For more details, see [Crossplane PR #6588](https://github.com/crossplane/crossplane/pull/6588).
+
 ## Configuration Package (crossplane.yaml)
 
 ```yaml
@@ -255,6 +320,10 @@ Before releasing a template:
 - [ ] Has `terasky.backstage.io/generate-form` label
 - [ ] Has `backstage.io/source-location` annotation
 - [ ] Composition uses Pipeline mode
+- [ ] Object resources have `namespaceSelector.matchControllerRef: true`
+- [ ] No namespace creation from namespaced XRs
+- [ ] Resources use XR's namespace via template variable
+- [ ] Resource names include XR name for uniqueness
 - [ ] All required files present
 - [ ] RBAC permissions are minimal but sufficient
 - [ ] Examples work when applied
@@ -271,6 +340,9 @@ Before releasing a template:
 6. ❌ Missing rbac.yaml
 7. ❌ Including examples in kustomization.yaml
 8. ❌ Missing backstage annotations
+9. ❌ Object resources without `namespaceSelector` (causes cluster-scoped error)
+10. ❌ Creating namespaces from namespaced XRs
+11. ❌ Not using unique resource names (missing XR name prefix)
 
 ## Reference Templates
 
