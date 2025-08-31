@@ -5,6 +5,9 @@
 
 set -e
 
+# Add timeout protection for kubectl commands
+export KUBECTL_TIMEOUT="--timeout=30s"
+
 YELLOW='\033[1;33m'
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -25,14 +28,37 @@ for xrd in $(kubectl get xrd -o name 2>/dev/null); do
   group=$(kubectl get $xrd -o jsonpath='{.spec.group}')
   if [ ! -z "$plural" ]; then
     echo "  ↳ Deleting XRs for $resource_name"
-    kubectl delete $plural.$group --all 2>/dev/null || true
+    # Use --wait=false to avoid hanging
+    kubectl delete $plural.$group --all --wait=false 2>/dev/null || true
   fi
 done
 
+# Wait a moment for XR deletions to process
+if [ $(kubectl get xrd --no-headers 2>/dev/null | wc -l) -gt 0 ]; then
+  echo "  ⏳ Waiting for XRs to be deleted..."
+  sleep 3
+fi
+
 # Step 2: Delete all XRDs and Compositions
 echo -e "${YELLOW}🗑️  Step 2: Deleting XRDs and Compositions...${NC}"
-kubectl delete xrd --all 2>/dev/null || true
-kubectl delete composition --all 2>/dev/null || true
+# Use --wait=false to avoid hanging on finalizers
+kubectl delete xrd --all --wait=false 2>/dev/null || true
+kubectl delete composition --all --wait=false 2>/dev/null || true
+
+# Give a moment for deletion to start
+sleep 2
+
+# Force remove finalizers if any XRDs are stuck
+echo "  ↳ Checking for stuck XRDs..."
+for xrd in $(kubectl get xrd -o name 2>/dev/null); do
+  xrd_name=$(echo $xrd | sed 's/compositeresourcedefinition.apiextensions.crossplane.io\///')
+  echo "    • Removing finalizers from $xrd_name if present..."
+  kubectl patch $xrd -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null || true
+done
+
+# Wait a bit for deletions to complete
+echo "  ⏳ Waiting for resources to be deleted..."
+sleep 5
 
 # Step 3: Handle Configuration packages (dns-record, namespace)
 echo -e "${YELLOW}📦 Step 3: Reloading Configuration packages...${NC}"
@@ -41,7 +67,7 @@ if [ ! -z "$configs" ]; then
   for config in $configs; do
     config_name=$(echo $config | sed 's/configuration.pkg.crossplane.io\///')
     echo "  ↳ Deleting $config_name..."
-    kubectl delete $config -n crossplane-system
+    kubectl delete $config -n crossplane-system --wait=false
   done
   
   # Wait for deletion

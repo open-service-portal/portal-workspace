@@ -268,12 +268,76 @@ rules:
 
 ## GitHub Actions Release Workflow
 
-Use the standard release workflow from `template-dns-record/.github/workflows/release.yaml`:
-- Triggers on version tags (v*.*.*)
-- Builds Crossplane Configuration package
-- Pushes to GitHub Container Registry
-- Creates GitHub release
-- Automatically creates PR to update catalog
+All templates MUST include the standardized release workflow at `.github/workflows/release.yaml`.
+
+### Workflow Features
+- **Triggers**: Version tags (v*.*.*) or manual dispatch
+- **Multi-platform builds**: linux/amd64, linux/arm64
+- **Registry**: GitHub Container Registry (ghcr.io)
+- **Automatic versioning**: Tags packages with version
+- **GitHub Release**: Creates release with artifacts
+- **Catalog update**: Auto-generates catalog entry (artifact)
+
+### Required Configuration
+
+1. **Package naming convention**:
+   ```yaml
+   env:
+     REGISTRY: ghcr.io
+     PACKAGE_NAME: open-service-portal/configuration-<template-name>
+   ```
+
+2. **Configuration structure**:
+   ```
+   template-<name>/
+   ├── configuration/
+   │   ├── crossplane.yaml    # Package metadata
+   │   ├── xrd.yaml           # XRD definition
+   │   └── composition.yaml   # Composition
+   └── .github/
+       └── workflows/
+           └── release.yaml    # Standard workflow
+   ```
+
+3. **Package file naming**:
+   - Build output: `configuration-<template-name>.xpkg`
+   - Registry path: `ghcr.io/open-service-portal/configuration-<template-name>`
+
+### Workflow Template
+
+Copy the standard workflow and replace placeholders:
+- `TEMPLATE_NAME_HERE` → `configuration-<your-template>`
+- `TEMPLATE_TITLE_HERE` → Human-readable name
+- `TEMPLATE_DESCRIPTION_HERE` → Brief description
+- `TEMPLATE_FEATURES_HERE` → List of features
+
+### Release Process
+
+1. **Create version tag**:
+   ```bash
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+
+2. **Workflow automatically**:
+   - Builds Configuration package from `configuration/` directory
+   - Pushes to `ghcr.io/open-service-portal/configuration-<name>:v1.0.0`
+   - Also tags as `:latest` (if not pre-release)
+   - Creates GitHub release with `.xpkg` file
+   - Generates `catalog-entry.yaml` artifact
+
+3. **Manual installation**:
+   ```bash
+   kubectl apply -f - <<EOF
+   apiVersion: pkg.crossplane.io/v1
+   kind: Configuration
+   metadata:
+     name: configuration-<name>
+     namespace: crossplane-system
+   spec:
+     package: ghcr.io/open-service-portal/configuration-<name>:v1.0.0
+   EOF
+   ```
 
 ## Supporting Files
 
