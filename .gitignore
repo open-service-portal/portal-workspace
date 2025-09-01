@@ -4,6 +4,7 @@
 
 # Cloned repositories (managed separately)
 .github/
+github-org-settings/
 app-portal/
 deploy-app-portal/
 catalog/
