@@ -446,25 +446,44 @@ templates/
 **Catalog-Orders Repository** (`catalog-orders/`)
 ```
 clusters/
-├── dev-cluster/
-│   ├── team-alpha/
-│   │   ├── dns-records/
-│   │   │   ├── api-dns.yaml
-│   │   │   └── web-dns.yaml
+├── db-cluster/                    # Managed by Database Platform Team
+│   ├── platform-services/
+│   │   └── postgres-operators/
+│   │       └── postgres-operator.yaml
+│   └── customer-databases/
+│       ├── project-1-db.yaml
+│       └── project-2-db.yaml
+├── infra-cluster/                 # Managed by Infrastructure Team
+│   ├── dns-management/
+│   │   └── external-dns.yaml
+│   └── certificates/
+│       └── cert-manager.yaml
+├── project-1-dev/                 # Project 1's development cluster
+│   ├── backend-team/
 │   │   └── applications/
-│   │       └── frontend.yaml
-│   └── team-beta/
-│       └── dns-records/
-│           └── backend-dns.yaml
-├── staging-cluster/
-│   └── team-alpha/
-│       └── dns-records/
-│           └── api-dns.yaml
-└── prod-cluster/
-    └── team-alpha/
-        └── dns-records/
-            └── api-dns.yaml
+│   │       └── api-service.yaml
+│   └── frontend-team/
+│       └── applications/
+│           └── web-app.yaml
+├── project-1-prod/                # Project 1's production cluster
+│   ├── backend-team/
+│   │   └── applications/
+│   │       └── api-service.yaml
+│   └── frontend-team/
+│       └── applications/
+│           └── web-app.yaml
+└── project-2-cluster/             # Project 2's single cluster
+    └── team-gamma/
+        ├── applications/
+        │   └── monolith.yaml
+        └── databases/
+            └── local-postgres.yaml
 ```
+
+**Cluster Organization Patterns:**
+- **Service Clusters** (db-cluster, infra-cluster): Managed by platform teams, provide services to other clusters
+- **Project Clusters** (project-1-dev, project-1-prod): Owned by project teams, may have multiple environments
+- **Shared Clusters** (project-2-cluster): Single cluster for smaller projects or teams
 
 ## Detailed Component Interactions
 
@@ -641,51 +660,105 @@ graph TB
     subgraph "catalog-orders/"
         ROOT[clusters/]
         
-        subgraph "Clusters"
-            C1[dev-cluster/]
-            C2[staging-cluster/]
-            C3[prod-cluster/]
+        subgraph "Platform Service Clusters"
+            SC1[db-cluster/]
+            SC2[infra-cluster/]
+            SC3[monitoring-cluster/]
         end
         
-        subgraph "Namespaces per Cluster"
-            NS1[team-alpha/]
-            NS2[team-beta/]
-            NS3[platform-team/]
+        subgraph "Project Clusters"
+            PC1[project-1-dev/]
+            PC2[project-1-prod/]
+            PC3[project-2-cluster/]
+        end
+        
+        subgraph "Teams/Namespaces"
+            T1[database-team/]
+            T2[backend-team/]
+            T3[frontend-team/]
+            T4[platform-services/]
         end
         
         subgraph "Resource Types"
-            RT1[dns-records/]
+            RT1[databases/]
             RT2[applications/]
-            RT3[databases/]
+            RT3[dns-records/]
             RT4[certificates/]
         end
         
         subgraph "XR Files"
-            XR1[api-dns.yaml]
-            XR2[web-app.yaml]
-            XR3[postgres-prod.yaml]
+            XR1[postgres-instance.yaml]
+            XR2[api-service.yaml]
+            XR3[managed-db.yaml]
         end
     end
     
-    ROOT --> C1
-    ROOT --> C2
-    ROOT --> C3
-    C1 --> NS1
-    C1 --> NS2
-    NS1 --> RT1
-    NS1 --> RT2
+    ROOT --> SC1
+    ROOT --> SC2
+    ROOT --> PC1
+    ROOT --> PC2
+    SC1 --> T1
+    SC1 --> T4
+    PC1 --> T2
+    PC1 --> T3
+    T1 --> RT1
+    T2 --> RT2
     RT1 --> XR1
     RT2 --> XR2
-    NS2 --> RT3
-    RT3 --> XR3
+    T4 --> XR3
     
     style ROOT fill:#fff3e0
-    style C1 fill:#ffcccc
-    style C2 fill:#ffcccc
-    style C3 fill:#ffcccc
-    style NS1 fill:#e1f5fe
-    style NS2 fill:#e1f5fe
-    style NS3 fill:#e1f5fe
+    style SC1 fill:#ffebee
+    style SC2 fill:#ffebee
+    style SC3 fill:#ffebee
+    style PC1 fill:#e1f5fe
+    style PC2 fill:#e1f5fe
+    style PC3 fill:#e1f5fe
+```
+
+### Platform Service Model
+
+```mermaid
+graph LR
+    subgraph "Platform Teams"
+        DBT[Database Team]
+        INFRA[Infrastructure Team]
+        SEC[Security Team]
+    end
+    
+    subgraph "Service Clusters"
+        DBC[DB Cluster]
+        INFRAC[Infra Cluster]
+        SECC[Security Cluster]
+    end
+    
+    subgraph "Project Teams"
+        P1[Project 1 Team]
+        P2[Project 2 Team]
+    end
+    
+    subgraph "Consumption"
+        P1C[Project 1 Clusters]
+        P2C[Project 2 Clusters]
+    end
+    
+    DBT -->|Manages| DBC
+    INFRA -->|Manages| INFRAC
+    SEC -->|Manages| SECC
+    
+    DBC -->|Provides DBs| P1C
+    DBC -->|Provides DBs| P2C
+    INFRAC -->|Provides DNS/Certs| P1C
+    INFRAC -->|Provides DNS/Certs| P2C
+    
+    P1 -->|Owns| P1C
+    P2 -->|Owns| P2C
+    
+    style DBT fill:#ffcccc
+    style INFRA fill:#ffcccc
+    style SEC fill:#ffcccc
+    style P1 fill:#ccffcc
+    style P2 fill:#ccffcc
 ```
 
 ## Crossplane v2 Architecture
