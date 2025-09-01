@@ -361,7 +361,7 @@ sequenceDiagram
     rect rgb(240, 248, 255)
         Note over Scaff,Rev: See "Resource Order PRs" section
         UI->>Scaff: 6. Execute template action
-        Scaff->>Orders: 7. Create PR with XR<br/>Path: /namespaces/$NS/$TYPE/
+        Scaff->>Orders: 7. Create PR with XR<br/>Path: /clusters/$CLUSTER/$NS/$TYPE/
         Rev->>Orders: 8. [Review & Merge]
     end
     
@@ -445,17 +445,25 @@ templates/
 
 **Catalog-Orders Repository** (`catalog-orders/`)
 ```
-namespaces/
-├── team-alpha/
-│   ├── dns-records/
-│   │   ├── api-dns.yaml
-│   │   └── web-dns.yaml
-│   └── applications/
-│       └── frontend.yaml
-├── team-beta/
-│   └── dns-records/
-│       └── backend-dns.yaml
-└── ...
+clusters/
+├── dev-cluster/
+│   ├── team-alpha/
+│   │   ├── dns-records/
+│   │   │   ├── api-dns.yaml
+│   │   │   └── web-dns.yaml
+│   │   └── applications/
+│   │       └── frontend.yaml
+│   └── team-beta/
+│       └── dns-records/
+│           └── backend-dns.yaml
+├── staging-cluster/
+│   └── team-alpha/
+│       └── dns-records/
+│           └── api-dns.yaml
+└── prod-cluster/
+    └── team-alpha/
+        └── dns-records/
+            └── api-dns.yaml
 ```
 
 ## Detailed Component Interactions
@@ -515,7 +523,7 @@ graph LR
     end
     
     S1 -->|Watch ./templates| K1
-    S2 -->|Watch ./namespaces| K2
+    S2 -->|Watch ./clusters| K2
     K1 -->|Apply| R1
     K2 -->|Apply| R2
     
@@ -624,16 +632,22 @@ Version flow:
 4. Package pushed to `ghcr.io/template:v1.2.3`
 5. Backstage displays as "Template v1.2.3"
 
-## Namespace Organization
+## Cluster and Namespace Organization
 
 ### catalog-orders Repository Structure
 
 ```mermaid
 graph TB
     subgraph "catalog-orders/"
-        ROOT[namespaces/]
+        ROOT[clusters/]
         
-        subgraph "Team Namespaces"
+        subgraph "Clusters"
+            C1[dev-cluster/]
+            C2[staging-cluster/]
+            C3[prod-cluster/]
+        end
+        
+        subgraph "Namespaces per Cluster"
             NS1[team-alpha/]
             NS2[team-beta/]
             NS3[platform-team/]
@@ -653,9 +667,11 @@ graph TB
         end
     end
     
-    ROOT --> NS1
-    ROOT --> NS2
-    ROOT --> NS3
+    ROOT --> C1
+    ROOT --> C2
+    ROOT --> C3
+    C1 --> NS1
+    C1 --> NS2
     NS1 --> RT1
     NS1 --> RT2
     RT1 --> XR1
@@ -664,6 +680,9 @@ graph TB
     RT3 --> XR3
     
     style ROOT fill:#fff3e0
+    style C1 fill:#ffcccc
+    style C2 fill:#ffcccc
+    style C3 fill:#ffcccc
     style NS1 fill:#e1f5fe
     style NS2 fill:#e1f5fe
     style NS3 fill:#e1f5fe
@@ -677,7 +696,7 @@ graph TB
 graph LR
     subgraph "Developer Experience"
         DEV[Developer]
-        XR[XR<br/>(Direct Resource)]
+        XR[Direct XR Resource]
     end
     
     subgraph "Crossplane Processing"
@@ -702,7 +721,7 @@ graph LR
     style COMP fill:#e8f5e9
     style FUNC fill:#e8f5e9
     
-    Note1[No Claim needed!<br/>Direct XR in namespace]
+    Note1[No Claim needed - Direct XR in namespace]
     Note1 -.-> XR
     
     style Note1 fill:#ffffcc
