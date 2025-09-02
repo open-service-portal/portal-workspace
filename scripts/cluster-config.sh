@@ -40,12 +40,6 @@ ENV_FILE=""
 # Try to find environment file for this context
 if [ -f "$WORKSPACE_DIR/.env.${CURRENT_CONTEXT}" ]; then
     ENV_FILE=".env.${CURRENT_CONTEXT}"
-elif [ -f "$WORKSPACE_DIR/.env.openportal" ] && [[ "$CURRENT_CONTEXT" == *openportal* ]]; then
-    # Backward compatibility for .env.openportal
-    ENV_FILE=".env.openportal"
-elif [ -f "$WORKSPACE_DIR/.env.local" ] && [[ "$CURRENT_CONTEXT" =~ (docker-desktop|rancher-desktop|minikube|kind) ]]; then
-    # Backward compatibility for .env.local
-    ENV_FILE=".env.local"
 else
     echo -e "${YELLOW}No environment file found for context: ${CURRENT_CONTEXT}${NC}"
     echo ""
@@ -55,9 +49,6 @@ else
     echo "  cp .env.rancher-desktop.example .env.${CURRENT_CONTEXT}"
     echo "  vim .env.${CURRENT_CONTEXT}"
     echo ""
-    echo "Or use a specific config script:"
-    echo "  ./scripts/cluster-config-local.sh      # For local development"
-    echo "  ./scripts/cluster-config-openportal.sh # For OpenPortal production"
     exit 1
 fi
 
