@@ -210,6 +210,11 @@ update_environment_configs() {
 echo -e "${BLUE}Starting configuration...${NC}"
 echo ""
 
+# Create demo namespace if it doesn't exist
+echo "Ensuring demo namespace exists..."
+kubectl create namespace demo --dry-run=client -o yaml | kubectl apply -f - >/dev/null 2>&1
+echo -e "${GREEN}✓ Demo namespace ready${NC}"
+
 # Run common configurations
 update_backstage_config
 configure_flux_catalog_orders
