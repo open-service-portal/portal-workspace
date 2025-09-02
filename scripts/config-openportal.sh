@@ -44,7 +44,7 @@ kubectl create namespace external-dns --dry-run=client -o yaml | kubectl apply -
 
 # Create Cloudflare API token secret for External-DNS
 kubectl create secret generic cloudflare-api-token \
-    --from-literal=cloudflare_api_token="${CLOUDFLARE_USER_API_TOKEN}" \
+    --from-literal=cloudflare_api_token="${CLOUDFLARE_API_TOKEN}" \
     --namespace external-dns \
     --dry-run=client -o yaml | kubectl apply -f -
 
@@ -153,7 +153,7 @@ echo ""
 echo -e "${GREEN}OpenPortal cluster configuration complete!${NC}"
 echo ""
 echo "Cluster: ${CLUSTER_NAME}"
-echo "DNS Zone: ${DNS_ZONE}"
+echo "Base Domain: ${BASE_DOMAIN}"
 echo "DNS Provider: External-DNS with Cloudflare"
 echo "Cloudflare Zone ID: ${CLOUDFLARE_ZONE_ID}"
 echo "Cloudflare Account ID: ${CLOUDFLARE_ACCOUNT_ID}"
@@ -173,7 +173,7 @@ echo "    name: test-dns"
 echo "    namespace: default"
 echo "  spec:"
 echo "    endpoints:"
-echo "    - dnsName: test.${DNS_ZONE}"
+echo "    - dnsName: test.${BASE_DOMAIN}"
 echo "      recordType: A"
 echo "      recordTTL: 300"
 echo "      targets: ['1.2.3.4']"

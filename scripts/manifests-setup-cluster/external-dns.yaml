@@ -132,6 +132,7 @@ spec:
         - --crd-source-apiversion=externaldns.openportal.dev/v1alpha1
         - --crd-source-kind=DNSEndpoint
         - --provider=cloudflare  # Default to non-proxied, can be overridden per record
+        - --domain-filter=openportal.dev  # Only manage records in this zone
         - --policy=sync  # sync = create/update/delete as needed
         - --txt-owner-id=openportal  # Unique identifier for this instance
         - --log-level=info
