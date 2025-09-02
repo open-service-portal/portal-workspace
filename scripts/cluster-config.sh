@@ -32,7 +32,7 @@ echo -e "${BLUE}================================${NC}"
 echo -e "${BLUE}   Cluster Configuration Tool${NC}"
 echo -e "${BLUE}================================${NC}"
 echo ""
-echo "Current context: ${GREEN}${CURRENT_CONTEXT}${NC}"
+echo -e "Current context: ${GREEN}${CURRENT_CONTEXT}${NC}"
 
 # Find environment file
 ENV_FILE=""
@@ -52,7 +52,7 @@ else
     exit 1
 fi
 
-echo "Using environment file: ${GREEN}${ENV_FILE}${NC}"
+echo -e "Using environment file: ${GREEN}${ENV_FILE}${NC}"
 echo ""
 
 # Load environment variables
@@ -222,15 +222,15 @@ echo -e "${GREEN}================================${NC}"
 echo -e "${GREEN}   Configuration Complete!${NC}"
 echo -e "${GREEN}================================${NC}"
 echo ""
-echo "Cluster: ${CURRENT_CONTEXT}"
-echo "Config: ${ENV_FILE}"
+echo -e "Cluster: ${CURRENT_CONTEXT}"
+echo -e "Config: ${ENV_FILE}"
 
 if [ -n "$BASE_DOMAIN" ]; then
-    echo "Base Domain: ${BASE_DOMAIN}"
+    echo -e "Base Domain: ${BASE_DOMAIN}"
 fi
 
 if [ -n "$CLOUDFLARE_ZONE_NAME" ]; then
-    echo "Cloudflare Zone: ${CLOUDFLARE_ZONE_NAME}"
+    echo -e "Cloudflare Zone: ${CLOUDFLARE_ZONE_NAME}"
 fi
 
 echo ""
