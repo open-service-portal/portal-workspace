@@ -355,17 +355,7 @@ create_backstage_service_account() {
     # Create persistent token secret if it doesn't exist
     if [ -z "$EXISTING_SECRET" ]; then
         echo "Creating persistent token secret..."
-        kubectl apply -f - <<EOF
-apiVersion: v1
-kind: Secret
-metadata:
-  name: $SECRET_NAME
-  namespace: default
-  annotations:
-    kubernetes.io/service-account.name: backstage-k8s-sa
-    description: "Persistent token for Backstage - shared by team"
-type: kubernetes.io/service-account-token
-EOF
+        kubectl apply -f "$MANIFEST_DIR/backstage-token-secret.yaml"
         
         # Wait for token to be populated
         echo -n "Waiting for token generation"
