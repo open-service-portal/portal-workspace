@@ -373,7 +373,7 @@ create_backstage_service_account() {
     
     echo -e "${GREEN}✓ Backstage service account ready${NC}"
     echo ""
-    echo "Note: Run config-local.sh or config-openportal.sh to configure Backstage for this cluster"
+    echo "Note: Run cluster-config.sh to configure Backstage for this cluster"
 }
 
 # Print summary and configuration

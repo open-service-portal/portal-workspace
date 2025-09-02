@@ -4,75 +4,84 @@ This guide explains how to configure different Kubernetes clusters for local dev
 
 ## Overview
 
-After running `./scripts/setup-cluster.sh` (see [Cluster Setup](./setup.md)), you need to configure your cluster for the specific environment:
+After running `./scripts/cluster-setup.sh` (see [Cluster Setup](./setup.md)), you need to configure your cluster for the specific environment:
 
-- **Local Development** - Uses mock DNS provider with localhost domain
-- **OpenPortal Production** - Uses real Cloudflare provider with openportal.dev domain
+- **Local Development** - Uses External-DNS without credentials (dry-run mode)
+- **OpenPortal Production** - Uses External-DNS with Cloudflare credentials
 
-The setup script installs everything with local defaults, so production environments need additional configuration.
+The setup script installs infrastructure components, then configuration scripts apply environment-specific settings.
+
+## Configuration Methods
+
+### Method 1: Auto-Detection (Recommended)
+
+```bash
+./scripts/cluster-config.sh
+```
+
+This script automatically:
+- Detects current kubectl context
+- Looks for `.env.${context}` file (e.g., `.env.rancher-desktop`)
+- Creates `app-config.${context}.local.yaml` for Backstage
+- Configures External-DNS with credentials if provided
+- Updates EnvironmentConfigs
+
+### Method 2: Specific Scripts
+
+```bash
+# For local development
+./scripts/cluster-config-local.sh
+
+# For OpenPortal production
+./scripts/cluster-config-openportal.sh
+```
 
 ## Environment Files
 
-Create environment-specific `.env` files in the workspace root by copying the examples:
+Environment files are named after kubectl contexts. Create them by copying examples:
 
 ```bash
-cp .env.local.example .env.local
+# For rancher-desktop
+cp .env.rancher-desktop.example .env.rancher-desktop
+
+# For docker-desktop
+cp .env.docker-desktop.example .env.docker-desktop
+
+# For OpenPortal
 cp .env.openportal.example .env.openportal
 ```
 
-Then edit the `.env` files with your specific values.
-
-- `.env.local` - Configuration for local development cluster
-- `.env.openportal` - Configuration for OpenPortal production cluster
-
-These files are gitignored and should not be committed.
-
-## Configuration Scripts
-
-### Local Development
-
-```bash
-./scripts/config-local.sh
-```
-
-Simply switches to the local Kubernetes context. The cluster already has default settings:
-- Mock DNS provider for testing (set by setup-cluster.sh)
-- DNS zone set to `localhost` (default)
-- No external provider credentials needed
-
-### OpenPortal Production
-
-```bash
-./scripts/config-openportal.sh
-```
-
-Configures the OpenPortal cluster with:
-- Cloudflare DNS provider
-- Real DNS zone (openportal.dev)
-- Cloudflare API credentials
-- Zone and Account IDs
+Then edit the files with your specific values. These files are gitignored and should not be committed.
 
 ## Required Environment Variables
 
-### .env.local
+### Local Development (.env.rancher-desktop)
 ```env
-# Kubernetes Context
-KUBE_CONTEXT=rancher-desktop
+# Note: CLUSTER_NAME is auto-detected from kubectl context
+
+# Base domain for applications
+BASE_DOMAIN=localhost
+
+# Optional: Enable real DNS via Cloudflare
+# CLOUDFLARE_API_TOKEN=your-api-token
+# CLOUDFLARE_ZONE_NAME=openportal.dev
 ```
 
-### .env.openportal
+### Production (.env.openportal)
 ```env
-# Kubernetes Context
-KUBE_CONTEXT=openportal
+# Note: CLUSTER_NAME is auto-detected from kubectl context
+
+# Base domain for applications
+BASE_DOMAIN=openportal.dev
 
 # Cloudflare Configuration
-CLOUDFLARE_USER_API_TOKEN=your-api-token  # User-scoped API token
+CLOUDFLARE_API_TOKEN=your-api-token       # API token with DNS edit permissions
+CLOUDFLARE_ZONE_NAME=openportal.dev       # DNS zone to manage
+
+# Legacy variables (for backward compatibility)
+CLOUDFLARE_USER_API_TOKEN=${CLOUDFLARE_API_TOKEN}
 CLOUDFLARE_ZONE_ID=your-zone-id           # From Cloudflare dashboard
 CLOUDFLARE_ACCOUNT_ID=your-account-id     # From Cloudflare dashboard
-
-# DNS Configuration
-DNS_ZONE=openportal.dev
-DNS_PROVIDER=cloudflare
 ```
 
 ## Usage
@@ -89,65 +98,58 @@ DNS_PROVIDER=cloudflare
 
 ### Default Configuration
 
-The `setup-cluster.sh` script creates default EnvironmentConfigs suitable for local development:
-- DNS zone: `localhost`
-- DNS provider: `mock`
+The `cluster-setup.sh` script installs:
+- External-DNS with custom CRDs (externaldns.openportal.dev)
+- Default EnvironmentConfigs with BASE_DOMAIN
+- Backstage service account and token
 
-These defaults are defined in `scripts/manifests-setup-cluster/environment-configs.yaml`.
+### Configuration Process
 
-### Environment-Specific Configuration
+1. **Auto-detection** (`cluster-config.sh`):
+   - Reads current kubectl context
+   - Loads `.env.${context}` file
+   - Creates Backstage config file
+   - Configures External-DNS credentials
+   - Updates EnvironmentConfigs
 
-1. **Local Development** (`config-local.sh`):
-   - Simply switches kubectl context
-   - Uses default EnvironmentConfigs from setup
-   - No credentials needed
+2. **External-DNS Configuration**:
+   - Without credentials: Runs in dry-run mode (logs only)
+   - With Cloudflare credentials: Creates real DNS records
+   - Supports namespace isolation (records in any namespace)
 
-2. **OpenPortal Production** (`config-openportal.sh`):
-   - Switches kubectl context
-   - Creates Cloudflare credentials secret
-   - Imports Cloudflare Zone resources
-   - Updates EnvironmentConfigs with production values
-   - Uses `set -a` to export variables for `envsubst`
+### DNS Management
 
-### EnvironmentConfigs
+DNS records are managed through:
+1. **CloudflareDNSRecord XR** → Creates DNSEndpoint
+2. **DNSEndpoint resource** → Watched by External-DNS
+3. **External-DNS controller** → Creates actual DNS records
 
-EnvironmentConfigs are used by Crossplane compositions via `function-environment-configs` to:
-- Determine which DNS provider to use
-- Set the DNS zone for records
-- Provide provider-specific configuration (zone IDs, account IDs)
+See [DNS Management](./dns-management.md) for detailed information.
 
 ## Notes
 
-- Both scripts switch to the appropriate kubectl context automatically
-- Configuration is applied to the `crossplane-system` namespace
-- EnvironmentConfigs are used by Crossplane compositions to determine DNS behavior
-- The Cloudflare Provider and ProviderConfig are installed by setup, only credentials are added later
+- Configuration scripts can auto-detect kubectl context (no CLUSTER_NAME needed)
+- External-DNS credentials go in `external-dns` namespace
+- EnvironmentConfigs are used by Crossplane compositions
+- Backstage config files use `.local.yaml` suffix for gitignore
 - Manifests are organized in:
   - `scripts/manifests-setup-cluster/` - Infrastructure components
-  - `scripts/manifests-config-openportal/` - Environment-specific configurations
+  - `scripts/manifests-config/` - Environment configurations
 
-## Cloudflare DNS Debugging
-
-A comprehensive debug suite is available for testing Cloudflare DNS:
+## Template Management
 
 ```bash
-# Validate entire setup
-./scripts/cloudflare/validate.sh
+# Check template status and releases
+./scripts/template-status.sh
 
-# Test XR creation with zoneIdRef
-./scripts/cloudflare/test-xr.sh create
-./scripts/cloudflare/test-xr.sh status
-./scripts/cloudflare/test-xr.sh remove
-
-# Complete cleanup
-./scripts/cloudflare/remove.sh
+# Reload templates after updates
+./scripts/template-reload.sh
 ```
-
-See [Cloudflare Debug Suite](../../scripts/cloudflare/README.md) for details.
 
 ## Related Documentation
 
 - [Platform Overview](./overview.md) - Architecture overview
 - [Cluster Setup](./setup.md) - Initial cluster setup
+- [DNS Management](./dns-management.md) - External-DNS configuration and usage
 - [Cluster Manifests](./manifests.md) - Manifest details and examples
 - [Template Catalog Setup](./catalog-setup.md) - Template management

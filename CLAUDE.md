@@ -25,17 +25,22 @@ open-service-portal/         # THIS directory = portal-workspace repo
 │   ├── crossplane-catalog-setup.md    # Template management
 │   └── local-kubernetes-setup.md      # K8s setup guide
 ├── scripts/                # Unified setup and utility scripts
-│   ├── setup-cluster.sh    # Universal K8s cluster setup
-│   ├── config-local.sh     # Switch to local cluster
-│   ├── config-openportal.sh # Configure OpenPortal production
+│   ├── cluster-setup.sh    # Universal K8s cluster setup
+│   ├── cluster-config.sh   # Auto-detect cluster and configure
+│   ├── cluster-config-local.sh     # Switch to local cluster
+│   ├── cluster-config-openportal.sh # Configure OpenPortal production
+│   ├── template-status.sh  # Check template releases and PRs
+│   ├── template-reload.sh  # Reload templates in cluster
+│   ├── cleanup.sh          # Remove all platform components
 │   ├── manifests-setup-cluster/  # Infrastructure manifests
 │   │   ├── crossplane-functions.yaml  # Composition functions
 │   │   ├── crossplane-provider-*.yaml # Provider definitions
+│   │   ├── external-dns.yaml         # External-DNS with CRDs
 │   │   └── flux-catalog.yaml         # Catalog watcher
-│   ├── manifests-config-openportal/ # Environment configs
-│   │   ├── cloudflare-zone-openportal-dev.yaml
-│   │   └── environment-configs.yaml
-│   └── cloudflare/         # Cloudflare debug suite
+│   ├── manifests-config/   # Environment configs
+│   │   ├── environment-configs.yaml
+│   │   └── flux-catalog-orders.yaml
+│   └── cloudflare/         # Cloudflare debug suite (deprecated)
 │       ├── setup.sh        # Test setup
 │       ├── validate.sh     # Comprehensive validation
 │       ├── remove.sh       # Cleanup
@@ -111,7 +116,7 @@ git clone https://github.com/open-service-portal/app-portal.git
 - **catalog/** - Central registry for Crossplane templates/XRDs (git@github.com:open-service-portal/catalog.git)
 - **catalog-orders/** - GitOps repository for XR instances created via Backstage (git@github.com:open-service-portal/catalog-orders.git)
 - **template-dns-record/** - Mock DNS template for testing (git@github.com:open-service-portal/template-dns-record.git)
-- **template-cloudflare-dnsrecord/** - Real Cloudflare DNS management (git@github.com:open-service-portal/template-cloudflare-dnsrecord.git)
+- **template-cloudflare-dnsrecord/** - DNS management using External-DNS (git@github.com:open-service-portal/template-cloudflare-dnsrecord.git)
 - **template-whoami/** - Demo application deployment (git@github.com:open-service-portal/template-whoami.git)
 - **template-whoami-service/** - Composite service (app + DNS) (git@github.com:open-service-portal/template-whoami-service.git)
 
@@ -252,7 +257,7 @@ We support any Kubernetes distribution with a unified setup:
 **Infrastructure Setup**
 ```bash
 # Universal setup script for any K8s cluster
-./scripts/setup-cluster.sh
+./scripts/cluster-setup.sh
 
 # Installs:
 # - NGINX Ingress Controller
@@ -262,50 +267,68 @@ We support any Kubernetes distribution with a unified setup:
 # - Base environment configurations
 # - provider-kubernetes with RBAC
 # - provider-helm for chart deployments
-# - provider-cloudflare for DNS management
-# - Backstage service account + app-config.local.yaml
+# - External-DNS for DNS management (replaces provider-cloudflare)
+# - Backstage service account and token
 ```
 
 **Environment Configuration**
-We provide configuration scripts to switch between local and production environments:
-
 ```bash
-# Switch to local development cluster
-./scripts/config-local.sh
-# - Switches kubectl context (default: rancher-desktop)
-# - Loads settings from .env.local
-# - Configures mock DNS provider for localhost
+# Auto-detect cluster from kubectl context and configure
+./scripts/cluster-config.sh
+# - Uses current kubectl context as cluster name
+# - Loads .env.${context} file (e.g., .env.rancher-desktop)
+# - Creates app-config.${context}.local.yaml for Backstage
+# - Configures External-DNS credentials if provided
+# - Updates EnvironmentConfigs
 
-# Switch to OpenPortal production cluster
-./scripts/config-openportal.sh
-# - Switches kubectl context to OpenPortal cluster
-# - Loads settings from .env.openportal (uses set -a for envsubst)
-# - Creates Cloudflare credentials secret
-# - Imports Cloudflare Zone resources
-# - Updates EnvironmentConfigs for production DNS
+# Or use specific configuration scripts:
+./scripts/cluster-config-local.sh     # Switch to local cluster
+./scripts/cluster-config-openportal.sh # Configure OpenPortal production
 ```
 
-**Cloudflare DNS Management**
-Comprehensive debug suite for Cloudflare DNS provider:
+**DNS Management with External-DNS**
+We use External-DNS for unified DNS management across all providers:
 
 ```bash
-# Validate Cloudflare setup
-./scripts/cloudflare/validate.sh
-# - Tests API token and permissions
-# - Validates provider health
-# - Tests CRUD operations
-# - Cleans up test resources
+# DNS records are created via CloudflareDNSRecord XRs
+kubectl apply -f - <<EOF
+apiVersion: openportal.dev/v1alpha1
+kind: CloudflareDNSRecord
+metadata:
+  name: my-app
+  namespace: my-namespace
+spec:
+  name: my-app
+  type: A
+  value: "192.168.1.100"
+  ttl: 300
+EOF
 
-# Test XR with zoneIdRef pattern
-./scripts/cloudflare/test-xr.sh [create|status|remove]
+# The XR creates a DNSEndpoint resource that External-DNS processes
+# External-DNS then creates the actual DNS record in Cloudflare
+```
 
-# Complete cleanup
-./scripts/cloudflare/remove.sh
+**Template Management Scripts**
+```bash
+# Check template status (releases and PRs)
+./scripts/template-status.sh
+
+# Reload all templates in the cluster
+./scripts/template-reload.sh
 ```
 
 **Environment Files**
-- `.env.local` - Local cluster configuration (copy from `.env.local.example`)
-- `.env.openportal` - Production cluster configuration (copy from `.env.openportal.example`)
+Environment files are named after kubectl contexts:
+- `.env.rancher-desktop` - Rancher Desktop configuration
+- `.env.docker-desktop` - Docker Desktop configuration  
+- `.env.openportal` - OpenPortal production configuration
+- `.env.${context}` - Any other cluster context
+
+Copy from examples:
+```bash
+cp .env.rancher-desktop.example .env.rancher-desktop
+vim .env.rancher-desktop
+```
 
 **Version Philosophy: Latest + Greatest**
 We intentionally use the latest stable versions of all components, especially Crossplane and its providers. This approach:
