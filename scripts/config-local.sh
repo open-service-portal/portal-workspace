@@ -52,7 +52,7 @@ configure_external_dns() {
         
         echo "✓ Cloudflare credentials configured for External-DNS"
         echo "  External-DNS will create real DNS records in Cloudflare"
-        echo "  Base Domain: ${BASE_DOMAIN}"
+        echo "  Cloudflare Zone: ${CLOUDFLARE_ZONE_NAME:-openportal.dev}"
     else
         echo -e "${YELLOW}Note: No Cloudflare credentials configured${NC}"
         echo "  External-DNS will run but cannot create DNS records"
@@ -61,6 +61,14 @@ configure_external_dns() {
         echo "    2. Uncomment and set CLOUDFLARE_API_TOKEN"
         echo "    3. Run this script again"
     fi
+    
+    # Update EnvironmentConfig with local BASE_DOMAIN
+    echo ""
+    echo "Updating dns-config EnvironmentConfig..."
+    kubectl patch environmentconfig dns-config \
+        --type merge \
+        --patch "{\"data\": {\"zone\": \"${BASE_DOMAIN:-localhost}\"}}" \
+        2>/dev/null || echo "  Note: EnvironmentConfig not found (may not be installed yet)"
 }
 
 # Call the configuration function
@@ -149,16 +157,22 @@ echo ""
 echo -e "${GREEN}Local cluster active!${NC}"
 echo ""
 echo "Cluster: ${CLUSTER_NAME}"
-echo "Base Domain: ${BASE_DOMAIN:-localhost}"
-echo "DNS Provider: External-DNS with Cloudflare"
+echo "Base Domain (apps): ${BASE_DOMAIN:-localhost}"
+if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ "$CLOUDFLARE_API_TOKEN" != "your-api-token-here" ]; then
+    echo "Cloudflare Zone: ${CLOUDFLARE_ZONE_NAME:-openportal.dev}"
+fi
+echo "DNS Provider: External-DNS"
 echo ""
 echo "To start Backstage with local cluster:"
 echo "  cd app-portal"
 echo "  yarn start"
 echo ""
 if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ "$CLOUDFLARE_API_TOKEN" != "your-api-token-here" ]; then
+    echo "DNS Setup:"
+    echo "  - Apps will use: ${BASE_DOMAIN:-localhost} (for local access)"
+    echo "  - External-DNS will create records in: ${CLOUDFLARE_ZONE_NAME:-openportal.dev}"
+    echo ""
     echo "You can now create DNS records in Cloudflare via DNSEndpoint resources"
-    echo "DNS records will be created in domain: ${BASE_DOMAIN}"
 else
     echo "To enable DNS record creation, configure Cloudflare credentials in .env.local"
 fi
