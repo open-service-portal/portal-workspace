@@ -36,25 +36,29 @@ if ! kubectl config use-context "${CLUSTER_NAME}"; then
 fi
 echo "✓ Switched to context: ${CLUSTER_NAME}"
 
-# Create Cloudflare credentials secret
-echo -e "${GREEN}Configuring Cloudflare credentials...${NC}"
-# Use the user API token for authentication with proper JSON escaping
-kubectl create secret generic cloudflare-credentials \
-    --from-literal=credentials='{"api_token":"'"${CLOUDFLARE_USER_API_TOKEN}"'"}' \
-    --namespace crossplane-system \
+# Configure External-DNS with Cloudflare credentials
+echo -e "${GREEN}Configuring External-DNS with Cloudflare credentials...${NC}"
+
+# Create namespace if it doesn't exist
+kubectl create namespace external-dns --dry-run=client -o yaml | kubectl apply -f -
+
+# Create Cloudflare API token secret for External-DNS
+kubectl create secret generic cloudflare-api-token \
+    --from-literal=cloudflare_api_token="${CLOUDFLARE_USER_API_TOKEN}" \
+    --namespace external-dns \
     --dry-run=client -o yaml | kubectl apply -f -
 
-echo "✓ Cloudflare credentials configured"
+echo "✓ Cloudflare credentials configured for External-DNS"
 
-# Import Cloudflare Zone (if provider is installed)
-if kubectl get crd zones.zone.cloudflare.upbound.io &>/dev/null; then
-    echo -e "${GREEN}Importing Cloudflare Zone...${NC}"
-    # Apply Zone manifest with variable substitution
-    envsubst < "$MANIFEST_DIR/cloudflare-zone-openportal-dev.yaml" | kubectl apply -f -
-    echo "✓ Zone imported: ${DNS_ZONE}"
+# Restart External-DNS deployment to pick up new credentials
+if kubectl get deployment external-dns -n external-dns &>/dev/null 2>&1; then
+    echo "Restarting External-DNS to apply credentials..."
+    kubectl rollout restart deployment/external-dns -n external-dns
+    kubectl rollout status deployment/external-dns -n external-dns --timeout=60s
+    echo "✓ External-DNS restarted with Cloudflare credentials"
 else
-    echo -e "${YELLOW}Note: Cloudflare provider not installed, skipping Zone import${NC}"
-    echo "      Run setup-cluster.sh with Cloudflare provider to enable DNS management"
+    echo -e "${YELLOW}Note: External-DNS not installed yet${NC}"
+    echo "      Run setup-cluster.sh first to install External-DNS"
 fi
 
 # Update EnvironmentConfigs for OpenPortal
@@ -150,7 +154,7 @@ echo -e "${GREEN}OpenPortal cluster configuration complete!${NC}"
 echo ""
 echo "Cluster: ${CLUSTER_NAME}"
 echo "DNS Zone: ${DNS_ZONE}"
-echo "DNS Provider: ${DNS_PROVIDER}"
+echo "DNS Provider: External-DNS with Cloudflare"
 echo "Cloudflare Zone ID: ${CLOUDFLARE_ZONE_ID}"
 echo "Cloudflare Account ID: ${CLOUDFLARE_ACCOUNT_ID}"
 echo ""
@@ -158,4 +162,19 @@ echo "To start Backstage with OpenPortal cluster:"
 echo "  cd app-portal"
 echo "  yarn start:openportal"
 echo ""
-echo "You can now create real DNS records in Cloudflare!"
+echo "You can now create DNS records in Cloudflare via DNSEndpoint resources!"
+echo ""
+echo "Example DNSEndpoint:"
+echo "  kubectl apply -f - <<EOF"
+echo "  apiVersion: externaldns.k8s.io/v1alpha1"
+echo "  kind: DNSEndpoint"
+echo "  metadata:"
+echo "    name: test-dns"
+echo "    namespace: default"
+echo "  spec:"
+echo "    endpoints:"
+echo "    - dnsName: test.${DNS_ZONE}"
+echo "      recordType: A"
+echo "      recordTTL: 300"
+echo "      targets: ['1.2.3.4']"
+echo "  EOF"

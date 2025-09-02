@@ -22,6 +22,8 @@ if [ -f "$WORKSPACE_DIR/.env.local" ]; then
     echo "✓ Loaded .env.local"
 else
     echo -e "${YELLOW}Warning: .env.local not found${NC}"
+    echo "Please copy .env.local.example to .env.local and configure it:"
+    echo "  cp .env.local.example .env.local"
     exit 1
 fi
 
@@ -34,6 +36,35 @@ if ! kubectl config use-context "${CLUSTER_NAME}"; then
     exit 1
 fi
 echo "✓ Switched to context: ${CLUSTER_NAME}"
+
+# Configure External-DNS for local cluster
+configure_external_dns() {
+    echo ""
+    echo -e "${GREEN}Configuring External-DNS for local cluster...${NC}"
+    
+    if [ -n "$CLOUDFLARE_USER_API_TOKEN" ] && [ "$CLOUDFLARE_USER_API_TOKEN" != "your-api-token-here" ]; then
+        # Create Cloudflare credentials secret for External-DNS
+        echo "Creating Cloudflare API token secret for External-DNS..."
+        kubectl create secret generic cloudflare-api-token \
+            --from-literal=cloudflare_api_token="${CLOUDFLARE_USER_API_TOKEN}" \
+            --namespace external-dns \
+            --dry-run=client -o yaml | kubectl apply -f -
+        
+        echo "✓ Cloudflare credentials configured for External-DNS"
+        echo "  External-DNS will create real DNS records in Cloudflare"
+        echo "  DNS Zone: ${DNS_ZONE}"
+    else
+        echo -e "${YELLOW}Note: No Cloudflare credentials configured${NC}"
+        echo "  External-DNS will run but cannot create DNS records"
+        echo "  To enable DNS creation from local cluster:"
+        echo "    1. Edit .env.local"
+        echo "    2. Uncomment and set CLOUDFLARE_USER_API_TOKEN"
+        echo "    3. Run this script again"
+    fi
+}
+
+# Call the configuration function
+configure_external_dns
 
 # Update Backstage configuration for local cluster
 update_backstage_config() {
@@ -118,11 +149,16 @@ echo ""
 echo -e "${GREEN}Local cluster active!${NC}"
 echo ""
 echo "Cluster: ${CLUSTER_NAME}"
-echo "DNS Zone: localhost (default)"
-echo "DNS Provider: mock (default)"
+echo "DNS Zone: ${DNS_ZONE:-localhost}"
+echo "DNS Provider: External-DNS with Cloudflare"
 echo ""
 echo "To start Backstage with local cluster:"
 echo "  cd app-portal"
 echo "  yarn start"
 echo ""
-echo "You can now create DNS records that will resolve to localhost"
+if [ -n "$CLOUDFLARE_USER_API_TOKEN" ] && [ "$CLOUDFLARE_USER_API_TOKEN" != "your-api-token-here" ]; then
+    echo "You can now create DNS records in Cloudflare via DNSEndpoint resources"
+    echo "DNS records will be created in zone: ${DNS_ZONE}"
+else
+    echo "To enable DNS record creation, configure Cloudflare credentials in .env.local"
+fi
