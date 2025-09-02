@@ -88,14 +88,22 @@ status_message() {
     echo -e "${GREEN}Proceeding with cleanup...${NC}"
 }
 
-# Safe delete function
+# Safe delete function with timeout
 safe_delete() {
     local cmd="$@"
     
     if [ "$DRY_RUN" = true ]; then
         echo -e "${CYAN}[DRY-RUN]${NC} Would run: kubectl $cmd"
     else
-        kubectl $cmd --ignore-not-found=true 2>/dev/null || true
+        # Use timeout for namespace deletions to prevent hanging
+        if [[ "$cmd" == *"delete namespace"* ]]; then
+            timeout 30 kubectl $cmd --ignore-not-found=true 2>/dev/null || {
+                echo -e "${YELLOW}Note: Namespace deletion timed out or failed (continuing anyway)${NC}"
+                true
+            }
+        else
+            kubectl $cmd --ignore-not-found=true 2>/dev/null || true
+        fi
     fi
 }
 
@@ -265,15 +273,19 @@ cleanup_nginx() {
     
     status_message "This will remove the NGINX Ingress Controller."
     
-    # Uninstall via Helm
-    echo "Uninstalling NGINX Ingress..."
+    # Uninstall via Helm first
+    echo "Uninstalling NGINX Ingress via Helm..."
     if [ "$DRY_RUN" = true ]; then
         echo -e "${CYAN}[DRY-RUN]${NC} Would run: helm uninstall ingress-nginx -n ingress-nginx"
     else
         helm uninstall ingress-nginx -n ingress-nginx 2>/dev/null || true
     fi
     
-    # Delete namespace
+    # Delete any remaining webhook configurations
+    echo "Removing webhook configurations..."
+    safe_delete delete validatingwebhookconfiguration ingress-nginx-admission
+    
+    # Delete namespace (with timeout to prevent hanging)
     echo "Removing NGINX namespace..."
     safe_delete delete namespace ingress-nginx
     
