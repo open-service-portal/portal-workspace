@@ -24,9 +24,8 @@ backstage*/
 *kubeconfig.yaml
 
 # Environment Variables
-.env
-.env.local
-.env.openportal
+.env*
+!.env*.example
 
 # OS
 .DS_Store
@@ -43,3 +42,4 @@ Thumbs.db
 # Local resources
 .local/
 *.local.*
+.env.rancher-desktop

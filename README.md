@@ -75,7 +75,7 @@ yarn start
 ### Automated Cluster Setup
 ```bash
 # Run unified setup script for any Kubernetes cluster
-./scripts/setup-cluster.sh
+./scripts/cluster-setup.sh
 
 # This installs:
 # - NGINX Ingress Controller
@@ -86,58 +86,92 @@ yarn start
 # - Base environment configurations
 # - provider-kubernetes with RBAC
 # - provider-helm for chart deployments
-# - provider-cloudflare for DNS management
-# - Backstage service account + app-config.local.yaml
+# - External-DNS for DNS management (replaces provider-cloudflare)
+# - Backstage service account + token
 ```
 
 ### Environment Configuration
 
-The setup script automatically creates `app-portal/app-config.local.yaml` with Kubernetes credentials. For local development with self-signed certificates, uncomment `skipTLSVerify: true` in the generated config.
-
-Configure your environment for local or production use:
+Configure your cluster after setup:
 
 ```bash
-# For local development
-./scripts/config-local.sh
+# Option 1: Auto-detect cluster from kubectl context (recommended)
+./scripts/cluster-config.sh
 
-# For OpenPortal production (requires .env.openportal)
-./scripts/config-openportal.sh
+# Option 2: Use specific configuration scripts
+./scripts/cluster-config-local.sh      # For local development
+./scripts/cluster-config-openportal.sh  # For OpenPortal production
+
+# The config script will:
+# - Create Backstage configuration (app-config.{context}.local.yaml)
+# - Configure External-DNS with Cloudflare credentials (if provided)
+# - Update EnvironmentConfigs
+# - Configure Flux to watch catalog-orders
 ```
 
-### Cloudflare DNS Management
+For the generic `cluster-config.sh`, create an environment file matching your context:
+```bash
+# For rancher-desktop
+cp .env.rancher-desktop.example .env.rancher-desktop
+# Edit with your settings
+vim .env.rancher-desktop
+```
 
-For production DNS management with Cloudflare:
+### DNS Management with External-DNS
 
-1. **Setup credentials** in `.env.openportal`:
+We use External-DNS for DNS management, which supports namespace isolation and multiple DNS providers.
+
+#### Setup
+
+1. **Configure credentials** in your environment file:
    ```bash
-   CLOUDFLARE_USER_API_TOKEN=your-api-token
+   # For production (.env.openportal)
+   CLOUDFLARE_API_TOKEN=your-api-token
    CLOUDFLARE_ZONE_ID=your-zone-id
-   CLOUDFLARE_ACCOUNT_ID=your-account-id
-   DNS_ZONE=your-domain.com
+   CLOUDFLARE_ZONE_NAME=openportal.dev
+   
+   # For local with real DNS (.env.rancher-desktop)
+   BASE_DOMAIN=localhost              # For local app access
+   CLOUDFLARE_API_TOKEN=your-token    # Optional: for real DNS
+   CLOUDFLARE_ZONE_NAME=openportal.dev # Zone for DNS records
    ```
 
-2. **Configure the cluster**:
+2. **Apply configuration**:
    ```bash
-   ./scripts/config-openportal.sh
+   ./scripts/config.sh  # Auto-detects cluster
    ```
 
-3. **Validate the setup**:
-   ```bash
-   ./scripts/cloudflare/validate.sh
-   ```
+#### Creating DNS Records
 
-4. **Create DNS records** using Crossplane:
-   ```yaml
-   apiVersion: platform.io/v1alpha1
-   kind: CloudflareDNSRecord
-   metadata:
-     name: my-app
-   spec:
-     type: A
-     name: my-app
-     value: "192.168.1.100"
-     zone: openportal-zone  # References imported Zone
-   ```
+DNS records are created via CloudflareDNSRecord XRs or DNSEndpoint resources:
+
+**Option 1: Using CloudflareDNSRecord XR (recommended)**
+```yaml
+apiVersion: openportal.dev/v1alpha1
+kind: CloudflareDNSRecord
+metadata:
+  name: my-app
+  namespace: my-namespace
+spec:
+  name: my-app
+  type: A
+  value: "192.168.1.100"
+  ttl: 300
+```
+
+**Option 2: Direct DNSEndpoint**
+```yaml
+apiVersion: externaldns.openportal.dev/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: my-app-dns
+  namespace: my-namespace
+spec:
+  endpoints:
+  - dnsName: my-app.openportal.dev
+    recordType: A
+    targets: ['192.168.1.100']
+```
 
 ```bash
 # For local development (uses mock DNS provider)

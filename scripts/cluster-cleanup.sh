@@ -33,29 +33,23 @@ usage() {
     echo "  catalog-orders         - Remove catalog-orders Flux sources"
     echo ""
     echo "Options:"
-    echo "  --force               - Skip confirmation prompts"
     echo "  --dry-run            - Show what would be deleted without actually deleting"
     echo ""
     echo "Examples:"
     echo "  $0 cloudflare-provider     # Remove old Cloudflare provider"
     echo "  $0 external-dns            # Remove External-DNS"
-    echo "  $0 all --force            # Remove everything without prompts"
+    echo "  $0 all                     # Remove everything"
     echo ""
     exit 0
 }
 
 # Global variables
-FORCE=false
 DRY_RUN=false
 COMPONENT=""
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --force)
-            FORCE=true
-            shift
-            ;;
         --dry-run)
             DRY_RUN=true
             shift
@@ -87,30 +81,29 @@ fi
 echo -e "${CYAN}Current cluster: $(kubectl config current-context)${NC}"
 echo ""
 
-# Confirmation function
-confirm() {
-    if [ "$FORCE" = true ]; then
-        return 0
-    fi
-    
+# Status message function
+status_message() {
     local message=$1
     echo -e "${YELLOW}$message${NC}"
-    read -p "Are you sure you want to continue? (yes/no): " -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]es$ ]]; then
-        echo "Cleanup cancelled."
-        exit 0
-    fi
+    echo -e "${GREEN}Proceeding with cleanup...${NC}"
 }
 
-# Safe delete function
+# Safe delete function with timeout
 safe_delete() {
     local cmd="$@"
     
     if [ "$DRY_RUN" = true ]; then
         echo -e "${CYAN}[DRY-RUN]${NC} Would run: kubectl $cmd"
     else
-        kubectl $cmd --ignore-not-found=true 2>/dev/null || true
+        # Use timeout for namespace deletions to prevent hanging
+        if [[ "$cmd" == *"delete namespace"* ]]; then
+            timeout 30 kubectl $cmd --ignore-not-found=true 2>/dev/null || {
+                echo -e "${YELLOW}Note: Namespace deletion timed out or failed (continuing anyway)${NC}"
+                true
+            }
+        else
+            kubectl $cmd --ignore-not-found=true 2>/dev/null || true
+        fi
     fi
 }
 
@@ -124,7 +117,7 @@ cleanup_cloudflare_provider() {
         return
     fi
     
-    confirm "This will remove the Cloudflare provider and all related resources."
+    status_message "This will remove the Cloudflare provider and all related resources."
     
     # Delete CloudflareDNSRecord XRs
     echo "Removing CloudflareDNSRecord XRs..."
@@ -167,7 +160,7 @@ cleanup_cloudflare_provider() {
 cleanup_external_dns() {
     echo -e "${YELLOW}Cleaning up External-DNS...${NC}"
     
-    confirm "This will remove External-DNS and the DNSEndpoint CRD."
+    status_message "This will remove External-DNS and the DNSEndpoint CRD."
     
     # Delete DNSEndpoint resources
     echo "Removing DNSEndpoint resources..."
@@ -204,7 +197,7 @@ cleanup_external_dns() {
 cleanup_crossplane() {
     echo -e "${YELLOW}Cleaning up Crossplane...${NC}"
     
-    confirm "This will remove Crossplane and ALL providers. All XRs will be deleted!"
+    status_message "This will remove Crossplane and ALL providers. All XRs will be deleted!"
     
     # Delete all XRs first
     echo "Removing all Composite Resources..."
@@ -248,7 +241,7 @@ cleanup_crossplane() {
 cleanup_flux() {
     echo -e "${YELLOW}Cleaning up Flux...${NC}"
     
-    confirm "This will remove Flux and all GitOps configurations."
+    status_message "This will remove Flux and all GitOps configurations."
     
     # Delete Flux sources
     echo "Removing Flux sources..."
@@ -278,17 +271,21 @@ cleanup_flux() {
 cleanup_nginx() {
     echo -e "${YELLOW}Cleaning up NGINX Ingress Controller...${NC}"
     
-    confirm "This will remove the NGINX Ingress Controller."
+    status_message "This will remove the NGINX Ingress Controller."
     
-    # Uninstall via Helm
-    echo "Uninstalling NGINX Ingress..."
+    # Uninstall via Helm first
+    echo "Uninstalling NGINX Ingress via Helm..."
     if [ "$DRY_RUN" = true ]; then
         echo -e "${CYAN}[DRY-RUN]${NC} Would run: helm uninstall ingress-nginx -n ingress-nginx"
     else
         helm uninstall ingress-nginx -n ingress-nginx 2>/dev/null || true
     fi
     
-    # Delete namespace
+    # Delete any remaining webhook configurations
+    echo "Removing webhook configurations..."
+    safe_delete delete validatingwebhookconfiguration ingress-nginx-admission
+    
+    # Delete namespace (with timeout to prevent hanging)
     echo "Removing NGINX namespace..."
     safe_delete delete namespace ingress-nginx
     
@@ -299,7 +296,7 @@ cleanup_nginx() {
 cleanup_backstage_sa() {
     echo -e "${YELLOW}Cleaning up Backstage Service Account...${NC}"
     
-    confirm "This will remove the Backstage service account and tokens."
+    status_message "This will remove the Backstage service account and tokens."
     
     echo "Removing Backstage service account resources..."
     safe_delete delete secret backstage-k8s-sa-token -n default
@@ -321,7 +318,7 @@ cleanup_backstage_sa() {
 cleanup_environment_configs() {
     echo -e "${YELLOW}Cleaning up Environment Configurations...${NC}"
     
-    confirm "This will remove all platform environment configurations."
+    status_message "This will remove all platform environment configurations."
     
     echo "Removing EnvironmentConfigs..."
     safe_delete delete environmentconfig --all
@@ -333,7 +330,7 @@ cleanup_environment_configs() {
 cleanup_catalog_orders() {
     echo -e "${YELLOW}Cleaning up Catalog Orders GitOps configuration...${NC}"
     
-    confirm "This will remove the catalog-orders Flux source and kustomization."
+    status_message "This will remove the catalog-orders Flux source and kustomization."
     
     echo "Removing catalog-orders GitRepository..."
     safe_delete delete gitrepository catalog-orders -n flux-system
@@ -347,7 +344,7 @@ cleanup_catalog_orders() {
 # Cleanup everything
 cleanup_all() {
     echo -e "${RED}WARNING: This will remove ALL OpenPortal infrastructure components!${NC}"
-    confirm "This action cannot be undone. All resources will be deleted."
+    status_message "This action cannot be undone. All resources will be deleted."
     
     echo -e "${YELLOW}Starting complete cleanup...${NC}"
     echo ""

@@ -34,12 +34,19 @@ We provide a script that automates the entire setup process:
 
 ```bash
 # Run from the portal-workspace directory
-./scripts/setup-cluster.sh
+./scripts/cluster-setup.sh
 ```
 
-After setup, configure your environment using the appropriate config script:
-- For local development: `./scripts/config-local.sh`
-- For OpenPortal production: `./scripts/config-openportal.sh`
+After setup, configure your environment:
+
+```bash
+# Option 1: Auto-detect cluster from kubectl context (recommended)
+./scripts/cluster-config.sh
+
+# Option 2: Use specific configuration scripts
+./scripts/cluster-config-local.sh      # For local development
+./scripts/cluster-config-openportal.sh  # For OpenPortal production
+```
 
 See [Cluster Configuration](./configuration.md) for details on environment-specific configuration.
 
@@ -48,15 +55,16 @@ This script will:
 2. Install NGINX Ingress Controller
 3. Install Flux for GitOps with catalog watcher
 4. Install Crossplane v2.0 with namespaced resources
-5. Install providers (kubernetes, helm, cloudflare)
+5. Install providers (kubernetes, helm)
 6. Install composition functions (go-templating, patch-and-transform, auto-ready, environment-configs)
-7. Install platform-wide environment configurations
-8. Create Backstage service account with K8s integration
-9. Automatically update `app-portal/app-config.local.yaml` with cluster credentials (if present)
+7. Install External-DNS for DNS management
+8. Install platform-wide environment configurations
+9. Create Backstage service account with K8s integration
+10. Generate app-config.${context}.local.yaml with cluster credentials (if app-portal exists)
 
 The script works with any Kubernetes cluster and uses manifests from [`scripts/manifests-setup-cluster/`](../../scripts/manifests-setup-cluster/).
 
-**Note**: The setup script installs everything with local development defaults (mock DNS, localhost domain). For production environments, you'll need to run the appropriate configuration script afterward - see [Cluster Configuration](./configuration.md).
+**Note**: The setup script installs infrastructure components only. Use `cluster-config.sh` afterward to configure environment-specific settings like DNS credentials and domains - see [Cluster Configuration](./configuration.md).
 
 ## Manual Setup
 
@@ -85,20 +93,20 @@ kubectl get pods -n crossplane-system
 
 ```bash
 # Apply provider manifest
-kubectl apply -f scripts/cluster-manifests/provider-kubernetes.yaml
+kubectl apply -f scripts/manifests-setup-cluster/crossplane-provider-kubernetes.yaml
 
 # Wait for provider to be healthy
 kubectl wait --for=condition=Healthy provider/provider-kubernetes --timeout=300s
 
 # Apply provider config
-kubectl apply -f scripts/cluster-manifests/provider-config.yaml
+kubectl apply -f scripts/manifests-setup-cluster/provider-config.yaml
 ```
 
 ### 3. Install Crossplane Functions
 
 ```bash
 # Apply functions manifest
-kubectl apply -f scripts/cluster-manifests/crossplane-functions.yaml
+kubectl apply -f scripts/manifests-setup-cluster/crossplane-functions.yaml
 
 # Verify functions are installed
 kubectl get functions
@@ -108,7 +116,7 @@ kubectl get functions
 
 ```bash
 # Apply platform-wide environment configs
-kubectl apply -f scripts/cluster-manifests/environment-configs.yaml
+kubectl apply -f scripts/manifests-config/environment-configs.yaml
 
 # Verify environment configs
 kubectl get environmentconfig
@@ -121,7 +129,10 @@ kubectl get environmentconfig
 kubectl apply -f https://github.com/fluxcd/flux2/releases/latest/download/install.yaml
 
 # Configure Flux to watch catalog
-kubectl apply -f scripts/cluster-manifests/flux-catalog.yaml
+kubectl apply -f scripts/manifests-setup-cluster/flux-catalog.yaml
+
+# Configure Flux to watch catalog-orders (after running cluster-config.sh)
+kubectl apply -f scripts/manifests-config/flux-catalog-orders.yaml
 
 # Verify installation
 kubectl get pods -n flux-system
@@ -149,14 +160,14 @@ echo "Service Account Token: $K8S_SERVICE_ACCOUNT_TOKEN"
 
 ### Automatic Configuration
 
-If you have the `app-portal` directory in your workspace, the setup script will automatically update `app-portal/app-config.local.yaml` with:
-- Cluster URL
-- Cluster name  
-- Service account token
+The `cluster-config.sh` script will automatically create `app-portal/app-config.${context}.local.yaml` with:
+- Cluster URL from kubectl context
+- Cluster name (same as context name)  
+- Service account token from the cluster
 
 ### Manual Configuration
 
-If configuring manually, create or update `app-config.local.yaml`:
+If configuring manually, create `app-config.${context}.local.yaml` (e.g., `app-config.rancher-desktop.local.yaml`):
 
 ```yaml
 kubernetes:
@@ -166,10 +177,10 @@ kubernetes:
     - type: 'config'
       clusters:
         - url: <YOUR_CLUSTER_URL>  # Get from: kubectl cluster-info
-          name: local-cluster
+          name: <YOUR_CONTEXT_NAME>  # Same as kubectl context
           authProvider: 'serviceAccount'
           skipTLSVerify: true  # For local development only
-          serviceAccountToken: <YOUR_SERVICE_ACCOUNT_TOKEN>  # From setup script output
+          serviceAccountToken: <YOUR_SERVICE_ACCOUNT_TOKEN>  # From cluster secret
 ```
 
 ## Verification

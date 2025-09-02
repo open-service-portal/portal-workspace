@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# sync-repos.sh - Check all repositories for uncommitted changes and pull latest from main
-# Usage: ./sync-repos.sh [--pull]
+# Check all repositories for uncommitted changes and pull latest from main
+# Usage: ./repos-sync.sh [--pull]
 
 set -e
 
