@@ -22,6 +22,8 @@ if [ -f "$WORKSPACE_DIR/.env.local" ]; then
     echo "✓ Loaded .env.local"
 else
     echo -e "${YELLOW}Warning: .env.local not found${NC}"
+    echo "Please copy .env.local.example to .env.local and configure it:"
+    echo "  cp .env.local.example .env.local"
     exit 1
 fi
 
@@ -34,6 +36,43 @@ if ! kubectl config use-context "${CLUSTER_NAME}"; then
     exit 1
 fi
 echo "✓ Switched to context: ${CLUSTER_NAME}"
+
+# Configure External-DNS for local cluster
+configure_external_dns() {
+    echo ""
+    echo -e "${GREEN}Configuring External-DNS for local cluster...${NC}"
+    
+    if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ "$CLOUDFLARE_API_TOKEN" != "your-api-token-here" ]; then
+        # Create Cloudflare credentials secret for External-DNS
+        echo "Creating Cloudflare API token secret for External-DNS..."
+        kubectl create secret generic cloudflare-api-token \
+            --from-literal=cloudflare_api_token="${CLOUDFLARE_API_TOKEN}" \
+            --namespace external-dns \
+            --dry-run=client -o yaml | kubectl apply -f -
+        
+        echo "✓ Cloudflare credentials configured for External-DNS"
+        echo "  External-DNS will create real DNS records in Cloudflare"
+        echo "  Cloudflare Zone: ${CLOUDFLARE_ZONE_NAME:-openportal.dev}"
+    else
+        echo -e "${YELLOW}Note: No Cloudflare credentials configured${NC}"
+        echo "  External-DNS will run but cannot create DNS records"
+        echo "  To enable DNS creation from local cluster:"
+        echo "    1. Edit .env.local"
+        echo "    2. Uncomment and set CLOUDFLARE_API_TOKEN"
+        echo "    3. Run this script again"
+    fi
+    
+    # Update EnvironmentConfig with local BASE_DOMAIN
+    echo ""
+    echo "Updating dns-config EnvironmentConfig..."
+    kubectl patch environmentconfig dns-config \
+        --type merge \
+        --patch "{\"data\": {\"zone\": \"${BASE_DOMAIN:-localhost}\"}}" \
+        2>/dev/null || echo "  Note: EnvironmentConfig not found (may not be installed yet)"
+}
+
+# Call the configuration function
+configure_external_dns
 
 # Update Backstage configuration for local cluster
 update_backstage_config() {
@@ -118,11 +157,22 @@ echo ""
 echo -e "${GREEN}Local cluster active!${NC}"
 echo ""
 echo "Cluster: ${CLUSTER_NAME}"
-echo "DNS Zone: localhost (default)"
-echo "DNS Provider: mock (default)"
+echo "Base Domain (apps): ${BASE_DOMAIN:-localhost}"
+if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ "$CLOUDFLARE_API_TOKEN" != "your-api-token-here" ]; then
+    echo "Cloudflare Zone: ${CLOUDFLARE_ZONE_NAME:-openportal.dev}"
+fi
+echo "DNS Provider: External-DNS"
 echo ""
 echo "To start Backstage with local cluster:"
 echo "  cd app-portal"
 echo "  yarn start"
 echo ""
-echo "You can now create DNS records that will resolve to localhost"
+if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ "$CLOUDFLARE_API_TOKEN" != "your-api-token-here" ]; then
+    echo "DNS Setup:"
+    echo "  - Apps will use: ${BASE_DOMAIN:-localhost} (for local access)"
+    echo "  - External-DNS will create records in: ${CLOUDFLARE_ZONE_NAME:-openportal.dev}"
+    echo ""
+    echo "You can now create DNS records in Cloudflare via DNSEndpoint resources"
+else
+    echo "To enable DNS record creation, configure Cloudflare credentials in .env.local"
+fi

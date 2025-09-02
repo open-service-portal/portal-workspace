@@ -200,26 +200,31 @@ install_provider_kubernetes() {
     echo "  - Managed API (kubernetes.m.crossplane.io) configured for namespaced XRs"
 }
 
-# Install Crossplane provider-cloudflare
-install_provider_cloudflare() {
-    echo -e "${YELLOW}Installing Crossplane provider-cloudflare...${NC}"
+# Install External-DNS for Cloudflare DNS management
+install_external_dns() {
+    echo -e "${YELLOW}Installing External-DNS with Cloudflare support...${NC}"
     
-    # Apply provider manifest
+    # Apply External-DNS manifest with CRD and deployment
     MANIFEST_DIR="$(cd "$(dirname "$0")" && pwd)/manifests-setup-cluster"
     
-    kubectl apply -f "$MANIFEST_DIR/crossplane-provider-cloudflare.yaml"
+    if [ ! -f "$MANIFEST_DIR/external-dns.yaml" ]; then
+        echo -e "${RED}Error: External-DNS manifest not found at $MANIFEST_DIR/external-dns.yaml${NC}"
+        exit 1
+    fi
     
-    # Wait for provider to be healthy
-    echo "Waiting for provider-cloudflare to be healthy..."
-    kubectl wait --for=condition=Healthy provider.pkg.crossplane.io/provider-cloudflare --timeout=300s || {
-        echo -e "${YELLOW}Provider did not become healthy within the timeout period.${NC}"
-        echo -e "${YELLOW}You can check the status with:${NC} kubectl get provider.pkg.crossplane.io provider-cloudflare"
+    kubectl apply -f "$MANIFEST_DIR/external-dns.yaml"
+    
+    # Wait for External-DNS deployment to be ready
+    echo "Waiting for External-DNS deployment to be ready..."
+    kubectl rollout status deployment/external-dns -n external-dns --timeout=300s || {
+        echo -e "${YELLOW}External-DNS deployment did not become ready within the timeout period.${NC}"
+        echo -e "${YELLOW}You can check the status with:${NC} kubectl get deployment -n external-dns"
+        echo -e "${YELLOW}Check logs with:${NC} kubectl logs -n external-dns deployment/external-dns"
     }
     
-    # Apply ProviderConfig (will be configured by config scripts)
-    kubectl apply -f "$MANIFEST_DIR/crossplane-provider-cloudflare-config.yaml"
-    
-    echo -e "${GREEN}✓ provider-cloudflare installed (configure with config-openportal.sh)${NC}"
+    echo -e "${GREEN}✓ External-DNS installed (configure Cloudflare credentials with config scripts)${NC}"
+    echo "  - DNSEndpoint CRD created for namespaced DNS management"
+    echo "  - External-DNS will sync DNSEndpoint resources to Cloudflare"
 }
 
 # Install Crossplane provider-helm
@@ -350,17 +355,7 @@ create_backstage_service_account() {
     # Create persistent token secret if it doesn't exist
     if [ -z "$EXISTING_SECRET" ]; then
         echo "Creating persistent token secret..."
-        kubectl apply -f - <<EOF
-apiVersion: v1
-kind: Secret
-metadata:
-  name: $SECRET_NAME
-  namespace: default
-  annotations:
-    kubernetes.io/service-account.name: backstage-k8s-sa
-    description: "Persistent token for Backstage - shared by team"
-type: kubernetes.io/service-account-token
-EOF
+        kubectl apply -f "$MANIFEST_DIR/backstage-token-secret.yaml"
         
         # Wait for token to be populated
         echo -n "Waiting for token generation"
@@ -393,7 +388,7 @@ print_summary() {
     echo "  ✓ Flux catalog watcher for Crossplane templates"
     echo "  ✓ Crossplane v2.0.0"
     echo "  ✓ provider-kubernetes (both cluster & managed APIs)"
-    echo "  ✓ provider-cloudflare (configure with config-openportal.sh)"
+    echo "  ✓ External-DNS with Cloudflare (configure with config scripts)"
     echo "  ✓ Crossplane composition functions"
     
     # Check if environment configs were installed
@@ -443,7 +438,7 @@ main() {
     configure_flux_catalog  # Configure Flux to watch catalog
     install_crossplane
     install_provider_kubernetes
-    install_provider_cloudflare
+    install_external_dns
     install_provider_helm  # Install provider-helm for Helm chart deployments
     install_crossplane_functions  # Install common functions
     install_environment_configs  # Install platform-wide configs

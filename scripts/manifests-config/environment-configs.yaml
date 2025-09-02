@@ -8,8 +8,8 @@ metadata:
   name: dns-config
   namespace: crossplane-system
 data:
-  zone: "${DNS_ZONE}"
-  provider: "${DNS_PROVIDER}"
+  zone: "${BASE_DOMAIN}"  # Used by templates for app URLs (localhost for local, openportal.dev for prod)
+  provider: "external-dns"
 ---
 apiVersion: apiextensions.crossplane.io/v1beta1
 kind: EnvironmentConfig
