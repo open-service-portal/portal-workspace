@@ -24,9 +24,17 @@ if [ -z "$TEMPLATES" ]; then
     exit 1
 fi
 
-# Simple table header
-printf "%-35s %-12s %-18s %s\n" "Template" "Latest Tag" "Unreleased" "Open PRs"
-printf "%-35s %-12s %-18s %s\n" "--------" "----------" "----------" "--------"
+# Check if catalog repo exists locally
+CATALOG_DIR="$WORKSPACE_DIR/catalog"
+if [ -d "$CATALOG_DIR" ]; then
+    cd "$CATALOG_DIR"
+    git pull --quiet 2>/dev/null || true
+    cd "$WORKSPACE_DIR"
+fi
+
+# Simple table header  
+printf "%-35s %-10s   %-10s   %-10s   %s\n" "Template" "Latest Tag" "In Catalog" "Unreleased" "Open PRs"
+printf "%-35s %-10s   %-10s   %-10s   %s\n" "--------" "----------" "----------" "----------" "--------"
 
 # Process each template
 for template in $TEMPLATES; do
@@ -63,6 +71,26 @@ for template in $TEMPLATES; do
         fi
     fi
     
+    # Check catalog version
+    catalog_version="unknown"
+    if [ -d "$CATALOG_DIR" ]; then
+        # Try to find the template in catalog
+        catalog_file="$CATALOG_DIR/templates/${template}.yaml"
+        if [ -f "$catalog_file" ]; then
+            # Extract version from package spec (e.g., ghcr.io/org/config:v1.0.3)
+            catalog_version=$(grep "package:" "$catalog_file" 2>/dev/null | head -1 | sed 's/.*://' | tr -d ' ' || echo "unknown")
+        fi
+    fi
+    
+    # Compare catalog version with latest tag
+    if [ "$catalog_version" = "unknown" ]; then
+        catalog_display="${RED}not found${NC}"
+    elif [ "$catalog_version" = "$latest_tag" ]; then
+        catalog_display="${GREEN}${catalog_version}${NC}"
+    else
+        catalog_display="${YELLOW}${catalog_version}${NC}"
+    fi
+    
     # Count open PRs
     pr_count=$(gh pr list --repo "$ORG/$template" --state open --json number --jq '. | length' 2>/dev/null || echo "0")
     if [ "$pr_count" -gt "0" ]; then
@@ -72,7 +100,7 @@ for template in $TEMPLATES; do
     fi
     
     # Print row
-    printf "%-35s %-21b %-27b %b\n" "$template" "$tag_display" "$unreleased" "$pr_display"
+    printf "%-35s %-23b %-23b %-23b %b\n" "$template" "$tag_display" "$catalog_display" "$unreleased" "$pr_display"
 done
 
 echo ""
@@ -93,4 +121,38 @@ done
 
 if [ "$has_prs" = false ]; then
     echo -e "${GREEN}No open PRs across all templates${NC}"
+fi
+
+echo ""
+
+# Summary
+outdated_count=0
+for template in $TEMPLATES; do
+    cd "$WORKSPACE_DIR/$template" 2>/dev/null || continue
+    latest_tag=$(git tag -l 2>/dev/null | sort -V | tail -1)
+    catalog_file="$CATALOG_DIR/templates/${template}.yaml"
+    if [ -f "$catalog_file" ]; then
+        catalog_version=$(grep "package:" "$catalog_file" 2>/dev/null | head -1 | sed 's/.*://' | tr -d ' ' || echo "unknown")
+        if [ -n "$latest_tag" ] && [ "$catalog_version" != "$latest_tag" ] && [ "$catalog_version" != "unknown" ]; then
+            outdated_count=$((outdated_count + 1))
+        fi
+    fi
+done
+
+if [ "$outdated_count" -gt "0" ]; then
+    echo -e "${YELLOW}⚠ ${outdated_count} template(s) have newer versions not yet in catalog${NC}"
+else
+    echo -e "${GREEN}✓ All templates in catalog are up to date${NC}"
+fi
+
+echo ""
+
+# Show catalog PRs
+echo "Catalog PRs:"
+catalog_prs=$(gh pr list --repo "$ORG/catalog" --state open --json number,url,title,author --jq '.[] | "  PR #\(.number): \(.title)\n    Author: \(.author.login)\n    URL: \(.url)"' 2>/dev/null)
+if [ -n "$catalog_prs" ]; then
+    echo -e "${YELLOW}Open catalog PRs:${NC}"
+    echo "$catalog_prs"
+else
+    echo -e "${GREEN}No open catalog PRs${NC}"
 fi
