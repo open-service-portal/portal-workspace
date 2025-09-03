@@ -40,8 +40,7 @@ metadata:
   name: my-app
   namespace: demo
 spec:
-  name: my-app
-  replicas: 3
+  name: my-app  # That's all you need!
 ```
 
 ## The Restaurant Analogy
@@ -136,22 +135,9 @@ spec:
               name:
                 type: string
                 description: "Service name (used for app and DNS)"
-              replicas:
-                type: integer
-                description: "Number of replicas"
-                default: 1
-              image:
-                type: string
-                description: "Container image"
-                default: "traefik/whoami:v1.10.1"
-              proxied:
-                type: boolean
-                description: "Enable Cloudflare proxy"
-                default: false
-              ttl:
-                type: integer
-                description: "DNS TTL in seconds"
-                default: 300
+                pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+                minLength: 1
+                maxLength: 63
             required:
             - name
           status:
@@ -209,8 +195,6 @@ spec:
       inline:
         template: |
           {{- $name := .observed.composite.resource.spec.name }}
-          {{- $replicas := .observed.composite.resource.spec.replicas | default 1 }}
-          {{- $image := .observed.composite.resource.spec.image | default "traefik/whoami:v1.10.1" }}
           {{- $xrName := .observed.composite.resource.metadata.name }}
           {{- $xrNamespace := .observed.composite.resource.metadata.namespace }}
           
@@ -225,10 +209,9 @@ spec:
               # Wait for this resource to be ready before proceeding
               gotemplating.fn.crossplane.io/ready: "True"
           spec:
-            # Do NOT add compositionRef - XRs use XRD defaults in v2
             name: {{ $name }}
-            replicas: {{ $replicas }}
-            image: {{ $image }}
+            replicas: 1  # Fixed value for simplicity
+            image: "traefik/whoami:v1.10.1"  # Fixed demo image
 ```
 
 ## Creating the Parent Composition
@@ -322,7 +305,7 @@ Here's how to create both application and DNS resources:
           type: A
           name: {{ $name }}
           value: {{ $ingressIP | quote }}
-          ttl: 300
+          # Uses defaults: ttl: 1 (automatic), proxied: false, zone: "openportal-zone"
 ```
 
 ## Handling Status Updates
