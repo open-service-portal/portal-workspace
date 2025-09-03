@@ -236,6 +236,29 @@ flux check
 kubectl get all -n flux-system
 ```
 
+### Flux Force Mode Configuration
+
+The setup scripts configure Flux kustomizations with `force: true` mode, which provides important resilience:
+
+**What it does:**
+- Allows Flux to continue applying resources even when some fail
+- Prevents a single error from blocking all other resources
+- Ensures maximum resource deployment in GitOps workflows
+
+**Why it's important:**
+- In multi-resource deployments, one problematic resource won't block others
+- Useful when migrating schemas or API versions
+- Helps maintain service availability during partial failures
+
+**Example scenario:**
+If one XR uses an outdated API version, with `force: true`:
+- ❌ The problematic XR fails (as expected)
+- ✅ All other valid XRs still get deployed
+- ✅ Services remain available
+- ✅ You can fix the issue without blocking other deployments
+
+Without `force: true`, a single failure would block the entire kustomization.
+
 ## Kubeconfig Management
 
 ### Export Kubeconfig

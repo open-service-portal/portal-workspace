@@ -26,6 +26,9 @@ spec:
   # Path based on cluster name from environment
   path: "./${CLUSTER_NAME}"
   prune: true
+  # Force mode: Continue applying resources even if some fail
+  # This prevents a single error from blocking all other resources
+  force: true
   # Important: XRs should be applied after XRDs from catalog
   dependsOn:
     - name: catalog
