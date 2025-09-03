@@ -32,9 +32,9 @@ if [ -d "$CATALOG_DIR" ]; then
     cd "$WORKSPACE_DIR"
 fi
 
-# Simple table header
-printf "%-35s %-12s %-12s %-18s %s\n" "Template" "Latest Tag" "In Catalog" "Unreleased" "Open PRs"
-printf "%-35s %-12s %-12s %-18s %s\n" "--------" "----------" "----------" "----------" "--------"
+# Simple table header  
+printf "%-35s %-10s   %-10s   %-10s   %s\n" "Template" "Latest Tag" "In Catalog" "Unreleased" "Open PRs"
+printf "%-35s %-10s   %-10s   %-10s   %s\n" "--------" "----------" "----------" "----------" "--------"
 
 # Process each template
 for template in $TEMPLATES; do
@@ -100,7 +100,7 @@ for template in $TEMPLATES; do
     fi
     
     # Print row
-    printf "%-35s %-21b %-21b %-27b %b\n" "$template" "$tag_display" "$catalog_display" "$unreleased" "$pr_display"
+    printf "%-35s %-23b %-23b %-23b %b\n" "$template" "$tag_display" "$catalog_display" "$unreleased" "$pr_display"
 done
 
 echo ""
