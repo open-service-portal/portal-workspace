@@ -48,6 +48,7 @@ metadata:
   name: <resources>.openportal.dev  # MUST use openportal.dev domain
   labels:
     terasky.backstage.io/generate-form: "true"  # REQUIRED for Backstage
+    openportal.dev/version: "dev"  # REQUIRED placeholder - CI/CD replaces with release version
   annotations:
     crossplane.io/version: "v2.0"
     backstage.io/source-location: "url:https://github.com/open-service-portal/template-<name>"
@@ -55,6 +56,31 @@ metadata:
     openportal.dev/description: "Brief description"
     openportal.dev/icon: "icon-name"  # Optional icon
 ```
+
+### Version Label Management
+
+**IMPORTANT**: All XRD files must include the `openportal.dev/version: "dev"` label as a placeholder.
+
+**Why this pattern exists:**
+1. **Development identification** - "dev" clearly marks unreleased versions in the cluster
+2. **CI/CD automation** - GitHub Actions replaces "dev" with the actual version during release
+3. **Avoids YAML corruption** - Version labels are only added to XRDs, not crossplane.yaml (which contains multi-line strings that yq can corrupt)
+
+**Implementation in GitHub Actions:**
+```yaml
+# In release.yaml workflow
+- name: Build Configuration package
+  run: |
+    # Add version label to XRD only (crossplane.yaml has multi-line strings that yq corrupts)
+    yq -i '.metadata.labels."openportal.dev/version" = env(VERSION)' configuration/xrd.yaml
+    
+    # Build the .xpkg file
+    crossplane xpkg build \
+      --package-root=configuration/ \
+      --package-file=configuration-<template-name>.xpkg
+```
+
+**Note**: Never use yq to modify crossplane.yaml files as they often contain multi-line strings in annotations that yq will corrupt. If labels are needed in crossplane.yaml, add them manually with static values.
 
 ### Spec Requirements
 
@@ -413,6 +439,7 @@ Before releasing a template:
 - [ ] Scope is `Namespaced`
 - [ ] No 'X' prefix in kind name
 - [ ] Has `terasky.backstage.io/generate-form` label
+- [ ] Has `openportal.dev/version: "dev"` label (placeholder for CI/CD)
 - [ ] Has `backstage.io/source-location` annotation
 - [ ] Composition uses Pipeline mode
 - [ ] Object resources use `kubernetes.m.crossplane.io/v1alpha1` API (namespace-scoped)
