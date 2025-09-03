@@ -29,3 +29,6 @@ spec:
     name: catalog
   path: "./"
   prune: true
+  # Force mode: Continue applying resources even if some fail
+  # This ensures one problematic template doesn't block all others
+  force: true
