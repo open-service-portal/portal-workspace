@@ -27,11 +27,10 @@ open-service-portal/         # THIS directory = portal-workspace repo
 ├── scripts/                # Unified setup and utility scripts
 │   ├── cluster-setup.sh    # Universal K8s cluster setup
 │   ├── cluster-config.sh   # Auto-detect cluster and configure
-│   ├── cluster-config-local.sh     # Switch to local cluster
-│   ├── cluster-config-openportal.sh # Configure OpenPortal production
+│   ├── cluster-cleanup.sh  # Remove all platform components
 │   ├── template-status.sh  # Check template releases and PRs
 │   ├── template-reload.sh  # Reload templates in cluster
-│   ├── cleanup.sh          # Remove all platform components
+│   ├── repos-sync.sh       # Sync all nested repositories
 │   ├── manifests-setup-cluster/  # Infrastructure manifests
 │   │   ├── crossplane-functions.yaml  # Composition functions
 │   │   ├── crossplane-provider-*.yaml # Provider definitions
@@ -40,7 +39,7 @@ open-service-portal/         # THIS directory = portal-workspace repo
 │   ├── manifests-config/   # Environment configs
 │   │   ├── environment-configs.yaml
 │   │   └── flux-catalog-orders.yaml
-│   └── cloudflare/         # Cloudflare debug suite (deprecated)
+│   └── cloudflare/         # Cloudflare debug suite (legacy, for testing)
 │       ├── setup.sh        # Test setup
 │       ├── validate.sh     # Comprehensive validation
 │       ├── remove.sh       # Cleanup
@@ -61,7 +60,7 @@ open-service-portal/         # THIS directory = portal-workspace repo
 ├── template-dns-record/    # NESTED repo - Mock DNS template
 │   └── configuration/
 │       └── xrd.yaml       # XRD with openportal.dev/tags label
-├── template-cloudflare-dnsrecord/  # NESTED repo - Real Cloudflare DNS
+├── template-cloudflare-dnsrecord/  # NESTED repo - DNS management using External-DNS
 │   ├── xrd.yaml           # XRD with publishPhase annotations
 │   ├── composition.yaml   # Pipeline mode composition
 │   └── examples/          # XR examples
@@ -116,7 +115,7 @@ git clone https://github.com/open-service-portal/app-portal.git
 - **catalog/** - Central registry for Crossplane templates/XRDs (git@github.com:open-service-portal/catalog.git)
 - **catalog-orders/** - GitOps repository for XR instances created via Backstage (git@github.com:open-service-portal/catalog-orders.git)
 - **template-dns-record/** - Mock DNS template for testing (git@github.com:open-service-portal/template-dns-record.git)
-- **template-cloudflare-dnsrecord/** - DNS management using External-DNS (git@github.com:open-service-portal/template-cloudflare-dnsrecord.git)
+- **template-cloudflare-dnsrecord/** - DNS management via External-DNS and CloudflareDNSRecord XRs (git@github.com:open-service-portal/template-cloudflare-dnsrecord.git)
 - **template-whoami/** - Demo application deployment (git@github.com:open-service-portal/template-whoami.git)
 - **template-whoami-service/** - Composite service (app + DNS) (git@github.com:open-service-portal/template-whoami-service.git)
 
@@ -267,23 +266,21 @@ We support any Kubernetes distribution with a unified setup:
 # - Base environment configurations
 # - provider-kubernetes with RBAC
 # - provider-helm for chart deployments
-# - External-DNS for DNS management (replaces provider-cloudflare)
-# - Backstage service account and token
+# - External-DNS for DNS management (namespace-isolated, replaces provider-cloudflare)
+# - Backstage service account with token secret
 ```
 
 **Environment Configuration**
 ```bash
 # Auto-detect cluster from kubectl context and configure
 ./scripts/cluster-config.sh
-# - Uses current kubectl context as cluster name
+# - Automatically detects current kubectl context
 # - Loads .env.${context} file (e.g., .env.rancher-desktop)
+# - Creates demo namespace for testing
 # - Creates app-config.${context}.local.yaml for Backstage
 # - Configures External-DNS credentials if provided
-# - Updates EnvironmentConfigs
-
-# Or use specific configuration scripts:
-./scripts/cluster-config-local.sh     # Switch to local cluster
-./scripts/cluster-config-openportal.sh # Configure OpenPortal production
+# - Updates EnvironmentConfigs for the cluster
+# - Patches Flux to watch cluster-specific paths in catalog-orders
 ```
 
 **DNS Management with External-DNS**
@@ -313,8 +310,14 @@ EOF
 # Check template status (releases and PRs)
 ./scripts/template-status.sh
 
-# Reload all templates in the cluster
+# Reload all templates in the cluster (with finalizer handling)
 ./scripts/template-reload.sh
+
+# Sync all nested repositories
+./scripts/repos-sync.sh
+
+# Complete cleanup of all platform components
+./scripts/cluster-cleanup.sh
 ```
 
 **Environment Files**
@@ -388,9 +391,10 @@ git clone --depth 1 git@github.com:TeraSky-OSS/backstage-plugins.git backstage-t
 - **Kubernetes Integration**: `backstage/docs/features/kubernetes/`
 - **TechDocs**: `backstage/docs/features/techdocs/`
 
-Note: These paths are gitignored via the following pattern in `.gitignore`:
+Note: These paths are gitignored via the following patterns in `.gitignore`:
 ```
-/backstage*
+backstage*/
+crossplane*/
 ```
 
 ## Best Practices
