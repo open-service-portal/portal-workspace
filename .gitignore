@@ -15,8 +15,9 @@ docusaurus/
 template-*/
 service-*-template/
 
-# Backstage Reference Repositories (for documentation search)
+# Reference Repositories (for documentation search)
 backstage*/
+crossplane*/
 
 # K8s Configs
 *.kubeconfig
@@ -34,6 +35,7 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+*.code-workspace
 
 # Temporary
 *.swp
