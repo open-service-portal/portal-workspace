@@ -214,10 +214,11 @@ install_external_dns() {
     
     kubectl apply -f "$MANIFEST_DIR/external-dns.yaml"
     
-    # Wait for External-DNS deployment to be ready
-    echo "Waiting for External-DNS deployment to be ready..."
-    kubectl rollout status deployment/external-dns -n external-dns --timeout=300s || {
-        echo -e "${YELLOW}External-DNS deployment did not become ready within the timeout period.${NC}"
+    # Wait for External-DNS deployment to be ready (with shorter timeout since credentials come later)
+    echo "Waiting for External-DNS deployment to be ready (10s timeout)..."
+    kubectl rollout status deployment/external-dns -n external-dns --timeout=10s || {
+        echo -e "${YELLOW}⚠ External-DNS is not ready yet (this is expected if Cloudflare credentials are not configured)${NC}"
+        echo -e "${YELLOW}External-DNS will start working after you run the cluster config script to add credentials.${NC}"
         echo -e "${YELLOW}You can check the status with:${NC} kubectl get deployment -n external-dns"
         echo -e "${YELLOW}Check logs with:${NC} kubectl logs -n external-dns deployment/external-dns"
     }
