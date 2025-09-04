@@ -427,6 +427,41 @@ print_summary() {
     echo "============================================================"
 }
 
+# Run cluster configuration if environment file exists
+run_cluster_config() {
+    echo ""
+    echo -e "${BLUE}Checking for cluster configuration...${NC}"
+    
+    # Get current context
+    CURRENT_CONTEXT=$(kubectl config current-context 2>/dev/null || echo "")
+    ENV_FILE="${WORKSPACE_DIR}/.env.${CURRENT_CONTEXT}"
+    
+    if [ -f "$ENV_FILE" ]; then
+        echo -e "${GREEN}Environment file found: .env.${CURRENT_CONTEXT}${NC}"
+        echo ""
+        echo -e "${YELLOW}Running cluster configuration to set up credentials...${NC}"
+        echo "============================================================"
+        
+        # Run the config script
+        "${SCRIPT_DIR}/cluster-config.sh"
+        
+        echo ""
+        echo -e "${GREEN}✅ Configuration applied successfully!${NC}"
+        echo ""
+    else
+        echo -e "${YELLOW}No environment file found for context: ${CURRENT_CONTEXT}${NC}"
+        echo ""
+        echo "To configure credentials later:"
+        echo "1. Create environment file:"
+        echo -e "   ${GREEN}cp .env.rancher-desktop.example .env.${CURRENT_CONTEXT}${NC}"
+        echo "2. Edit with your credentials:"
+        echo -e "   ${GREEN}vim .env.${CURRENT_CONTEXT}${NC}"
+        echo "3. Run configuration:"
+        echo -e "   ${GREEN}./scripts/cluster-config.sh${NC}"
+        echo ""
+    fi
+}
+
 # Main execution
 main() {
     check_prerequisites
@@ -441,6 +476,7 @@ main() {
     install_environment_configs  # Install platform-wide configs
     create_backstage_service_account
     print_summary
+    run_cluster_config  # Run configuration if environment file exists
 }
 
 # Run main function
