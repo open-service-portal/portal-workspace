@@ -109,7 +109,16 @@ update_backstage_config() {
     APP_TITLE="Backstage (${CURRENT_CONTEXT})"
     
     # Generate a secure API token for this cluster
-    API_TOKEN="backstage-api-${CURRENT_CONTEXT}-$(openssl rand -hex 16)"
+    if ! command -v openssl >/dev/null 2>&1; then
+        echo -e "${RED}Error: openssl is not installed or not found in PATH. Cannot generate API token.${NC}"
+        return 1
+    fi
+    TOKEN_SUFFIX=$(openssl rand -hex 16 2>/dev/null)
+    if [ -z "$TOKEN_SUFFIX" ]; then
+        echo -e "${RED}Error: Failed to generate random token with openssl.${NC}"
+        return 1
+    fi
+    API_TOKEN="backstage-api-${CURRENT_CONTEXT}-${TOKEN_SUFFIX}"
     
     # Create/update Backstage config
     cat > "$WORKSPACE_DIR/app-portal/$CONFIG_FILE" <<EOF
@@ -268,27 +277,44 @@ echo "To start Backstage:"
 echo "  cd app-portal"
 echo "  yarn start  # Auto-detects kubectl context and loads config"
 
+# Function to truncate token for display (show first 4 and last 4 chars)
+truncate_token() {
+    local token="$1"
+    local len=${#token}
+    if [ "$len" -le 8 ]; then
+        echo "$token"
+    else
+        local first4="${token:0:4}"
+        local last4="${token: -4}"
+        echo "${first4}...${last4}"
+    fi
+}
+
 # Show API usage instructions if token was generated
 if [ -n "$GENERATED_API_TOKEN" ]; then
+    TRUNCATED_TOKEN=$(truncate_token "$GENERATED_API_TOKEN")
     echo ""
     echo -e "${BLUE}================================${NC}"
     echo -e "${BLUE}   Backstage API Access${NC}"
     echo -e "${BLUE}================================${NC}"
     echo ""
     echo "API Token generated for programmatic access:"
-    echo -e "${YELLOW}$GENERATED_API_TOKEN${NC}"
+    echo -e "${YELLOW}${TRUNCATED_TOKEN}${NC} (token truncated for security)"
+    echo -e "${RED}WARNING: Keep your API token secret. Do not share or post it publicly.${NC}"
+    echo ""
+    echo "Full token has been saved to: ${CONFIG_FILE}"
     echo ""
     echo "Example API usage:"
     echo -e "${GREEN}# Get all catalog entities${NC}"
-    echo "curl -H \"Authorization: Bearer $GENERATED_API_TOKEN\" \\"
+    echo "curl -H \"Authorization: Bearer <YOUR_API_TOKEN>\" \\"
     echo "  http://localhost:7007/api/catalog/entities"
     echo ""
     echo -e "${GREEN}# Get templates only${NC}"
-    echo "curl -H \"Authorization: Bearer $GENERATED_API_TOKEN\" \\"
+    echo "curl -H \"Authorization: Bearer <YOUR_API_TOKEN>\" \\"
     echo "  \"http://localhost:7007/api/catalog/entities?filter=kind=Template\""
     echo ""
     echo -e "${GREEN}# Get a specific entity${NC}"
-    echo "curl -H \"Authorization: Bearer $GENERATED_API_TOKEN\" \\"
+    echo "curl -H \"Authorization: Bearer <YOUR_API_TOKEN>\" \\"
     echo "  \"http://localhost:7007/api/catalog/entities/by-name/template/default/your-template-name\""
     echo ""
     echo -e "${YELLOW}Note: Restart Backstage after running this script for token to take effect${NC}"
