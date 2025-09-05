@@ -15,6 +15,64 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_DIR="$(dirname "$SCRIPT_DIR")"
 ORG="open-service-portal"
 
+
+echo ""
+echo "================================"
+echo "Cluster Resources Status"
+echo "================================"
+echo ""
+
+# Show XRDs in cluster
+echo "Composite Resource Definitions - XRDs:"
+echo "--------------------------------------"
+kubectl get xrd -o custom-columns='NAME:.metadata.name,ESTABLISHED:.status.conditions[?(@.type=="Established")].status,OFFERED:.status.conditions[?(@.type=="Offered")].status,VERSION:.spec.versions[0].name' 2>/dev/null || echo "Error: Unable to fetch XRDs"
+
+echo ""
+
+# Show Compositions in cluster
+echo "Compositions:"
+echo "-------------"
+kubectl get compositions -o custom-columns='NAME:.metadata.name,XRD-KIND:.spec.compositeTypeRef.kind,MODE:.spec.mode' 2>/dev/null || echo "Error: Unable to fetch Compositions"
+
+echo ""
+
+# Show XRs in cluster
+echo "Composite Resources - XRs:"
+echo "--------------------------"
+# Get all XRDs and then fetch XRs for each
+xrds=$(kubectl get xrd -o jsonpath='{.items[*].spec.names.plural}' 2>/dev/null)
+if [ -n "$xrds" ]; then
+    total_xrs=0
+    for xrd in $xrds; do
+        # Count XRs for this type
+        xr_count=$(kubectl get $xrd --all-namespaces 2>/dev/null | grep -v "^NAMESPACE" | wc -l | tr -d ' ')
+        if [ "$xr_count" -gt "0" ]; then
+            echo -e "${GREEN}$xrd:${NC} $xr_count instance(s)"
+            # Show the actual XRs with their status
+            kubectl get $xrd --all-namespaces -o custom-columns='NAMESPACE:.metadata.namespace,NAME:.metadata.name,SYNCED:.status.conditions[?(@.type=="Synced")].status,READY:.status.conditions[?(@.type=="Ready")].status' 2>/dev/null | head -10
+            if [ "$xr_count" -gt "9" ]; then
+                echo "  ... and $((xr_count - 9)) more"
+            fi
+            total_xrs=$((total_xrs + xr_count))
+        fi
+    done
+    if [ "$total_xrs" -eq "0" ]; then
+        echo -e "${YELLOW}No XRs found in cluster${NC}"
+    else
+        echo ""
+        echo -e "${GREEN}Total: $total_xrs XR(s) across all types${NC}"
+    fi
+else
+    echo -e "${RED}No XRDs found or unable to fetch XRDs${NC}"
+fi
+
+
+echo ""
+echo "================================"
+echo "Template Status"
+echo "================================"
+echo ""
+
 # Find all template directories
 cd "$WORKSPACE_DIR"
 TEMPLATES=$(ls -d template-*/ 2>/dev/null | sed 's/\///' | sort)
@@ -155,54 +213,4 @@ if [ -n "$catalog_prs" ]; then
     echo "$catalog_prs"
 else
     echo -e "${GREEN}No open catalog PRs${NC}"
-fi
-
-echo ""
-echo "================================"
-echo "Cluster Resources Status"
-echo "================================"
-echo ""
-
-# Show XRDs in cluster
-echo "Composite Resource Definitions - XRDs:"
-echo "--------------------------------------"
-kubectl get xrd -o custom-columns=NAME:.metadata.name,ESTABLISHED:.status.conditions[?(@.type=="Established")].status,OFFERED:.status.conditions[?(@.type=="Offered")].status,VERSION:.spec.versions[0].name 2>/dev/null || echo "Error: Unable to fetch XRDs"
-
-echo ""
-
-# Show Compositions in cluster
-echo "Compositions:"
-echo "-------------"
-kubectl get compositions -o custom-columns=NAME:.metadata.name,XRD-KIND:.spec.compositeTypeRef.kind,MODE:.spec.mode,REVISION:.metadata.labels.crossplane\\.io/composite-resource-definition-revision 2>/dev/null || echo "Error: Unable to fetch Compositions"
-
-echo ""
-
-# Show XRs in cluster
-echo "Composite Resources - XRs:"
-echo "--------------------------"
-# Get all XRDs and then fetch XRs for each
-xrds=$(kubectl get xrd -o jsonpath='{.items[*].spec.names.plural}' 2>/dev/null)
-if [ -n "$xrds" ]; then
-    total_xrs=0
-    for xrd in $xrds; do
-        # Count XRs for this type
-        xr_count=$(kubectl get $xrd --all-namespaces 2>/dev/null | grep -v "^NAMESPACE" | wc -l | tr -d ' ')
-        if [ "$xr_count" -gt "0" ]; then
-            echo -e "${GREEN}$xrd:${NC} $xr_count instance(s)"
-            # Show the actual XRs with their status
-            kubectl get $xrd --all-namespaces -o custom-columns=NAMESPACE:.metadata.namespace,NAME:.metadata.name,SYNCED:.status.conditions[?(@.type=="Synced")].status,READY:.status.conditions[?(@.type=="Ready")].status 2>/dev/null | head -10
-            if [ "$xr_count" -gt "9" ]; then
-                echo "  ... and $((xr_count - 9)) more"
-            fi
-            total_xrs=$((total_xrs + xr_count))
-        fi
-    done
-    if [ "$total_xrs" -eq "0" ]; then
-        echo -e "${YELLOW}No XRs found in cluster${NC}"
-    else
-        echo ""
-        echo -e "${GREEN}Total: $total_xrs XR(s) across all types${NC}"
-    fi
-else
-    echo -e "${RED}No XRDs found or unable to fetch XRDs${NC}"
 fi
