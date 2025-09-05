@@ -237,6 +237,137 @@ update_environment_configs() {
     fi
 }
 
+# Configure HTTPS with wildcard self-signed certificate (for HSTS domains)
+configure_https_wildcard() {
+    # Skip for localhost
+    if [ "$BASE_DOMAIN" = "localhost" ]; then
+        echo ""
+        echo "Skipping HTTPS setup for localhost (not needed)"
+        return 0
+    fi
+    
+    echo ""
+    echo "Configuring wildcard HTTPS for *.${BASE_DOMAIN}..."
+    
+    # Check if wildcard cert already exists
+    if kubectl get secret wildcard-tls -n ingress-nginx &>/dev/null; then
+        echo "  Wildcard certificate already exists"
+        
+        # Update all existing ingresses to use the wildcard cert
+        echo "  Updating ingresses to use wildcard certificate..."
+        for ns in test demo system; do
+            kubectl get ingress -n "$ns" -o json 2>/dev/null | \
+            jq -r '.items[] | select(.spec.rules[].host | endswith(".'${BASE_DOMAIN}'")) | .metadata.name' | \
+            while read -r ingress_name; do
+                if [ -n "$ingress_name" ]; then
+                    local hostname=$(kubectl get ingress "$ingress_name" -n "$ns" -o jsonpath='{.spec.rules[0].host}')
+                    echo "    Updating $ingress_name in namespace $ns"
+                    
+                    # Add or update TLS configuration
+                    kubectl patch ingress "$ingress_name" -n "$ns" --type='json' -p='[
+                        {
+                            "op": "add",
+                            "path": "/spec/tls",
+                            "value": [
+                                {
+                                    "hosts": ["'${hostname}'"],
+                                    "secretName": "wildcard-tls"
+                                }
+                            ]
+                        }
+                    ]' 2>/dev/null || \
+                    kubectl patch ingress "$ingress_name" -n "$ns" --type='json' -p='[
+                        {
+                            "op": "replace",
+                            "path": "/spec/tls",
+                            "value": [
+                                {
+                                    "hosts": ["'${hostname}'"],
+                                    "secretName": "wildcard-tls"
+                                }
+                            ]
+                        }
+                    ]' 2>/dev/null
+                    
+                    # Ensure SSL redirect is disabled
+                    kubectl annotate ingress "$ingress_name" -n "$ns" \
+                        nginx.ingress.kubernetes.io/ssl-redirect="false" \
+                        --overwrite >/dev/null
+                fi
+            done
+        done
+        
+        echo -e "${GREEN}✓ Ingresses updated to use wildcard certificate${NC}"
+        return 0
+    fi
+    
+    # Create wildcard self-signed certificate
+    local temp_dir=$(mktemp -d)
+    trap "rm -rf ${temp_dir}" RETURN
+    
+    echo "  Generating wildcard certificate for *.${BASE_DOMAIN}..."
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+        -keyout "${temp_dir}/tls.key" \
+        -out "${temp_dir}/tls.crt" \
+        -subj "/CN=*.${BASE_DOMAIN}" \
+        -addext "subjectAltName=DNS:*.${BASE_DOMAIN},DNS:${BASE_DOMAIN}" 2>/dev/null
+    
+    # Create wildcard TLS secret in ingress-nginx namespace (accessible by all ingresses)
+    kubectl create secret tls wildcard-tls \
+        --cert="${temp_dir}/tls.crt" \
+        --key="${temp_dir}/tls.key" \
+        -n ingress-nginx \
+        --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+    
+    echo -e "${GREEN}✓ Wildcard certificate created for *.${BASE_DOMAIN}${NC}"
+    
+    # Now update existing ingresses
+    echo "  Updating existing ingresses..."
+    for ns in test demo system; do
+        kubectl get ingress -n "$ns" -o json 2>/dev/null | \
+        jq -r '.items[] | select(.spec.rules[].host | endswith(".'${BASE_DOMAIN}'")) | .metadata.name' | \
+        while read -r ingress_name; do
+            if [ -n "$ingress_name" ]; then
+                local hostname=$(kubectl get ingress "$ingress_name" -n "$ns" -o jsonpath='{.spec.rules[0].host}')
+                echo "    Updating $ingress_name in namespace $ns"
+                
+                kubectl patch ingress "$ingress_name" -n "$ns" --type='json' -p='[
+                    {
+                        "op": "add",
+                        "path": "/spec/tls",
+                        "value": [
+                            {
+                                "hosts": ["'${hostname}'"],
+                                "secretName": "wildcard-tls"
+                            }
+                        ]
+                    }
+                ]' 2>/dev/null || \
+                kubectl patch ingress "$ingress_name" -n "$ns" --type='json' -p='[
+                    {
+                        "op": "replace",
+                        "path": "/spec/tls", 
+                        "value": [
+                            {
+                                "hosts": ["'${hostname}'"],
+                                "secretName": "wildcard-tls"
+                            }
+                        ]
+                    }
+                ]' 2>/dev/null
+                
+                kubectl annotate ingress "$ingress_name" -n "$ns" \
+                    nginx.ingress.kubernetes.io/ssl-redirect="false" \
+                    --overwrite >/dev/null
+            fi
+        done
+    done
+    
+    echo -e "${GREEN}✓ HTTPS configured with wildcard certificate${NC}"
+    echo "  Note: Browsers will show certificate warning (self-signed)"
+    echo "  All *.${BASE_DOMAIN} ingresses will use this certificate"
+}
+
 # =============================================================================
 # Main Execution
 # =============================================================================
@@ -260,6 +391,9 @@ update_backstage_config
 configure_flux_catalog_orders
 configure_external_dns
 update_environment_configs
+
+# Configure wildcard HTTPS certificate (helps with HSTS issues)
+configure_https_wildcard
 
 # Summary
 echo ""
