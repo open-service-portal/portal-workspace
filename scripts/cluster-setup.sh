@@ -291,6 +291,23 @@ install_environment_configs() {
     kubectl apply -f "$ENV_CONFIGS_MANIFEST" && {
         echo -e "${GREEN}✓ Environment configurations installed${NC}"
         echo "  - dns-config: DNS zone settings for all templates"
+        
+        # Auto-detect and add ingress controller IP if available
+        echo "Detecting ingress controller IP..."
+        INGRESS_IP=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+        
+        if [ -n "$INGRESS_IP" ]; then
+            echo "  Adding ingress IP to dns-config: $INGRESS_IP"
+            kubectl patch environmentconfig dns-config --type merge -p "{\"data\": {\"ingressIP\": \"$INGRESS_IP\"}}" && {
+                echo -e "${GREEN}  ✓ Ingress IP automatically configured${NC}"
+            } || {
+                echo -e "${YELLOW}  ⚠ Could not patch ingress IP (may retry later)${NC}"
+            }
+        else
+            echo -e "${YELLOW}  ⚠ Ingress IP not yet available (LoadBalancer may be pending)${NC}"
+            echo "  You can manually add it later with:"
+            echo "  kubectl patch environmentconfig dns-config --type merge -p '{\"data\": {\"ingressIP\": \"YOUR_IP\"}}'"
+        fi
     } || {
         echo -e "${RED}Error: Failed to apply environment configs${NC}"
         echo "Please check the error message above"
