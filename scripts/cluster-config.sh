@@ -69,9 +69,6 @@ else
     exit 1
 fi
 
-# Note: CLUSTER_NAME is no longer needed in env files when using config.sh
-# The kubectl context IS the cluster name
-
 # =============================================================================
 # Common Functions
 # =============================================================================
@@ -174,13 +171,12 @@ configure_flux_catalog_orders() {
         return 1
     fi
     
+    # Export CURRENT_CONTEXT for envsubst
+    export CURRENT_CONTEXT
+    
     # Apply catalog-orders configuration with environment substitution
     if envsubst < "$MANIFEST_DIR/flux-catalog-orders.yaml" | kubectl apply -f -; then
         echo -e "${GREEN}✓ Flux configured to watch catalog-orders${NC}"
-        
-        # Patch the kustomization to only watch the current cluster's path
-        kubectl patch kustomization catalog-orders -n flux-system --type merge \
-            -p "{\"spec\":{\"path\":\"./${CURRENT_CONTEXT}\"}}" >/dev/null 2>&1
         echo -e "${GREEN}✓ Set catalog-orders path to ./${CURRENT_CONTEXT}${NC}"
         
         # Force reconciliation

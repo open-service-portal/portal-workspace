@@ -1,6 +1,6 @@
 # Flux GitOps: Catalog Orders Watcher
 # Purpose: Monitors and syncs XR instances created by Backstage templates
-# Uses ${CLUSTER_NAME} environment variable to determine path
+# Uses ${CURRENT_CONTEXT} environment variable to determine path
 ---
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: GitRepository
@@ -23,8 +23,8 @@ spec:
   sourceRef:
     kind: GitRepository
     name: catalog-orders
-  # Path based on cluster name from environment
-  path: "./${CLUSTER_NAME}"
+  # Path based on current kubectl context
+  path: "./${CURRENT_CONTEXT}"
   prune: true
   # Force mode: Continue applying resources even if some fail
   # This prevents a single error from blocking all other resources
@@ -32,3 +32,5 @@ spec:
   # Important: XRs should be applied after XRDs from catalog
   dependsOn:
     - name: catalog
+  # Retry on failure for resilience
+  retryInterval: 30s
