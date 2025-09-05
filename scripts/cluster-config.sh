@@ -249,6 +249,12 @@ echo "Ensuring demo namespace exists..."
 kubectl create namespace demo --dry-run=client -o yaml | kubectl apply -f - >/dev/null 2>&1
 echo -e "${GREEN}✓ Demo namespace ready${NC}"
 
+# Create system namespace for infrastructure XRs
+echo "Creating system namespace for infrastructure XRs..."
+kubectl create namespace system --dry-run=client -o yaml | kubectl apply -f - >/dev/null 2>&1
+kubectl label namespace system purpose=infrastructure-xrs --overwrite >/dev/null 2>&1
+echo -e "${GREEN}✓ System namespace created for infrastructure XRs${NC}"
+
 # Run common configurations
 update_backstage_config
 configure_flux_catalog_orders
