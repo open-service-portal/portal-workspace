@@ -204,39 +204,6 @@ Set appropriate resource quotas:
 - CI/CD: Limited access for deployments
 - Backstage: Service account with XR creation permissions
 
-## Migration Guide
-
-### From Cluster-Scoped to Namespaced XRs
-
-If you have existing cluster-scoped XRs:
-
-1. **Backup existing XRs**:
-   ```bash
-   kubectl get managednamespaces.openportal.dev -o yaml > backup.yaml
-   ```
-
-2. **Delete old XRs**:
-   ```bash
-   kubectl delete managednamespaces.openportal.dev --all
-   ```
-
-3. **Update template to v2.1.0+**:
-   ```yaml
-   # catalog/templates/template-namespace.yaml
-   spec:
-     package: ghcr.io/open-service-portal/configuration-namespace:v2.1.0
-   ```
-
-4. **Recreate XRs in system namespace**:
-   ```yaml
-   apiVersion: openportal.dev/v1alpha1
-   kind: ManagedNamespace
-   metadata:
-     name: my-namespace
-     namespace: system  # Add namespace
-   spec:
-     name: my-namespace
-   ```
 
 ## Troubleshooting
 
