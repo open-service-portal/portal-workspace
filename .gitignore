@@ -32,6 +32,9 @@ crossplane*/
 .DS_Store
 Thumbs.db
 
+# Scripting
+node_modules/
+
 # IDE
 .vscode/
 .idea/
