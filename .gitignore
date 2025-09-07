@@ -12,6 +12,7 @@ catalog-orders/
 docusaurus/
 
 # Service Template Repositories
+templates/
 template-*/
 service-*-template/
 

@@ -24,7 +24,7 @@ NC='\033[0m' # No Color
 # Get the script directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 WORKSPACE_DIR="$(dirname "$SCRIPT_DIR")"
-PLUGIN_DIR="$WORKSPACE_DIR/app-portal/plugins/kubernetes-ingestor"
+PLUGIN_DIR="$WORKSPACE_DIR/app-portal/plugins/crossplane-ingestor"
 
 # Check if plugin directory exists
 if [ ! -d "$PLUGIN_DIR" ]; then
@@ -33,54 +33,88 @@ if [ ! -d "$PLUGIN_DIR" ]; then
     exit 1
 fi
 
-# Check if the plugin is built
-if [ ! -d "$PLUGIN_DIR/dist/cli" ]; then
-    echo -e "${YELLOW}Plugin not built. Building now...${NC}"
-    
-    # Navigate to plugin directory
-    cd "$PLUGIN_DIR"
-    
-    # Install dependencies if needed
-    if [ ! -d "node_modules" ]; then
-        echo "Installing dependencies..."
-        yarn install
-    fi
-    
-    # Build the plugin
-    echo "Building plugin..."
-    yarn build
-    
-    if [ ! -d "$PLUGIN_DIR/dist/cli" ]; then
-        echo -e "${RED}Error: Failed to build plugin${NC}"
-        exit 1
-    fi
-    
-    echo -e "${GREEN}Plugin built successfully${NC}"
-fi
-
 # Save the original working directory
 ORIGINAL_PWD="$(pwd)"
 
-# Run the ingestor script with all arguments passed through
-# The script needs to run from the plugin directory, but paths should be relative to user's PWD
-cd "$PLUGIN_DIR"
+# Default values
+OUTPUT_DIR="templates"      # Default: templates directory
+SOURCE=""          # Required: XRD file, directory, or 'cluster'
+PREVIEW=false      # Show preview without writing files
+VALIDATE=false     # Validate XRDs only
+HELP=false         # Show help message
 
-# Convert relative paths to absolute paths based on original PWD
+# Parse arguments
 ARGS=()
-for arg in "$@"; do
-    # Check if argument is a file/directory path (not a flag)
-    if [[ ! "$arg" =~ ^- ]] && [[ -e "$ORIGINAL_PWD/$arg" || "$arg" =~ ^[./] ]]; then
-        # Convert relative path to absolute
-        if [[ "$arg" = /* ]]; then
-            # Already absolute
-            ARGS+=("$arg")
-        else
-            # Make it absolute based on original PWD
-            ARGS+=("$ORIGINAL_PWD/$arg")
-        fi
-    else
-        ARGS+=("$arg")
-    fi
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -o|--output)
+            OUTPUT_DIR="$2"
+            shift 2
+            ;;
+        -p|--preview)
+            PREVIEW=true
+            ARGS+=("--preview")
+            shift
+            ;;
+        -v|--validate)
+            VALIDATE=true
+            ARGS+=("--validate")
+            shift
+            ;;
+        -h|--help)
+            HELP=true
+            ARGS+=("--help")
+            shift
+            ;;
+        -*)
+            # Unknown flag, pass through to ingestor
+            ARGS+=("$1")
+            shift
+            ;;
+        *)
+            # This is the source argument (file, directory, or 'cluster')
+            if [[ -z "$SOURCE" ]]; then
+                SOURCE="$1"
+            else
+                # Additional non-flag argument, pass through
+                ARGS+=("$1")
+            fi
+            shift
+            ;;
+    esac
 done
 
+# Convert source path to absolute if it's a file/directory
+if [[ -n "$SOURCE" ]]; then
+    if [[ "$SOURCE" == "cluster" ]]; then
+        # Special case for cluster source
+        ARGS+=("cluster")
+    elif [[ "$SOURCE" = /* ]]; then
+        # Already absolute
+        ARGS+=("$SOURCE")
+    elif [[ -e "$ORIGINAL_PWD/$SOURCE" ]]; then
+        # Convert relative to absolute based on original PWD
+        ARGS+=("$ORIGINAL_PWD/$SOURCE")
+    else
+        # Pass as-is (might be a pattern or special value)
+        ARGS+=("$SOURCE")
+    fi
+fi
+
+# Handle output directory
+if [[ -n "$OUTPUT_DIR" ]]; then
+    # User specified output, convert to absolute if relative
+    if [[ "$OUTPUT_DIR" = /* ]]; then
+        ARGS+=("--output" "$OUTPUT_DIR")
+    else
+        ARGS+=("--output" "$ORIGINAL_PWD/$OUTPUT_DIR")
+    fi
+else
+    # Default to current working directory
+    ARGS+=("--output" "$ORIGINAL_PWD")
+fi
+
+# Run the ingestor script from the plugin directory
+cd "$PLUGIN_DIR"
+# echo "Args: ${ARGS[*]}"
 node src/cli/ingestor.js "${ARGS[@]}"
