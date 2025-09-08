@@ -45,8 +45,17 @@ open-service-portal/         # THIS directory = portal-workspace repo
 │
 ├── app-portal/             # NESTED repo - Main Backstage application
 │   ├── packages/           # Frontend and backend packages
-│   ├── plugins/            # Custom plugins (scaffolder, kubernetes-ingestor)
-│   └── app-config.yaml     # Main configuration with XRD publishing
+│   ├── plugins/            # Custom plugins (scaffolder, kubernetes-ingestor, crossplane-ingestor)
+│   ├── app-config.yaml     # Legacy monolithic configuration
+│   └── app-config/         # Modular configuration directory
+│       ├── auth.yaml       # Authentication providers
+│       ├── backend.yaml    # Backend service settings
+│       ├── catalog.yaml    # Software catalog configuration
+│       ├── ingestor.yaml   # Ingestor plugins configuration
+│       ├── integrations.yaml # SCM integrations
+│       ├── kubernetes.yaml # Kubernetes clusters
+│       ├── scaffolder.yaml # Scaffolder settings
+│       └── techdocs.yaml   # TechDocs configuration
 ├── catalog/                # NESTED repo - Template registry for Flux
 │   └── templates/          # Template references (XRDs/Compositions)
 ├── catalog-orders/         # NESTED repo - XR instances from Backstage
@@ -143,6 +152,50 @@ Each repository has its own `CLAUDE.md` file with specific development commands:
 - **docs/CLAUDE.md** - Documentation build and preview commands
 
 See the respective repository's CLAUDE.md for detailed instructions.
+
+### Modular Configuration
+
+The app-portal now uses a modular configuration architecture:
+
+```yaml
+# Configuration is split into focused modules
+app-config/
+├── auth.yaml        # Authentication (GitHub, GitLab, etc.)
+├── backend.yaml     # Backend settings (ports, CORS, database)
+├── catalog.yaml     # Catalog providers and locations
+├── ingestor.yaml    # Kubernetes and Crossplane ingestors
+├── integrations.yaml # SCM integrations
+├── kubernetes.yaml  # Cluster connections
+├── scaffolder.yaml  # Template settings
+└── techdocs.yaml    # Documentation platform
+```
+
+The `start.js` script automatically loads all configuration modules. See [Modular Configuration Documentation](./docs/backstage/modular-config.md) for details.
+
+### Crossplane Ingestor Plugin
+
+A new advanced plugin for Crossplane integration:
+
+```typescript
+// Discovers XRDs and generates Backstage entities
+plugins/crossplane-ingestor/
+├── src/
+│   ├── provider/          # Data providers for K8s resources
+│   ├── transformers/      # XRD to entity transformers
+│   ├── cli/              # CLI tools for testing
+│   └── module.ts         # Backend module registration
+├── tests/                # Comprehensive test suite
+└── docs/                 # Detailed documentation
+```
+
+**Key Features:**
+- Discovers XRDs from multiple clusters
+- Generates Template and API entities
+- Tracks Composition relationships
+- Provides CLI tools for debugging
+- Includes 16,000+ lines of code with tests
+
+See [Crossplane Ingestor Documentation](./docs/backstage/crossplane-ingestor.md) for complete details.
 
 ## Troubleshooting
 
