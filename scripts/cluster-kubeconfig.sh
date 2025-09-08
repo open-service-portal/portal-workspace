@@ -61,15 +61,9 @@ TOKEN=$(yq ".users[] | select(.name == \"$USER\") | .user.token" "$KUBECONFIG_FI
 echo "   Cluster: $CLUSTER Server: $SERVER User: $USER"
 
 # 3. Validate kubectl config exists for given context - create it if not
-if ! kubectl config get-contexts "$CONTEXT" &>/dev/null; then
-    echo "⚠️  Context $CONTEXT not found in kube config, creating it"
-    # Create cluster without cert data first
-    kubectl config set-cluster "$CONTEXT" --server="$SERVER"
-    # Set certificate data separately
-    kubectl config set clusters."$CONTEXT".certificate-authority-data "$CERT_DATA"
-    # Create context
-    kubectl config set-context "$CONTEXT" --cluster="$CONTEXT" --user="$USER"
-fi
+kubectl config set-cluster "$CONTEXT" --server="$SERVER"
+kubectl config set clusters."$CONTEXT".certificate-authority-data "$CERT_DATA"
+kubectl config set-context "$CONTEXT" --cluster="$CONTEXT" --user="$USER"
 
 # 4. Update kubectl config with token
 kubectl config set-credentials "$USER" --token="$TOKEN"
