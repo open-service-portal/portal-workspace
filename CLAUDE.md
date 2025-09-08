@@ -28,22 +28,19 @@ open-service-portal/         # THIS directory = portal-workspace repo
 │   ├── cluster-setup.sh    # Universal K8s cluster setup
 │   ├── cluster-config.sh   # Auto-detect cluster and configure
 │   ├── cluster-cleanup.sh  # Remove all platform components
+│   ├── cluster-kubeconfig.sh # Extract and manage kubeconfig files
 │   ├── template-status.sh  # Check template releases and PRs
 │   ├── template-reload.sh  # Reload templates in cluster
+│   ├── template-release.sh # Automate template releases to GitHub
 │   ├── repos-sync.sh       # Sync all nested repositories
 │   ├── manifests-setup-cluster/  # Infrastructure manifests
 │   │   ├── crossplane-functions.yaml  # Composition functions
 │   │   ├── crossplane-provider-*.yaml # Provider definitions
 │   │   ├── external-dns.yaml         # External-DNS with CRDs
 │   │   └── flux-catalog.yaml         # Catalog watcher
-│   ├── manifests-config/   # Environment configs
-│   │   ├── environment-configs.yaml
-│   │   └── flux-catalog-orders.yaml
-│   └── cloudflare/         # Cloudflare debug suite (legacy, for testing)
-│       ├── setup.sh        # Test setup
-│       ├── validate.sh     # Comprehensive validation
-│       ├── remove.sh       # Cleanup
-│       └── test-xr.sh      # XR testing
+│   └── manifests-config/   # Environment configs
+│       ├── environment-configs.yaml
+│       └── flux-catalog-orders.yaml
 ├── .gitignore              # Ignores nested repos below
 │
 ├── app-portal/             # NESTED repo - Main Backstage application
@@ -79,8 +76,7 @@ open-service-portal/         # THIS directory = portal-workspace repo
 ├── service-cluster-template/     # NESTED repo - Cluster provisioning
 │
 ├── backstage/              # LOCAL CLONE - Backstage core docs (gitignored)
-├── backstage-terasky-plugins-fork/  # LOCAL CLONE - TeraSky plugins fork
-└── scripts/                # Unified setup and utility scripts
+└── backstage-terasky-plugins-fork/  # LOCAL CLONE - TeraSky plugins fork
 
 ## Setup
 
@@ -266,7 +262,7 @@ We support any Kubernetes distribution with a unified setup:
 # - Base environment configurations
 # - provider-kubernetes with RBAC
 # - provider-helm for chart deployments
-# - External-DNS for DNS management (namespace-isolated, replaces provider-cloudflare)
+# - External-DNS for DNS management (namespace-isolated)
 # - Backstage service account with token secret
 ```
 

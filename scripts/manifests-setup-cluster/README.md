@@ -11,8 +11,9 @@ See [Cluster Manifests Documentation](../../docs/cluster/manifests.md) for detai
 
 ## Quick Reference
 
-- **Providers**: kubernetes, helm, cloudflare
+- **Providers**: kubernetes, helm
 - **Functions**: go-templating, patch-and-transform, auto-ready, environment-configs
+- **DNS Management**: External-DNS for multi-provider DNS support
 - **Configs**: Environment configurations with local defaults
 - **GitOps**: Flux catalog watcher configuration
 
