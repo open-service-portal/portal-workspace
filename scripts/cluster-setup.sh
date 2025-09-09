@@ -11,6 +11,8 @@ NC='\033[0m' # No Color
 
 # Global variables
 CONFIG_UPDATED=false
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+WORKSPACE_DIR="$(dirname "$SCRIPT_DIR")"
 
 echo -e "${BLUE}=== Backstage Kubernetes Cluster Setup ===${NC}"
 echo ""
@@ -198,6 +200,96 @@ install_provider_kubernetes() {
     echo -e "${GREEN}✓ provider-kubernetes installed and configured with full RBAC${NC}"
     echo "  - Cluster-scoped API (kubernetes.crossplane.io) configured"
     echo "  - Managed API (kubernetes.m.crossplane.io) configured for namespaced XRs"
+}
+
+# Install cert-manager for TLS certificate management (if needed)
+install_cert_manager() {
+    echo -e "${YELLOW}Checking if cert-manager installation is needed...${NC}"
+    
+    # Try to detect if cert-manager will be needed by checking environment files
+    CURRENT_CONTEXT=$(kubectl config current-context 2>/dev/null || echo "")
+    ENV_FILE="${WORKSPACE_DIR}/.env.${CURRENT_CONTEXT}"
+    
+    # Check if we should skip cert-manager
+    if [ -f "$ENV_FILE" ]; then
+        # Load BASE_DOMAIN from environment file
+        BASE_DOMAIN=$(grep "^BASE_DOMAIN=" "$ENV_FILE" | cut -d'=' -f2 | tr -d '"' | tr -d "'" || echo "")
+        
+        if [ -z "$BASE_DOMAIN" ] || [ "$BASE_DOMAIN" == "localhost" ] || [ "$BASE_DOMAIN" == "127.0.0.1" ]; then
+            echo -e "${YELLOW}Skipping cert-manager installation${NC}"
+            if [ -z "$BASE_DOMAIN" ]; then
+                echo "  BASE_DOMAIN not configured - set a domain in .env.${CURRENT_CONTEXT} to enable TLS"
+            else
+                echo "  BASE_DOMAIN=${BASE_DOMAIN} - TLS certificates not needed for local development"
+            fi
+            echo "  To install cert-manager later, set BASE_DOMAIN and re-run cluster-setup.sh"
+            return
+        fi
+        
+        echo "  BASE_DOMAIN=${BASE_DOMAIN} - cert-manager will be installed for TLS support"
+    else
+        echo -e "${YELLOW}Skipping cert-manager installation${NC}"
+        echo "  No environment file found: .env.${CURRENT_CONTEXT}"
+        echo "  Create environment configuration first:"
+        echo "    cp .env.rancher-desktop.example .env.${CURRENT_CONTEXT}"
+        echo "    vim .env.${CURRENT_CONTEXT}  # Set BASE_DOMAIN"
+        echo "    ./scripts/cluster-setup.sh  # Re-run setup"
+        return
+    fi
+    
+    echo -e "${YELLOW}Installing cert-manager for TLS certificates...${NC}"
+    
+    # Check if already installed
+    if helm list -n cert-manager 2>/dev/null | grep -q cert-manager; then
+        CURRENT_VERSION=$(helm list -n cert-manager -o json | jq -r '.[0].app_version' 2>/dev/null || echo "unknown")
+        echo -e "${GREEN}✓ cert-manager already installed (version: $CURRENT_VERSION)${NC}"
+        return
+    fi
+    
+    # Add Jetstack Helm repository
+    helm repo add jetstack https://charts.jetstack.io --force-update
+    helm repo update
+    
+    # Get latest chart version dynamically
+    LATEST_VERSION=$(helm search repo jetstack/cert-manager -o json | jq -r '.[0].version' 2>/dev/null || echo "")
+    
+    if [ -z "$LATEST_VERSION" ]; then
+        echo -e "${YELLOW}Could not determine latest version, using v1.16.2${NC}"
+        LATEST_VERSION="v1.16.2"
+    else
+        echo "Found latest cert-manager chart version: $LATEST_VERSION"
+    fi
+    
+    # Create namespace
+    kubectl create namespace cert-manager --dry-run=client -o yaml | kubectl apply -f -
+    
+    # Install cert-manager with CRDs
+    echo "Installing cert-manager $LATEST_VERSION..."
+    helm upgrade --install cert-manager jetstack/cert-manager \
+        --namespace cert-manager \
+        --version "$LATEST_VERSION" \
+        --set crds.enabled=true \
+        --set crds.keep=true \
+        --set global.leaderElection.namespace=cert-manager \
+        --wait --timeout=5m
+    
+    # Wait for cert-manager webhook to be ready (critical for issuer creation)
+    echo "Waiting for cert-manager webhook to be ready..."
+    kubectl wait --for=condition=ready pod \
+        -l app.kubernetes.io/component=webhook \
+        -n cert-manager \
+        --timeout=60s || {
+        echo -e "${YELLOW}Webhook may need more time to be ready${NC}"
+    }
+    
+    echo -e "${GREEN}✓ cert-manager $LATEST_VERSION installed${NC}"
+    echo "  - CRDs installed for Certificate, ClusterIssuer, etc."
+    echo "  - Webhook ready for validating resources"
+    echo "  - Ready for Let's Encrypt DNS-01 integration"
+    
+    # Note about ClusterIssuers
+    echo -e "${YELLOW}Note: Let's Encrypt ClusterIssuers will be configured by cluster-config.sh${NC}"
+    echo -e "${YELLOW}      (Skipped for BASE_DOMAIN=localhost)${NC}"
 }
 
 # Install External-DNS for Cloudflare DNS management
@@ -406,6 +498,14 @@ print_summary() {
     echo "  ✓ Flux catalog watcher for Crossplane templates"
     echo "  ✓ Crossplane v2.0.0"
     echo "  ✓ provider-kubernetes (both cluster & managed APIs)"
+    
+    # Check if cert-manager was installed
+    if helm list -n cert-manager 2>/dev/null | grep -q cert-manager; then
+        echo "  ✓ cert-manager with Let's Encrypt DNS-01 support"
+    else
+        echo "  ○ cert-manager (skipped - configure BASE_DOMAIN to enable)"
+    fi
+    
     echo "  ✓ External-DNS with Cloudflare (configure with config scripts)"
     echo "  ✓ Crossplane composition functions"
     
@@ -437,6 +537,10 @@ print_summary() {
     echo "  kubectl get pods -n flux-system"
     echo "  kubectl get gitrepository -n flux-system"
     echo "  kubectl get pods -n crossplane-system"
+    if helm list -n cert-manager 2>/dev/null | grep -q cert-manager; then
+        echo "  kubectl get pods -n cert-manager"
+        echo "  kubectl get clusterissuers  # After running cluster-config.sh"
+    fi
     echo "  kubectl get providers.pkg.crossplane.io"
     echo "  kubectl get functions.pkg.crossplane.io"
     echo ""
@@ -487,6 +591,7 @@ main() {
     configure_flux_catalog  # Configure Flux to watch catalog
     install_crossplane
     install_provider_kubernetes
+    install_cert_manager  # Install cert-manager for TLS certificates
     install_external_dns
     install_provider_helm  # Install provider-helm for Helm chart deployments
     install_crossplane_functions  # Install common functions
