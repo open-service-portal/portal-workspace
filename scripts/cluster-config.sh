@@ -163,7 +163,7 @@ EOF
 # Configure Flux for catalog-orders
 configure_flux_catalog_orders() {
     echo ""
-    echo "Configuring Flux to watch catalog-orders for cluster: ${CURRENT_CONTEXT}"
+    echo "Configuring Flux to watch catalog-orders for context: ${CURRENT_CONTEXT}"
     
     # Check if Flux is installed
     if ! kubectl get namespace flux-system &>/dev/null; then
@@ -176,11 +176,18 @@ configure_flux_catalog_orders() {
     
     # Apply catalog-orders configuration with environment substitution
     if envsubst < "$MANIFEST_DIR/flux-catalog-orders.yaml" | kubectl apply -f -; then
-        echo -e "${GREEN}✓ Flux configured to watch catalog-orders${NC}"
-        echo -e "${GREEN}✓ Set catalog-orders path to ./${CURRENT_CONTEXT}${NC}"
+        echo -e "${GREEN}✓ Created/Updated Kustomization: catalog-orders-${CURRENT_CONTEXT}${NC}"
+        echo -e "${GREEN}✓ Watching path: ./${CURRENT_CONTEXT}${NC}"
         
-        # Force reconciliation
+        # List all catalog-orders Kustomizations on this cluster
+        echo ""
+        echo "Active catalog-orders Kustomizations on this cluster:"
+        kubectl get kustomizations -n flux-system | grep -E "NAME|catalog-orders" || true
+        echo ""
+        
+        # Force reconciliation for the context-specific Kustomization
         flux reconcile source git catalog-orders 2>/dev/null || true
+        flux reconcile kustomization catalog-orders-${CURRENT_CONTEXT} 2>/dev/null || true
     else
         echo -e "${YELLOW}Note: Could not configure catalog-orders${NC}"
     fi
