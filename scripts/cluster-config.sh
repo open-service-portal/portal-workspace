@@ -199,7 +199,7 @@ configure_cert_manager() {
     echo "Checking cert-manager configuration..."
     
     # Skip cert-manager for localhost development
-    if [ "$BASE_DOMAIN" == "localhost" ] || [ "$BASE_DOMAIN" == "127.0.0.1" ]; then
+    if [ -z "$BASE_DOMAIN" ] || [ "$BASE_DOMAIN" == "localhost" ] || [ "$BASE_DOMAIN" == "127.0.0.1" ]; then
         echo -e "${YELLOW}Skipping cert-manager configuration for local development (BASE_DOMAIN=$BASE_DOMAIN)${NC}"
         echo "  TLS certificates are not needed for localhost"
         return 0
@@ -234,20 +234,17 @@ configure_cert_manager() {
     
     # Apply ClusterIssuers with environment substitution
     echo "Creating Let's Encrypt ClusterIssuers..."
-    
-    # Create temporary file with substituted values
-    TEMP_ISSUER_FILE="/tmp/letsencrypt-issuers-${CURRENT_CONTEXT}.yaml"
-    sed "s/\${LETSENCRYPT_EMAIL}/${LETSENCRYPT_EMAIL}/g" \
-        "${SCRIPT_DIR}/manifests-setup-cluster/letsencrypt-issuers.yaml" > "$TEMP_ISSUER_FILE"
-    
-    # Apply the issuers
-    kubectl apply -f "$TEMP_ISSUER_FILE"
-    rm -f "$TEMP_ISSUER_FILE"
-    
-    echo "✓ cert-manager configured with Let's Encrypt"
-    echo "  Email: ${LETSENCRYPT_EMAIL}"
-    echo "  Issuers: letsencrypt-staging, letsencrypt-prod"
-    echo "  Challenge: DNS-01 via Cloudflare"
+
+    # Create letsencrypt issuer
+    export LETSENCRYPT_EMAIL
+    if envsubst < "$MANIFEST_DIR/letsencrypt-issuers.yaml" | kubectl apply -f -; then
+        echo -e "${GREEN}✓ cert-manager configured with Let's Encrypt${NC}"
+        echo "  Email: ${LETSENCRYPT_EMAIL}"
+        echo "  Issuers: letsencrypt-staging, letsencrypt-prod"
+        echo "  Challenge: DNS-01 via Cloudflare"
+    else
+        echo -e "${YELLOW}Note: Could not configure Let's Encrypt${NC}"
+    fi
     
     # Verify issuers are ready
     echo "Verifying ClusterIssuers..."
