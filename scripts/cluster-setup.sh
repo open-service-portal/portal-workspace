@@ -228,7 +228,7 @@ install_cert_manager() {
     # Create namespace
     kubectl create namespace cert-manager --dry-run=client -o yaml | kubectl apply -f -
     
-    # Install cert-manager with CRDs
+    # Install cert-manager with CRDs and default ClusterIssuer
     echo "Installing cert-manager $LATEST_VERSION..."
     helm upgrade --install cert-manager jetstack/cert-manager \
         --namespace cert-manager \
@@ -236,6 +236,8 @@ install_cert_manager() {
         --set crds.enabled=true \
         --set crds.keep=true \
         --set global.leaderElection.namespace=cert-manager \
+        --set ingressShim.defaultIssuerName=letsencrypt-prod \
+        --set ingressShim.defaultIssuerKind=ClusterIssuer \
         --wait --timeout=5m
     
     # Wait for cert-manager webhook to be ready (critical for issuer creation)
@@ -250,10 +252,11 @@ install_cert_manager() {
     echo -e "${GREEN}✓ cert-manager $LATEST_VERSION installed${NC}"
     echo "  - CRDs installed for Certificate, ClusterIssuer, etc."
     echo "  - Webhook ready for validating resources"
+    echo "  - Default ClusterIssuer: letsencrypt-prod (once configured)"
     echo "  - Ready for Let's Encrypt DNS-01 integration"
     
     # Note about ClusterIssuers
-    echo -e "${YELLOW}Note: Let's Encrypt ClusterIssuers will be configured by cluster-config.sh${NC}"
+    echo -e "${YELLOW}Note: Let's Encrypt ClusterIssuer will be configured by cluster-config.sh${NC}"
 }
 
 # Install External-DNS for Cloudflare DNS management

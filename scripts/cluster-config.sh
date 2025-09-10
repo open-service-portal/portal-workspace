@@ -240,7 +240,7 @@ configure_cert_manager() {
     if envsubst < "$MANIFEST_DIR/letsencrypt-issuers.yaml" | kubectl apply -f -; then
         echo -e "${GREEN}✓ cert-manager configured with Let's Encrypt${NC}"
         echo "  Email: ${LETSENCRYPT_EMAIL}"
-        echo "  Issuers: letsencrypt-staging, letsencrypt-prod"
+        echo "  Issuer: letsencrypt-prod"
         echo "  Challenge: DNS-01 via Cloudflare"
     else
         echo -e "${YELLOW}Note: Could not configure Let's Encrypt${NC}"

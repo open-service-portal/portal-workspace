@@ -1,14 +1,42 @@
 # Example Ingress with TLS using cert-manager and Let's Encrypt
 # This demonstrates automatic TLS certificate provisioning
 ---
+# Simple Ingress - Uses default ClusterIssuer (letsencrypt-prod)
+# No cert-manager annotations needed!
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: example-app
+  name: example-app-simple
+  namespace: default
+  # No cert-manager annotations needed - uses default issuer
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - app.example.com
+    secretName: example-app-tls  # cert-manager creates this automatically
+  rules:
+  - host: app.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: example-app-service
+            port:
+              number: 80
+
+---
+# Advanced Ingress - Override default issuer if needed
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: example-app-custom
   namespace: default
   annotations:
-    # Tell cert-manager to handle TLS certificates for this Ingress
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"  # Use letsencrypt-staging for testing
+    # Only needed if you want to override the default issuer
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
     
     # Optional: Request a wildcard certificate (requires DNS-01 challenge)
     # cert-manager.io/common-name: "*.example.com"
@@ -113,9 +141,9 @@ spec:
 
 ---
 # How it works:
-# 1. When you create an Ingress with cert-manager annotations
-# 2. cert-manager detects the new Ingress and reads the TLS configuration
-# 3. It creates a Certificate resource automatically (or uses explicit one)
+# 1. When you create an Ingress with a TLS section
+# 2. cert-manager detects it and uses the default issuer (letsencrypt-prod)
+# 3. It creates a Certificate resource automatically
 # 4. cert-manager requests a certificate from Let's Encrypt
 # 5. For DNS-01 challenge:
 #    - cert-manager creates a TXT record in Cloudflare
@@ -126,11 +154,11 @@ spec:
 # 8. cert-manager monitors expiry and auto-renews before expiration
 
 # Testing workflow:
-# 1. Start with letsencrypt-staging to avoid rate limits
-# 2. Verify certificate is issued (check with: kubectl get certificate)
+# 1. Apply your Ingress with cert-manager annotations
+# 2. Verify certificate is issued: kubectl get certificate
 # 3. Check certificate details: kubectl describe certificate example-app-cert
-# 4. Once working, switch to letsencrypt-prod for trusted certificates
-# 5. Monitor: kubectl logs -n cert-manager deploy/cert-manager
+# 4. Monitor cert-manager logs: kubectl logs -n cert-manager deploy/cert-manager
+# 5. Check certificate ready: kubectl get certificate -w
 
 # Debugging:
 # - Check certificate status: kubectl get certificate -A
