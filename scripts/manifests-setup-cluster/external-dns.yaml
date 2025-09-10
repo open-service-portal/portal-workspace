@@ -128,9 +128,11 @@ spec:
       - name: external-dns
         image: registry.k8s.io/external-dns/external-dns:v0.14.0
         args:
+        - --source=ingress
         - --source=crd
         - --crd-source-apiversion=externaldns.openportal.dev/v1alpha1
         - --crd-source-kind=DNSEndpoint
+        - --namespace=  # Watch all namespaces (empty value = all)
         - --provider=cloudflare  # Default to non-proxied, can be overridden per record
         - --domain-filter=openportal.dev  # Only manage records in this zone
         - --policy=sync  # sync = create/update/delete as needed

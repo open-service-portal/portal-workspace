@@ -200,6 +200,52 @@ install_provider_kubernetes() {
     echo "  - Managed API (kubernetes.m.crossplane.io) configured for namespaced XRs"
 }
 
+# Install cert-manager for TLS certificate management
+install_cert_manager() {
+
+    MANIFEST_DIR="$(cd "$(dirname "$0")" && pwd)/manifests-setup-cluster"
+    CERT_MANAGER_VERSION="v1.18.2"
+
+    echo -e "${YELLOW}Installing cert-manager for TLS certificates...${NC}"
+    
+    # Add Jetstack Helm repository
+    helm repo add jetstack https://charts.jetstack.io --force-update
+    helm repo update
+    
+    # Create namespace
+    kubectl apply -f "$MANIFEST_DIR/cert-manager.yaml"
+    
+    # Install cert-manager with CRDs and default ClusterIssuer
+    echo "Installing cert-manager $CERT_MANAGER_VERSION..."
+    helm upgrade --install cert-manager jetstack/cert-manager \
+        --namespace cert-manager \
+        --version "$CERT_MANAGER_VERSION" \
+        --set crds.enabled=true \
+        --set crds.keep=true \
+        --set global.leaderElection.namespace=cert-manager \
+        --set ingressShim.defaultIssuerName=letsencrypt-prod \
+        --set ingressShim.defaultIssuerKind=ClusterIssuer \
+        --wait --timeout=5m
+    
+    # Wait for cert-manager webhook to be ready (critical for issuer creation)
+    echo "Waiting for cert-manager webhook to be ready..."
+    kubectl wait --for=condition=ready pod \
+        -l app.kubernetes.io/component=webhook \
+        -n cert-manager \
+        --timeout=60s || {
+        echo -e "${YELLOW}Webhook may need more time to be ready${NC}"
+    }
+    
+    echo -e "${GREEN}✓ cert-manager $CERT_MANAGER_VERSION installed${NC}"
+    echo "  - CRDs installed for Certificate, ClusterIssuer, etc."
+    echo "  - Webhook ready for validating resources"
+    echo "  - Default ClusterIssuer: letsencrypt-prod (once configured)"
+    echo "  - Ready for Let's Encrypt DNS-01 integration"
+    
+    # Note about ClusterIssuers
+    echo -e "${YELLOW}Note: Let's Encrypt ClusterIssuer will be configured by cluster-config.sh${NC}"
+}
+
 # Install External-DNS for Cloudflare DNS management
 install_external_dns() {
     echo -e "${YELLOW}Installing External-DNS with Cloudflare support...${NC}"
@@ -214,10 +260,11 @@ install_external_dns() {
     
     kubectl apply -f "$MANIFEST_DIR/external-dns.yaml"
     
-    # Wait for External-DNS deployment to be ready
-    echo "Waiting for External-DNS deployment to be ready..."
-    kubectl rollout status deployment/external-dns -n external-dns --timeout=300s || {
-        echo -e "${YELLOW}External-DNS deployment did not become ready within the timeout period.${NC}"
+    # Wait for External-DNS deployment to be ready (with shorter timeout since credentials come later)
+    echo "Waiting for External-DNS deployment to be ready (10s timeout)..."
+    kubectl rollout status deployment/external-dns -n external-dns --timeout=10s || {
+        echo -e "${YELLOW}⚠ External-DNS is not ready yet (this is expected if Cloudflare credentials are not configured)${NC}"
+        echo -e "${YELLOW}External-DNS will start working after you run the cluster config script to add credentials.${NC}"
         echo -e "${YELLOW}You can check the status with:${NC} kubectl get deployment -n external-dns"
         echo -e "${YELLOW}Check logs with:${NC} kubectl logs -n external-dns deployment/external-dns"
     }
@@ -290,6 +337,23 @@ install_environment_configs() {
     kubectl apply -f "$ENV_CONFIGS_MANIFEST" && {
         echo -e "${GREEN}✓ Environment configurations installed${NC}"
         echo "  - dns-config: DNS zone settings for all templates"
+        
+        # Auto-detect and add ingress controller IP if available
+        echo "Detecting ingress controller IP..."
+        INGRESS_IP=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+        
+        if [ -n "$INGRESS_IP" ]; then
+            echo "  Adding ingress IP to dns-config: $INGRESS_IP"
+            kubectl patch environmentconfig dns-config --type merge -p "{\"data\": {\"ingressIP\": \"$INGRESS_IP\"}}" && {
+                echo -e "${GREEN}  ✓ Ingress IP automatically configured${NC}"
+            } || {
+                echo -e "${YELLOW}  ⚠ Could not patch ingress IP (may retry later)${NC}"
+            }
+        else
+            echo -e "${YELLOW}  ⚠ Ingress IP not yet available (LoadBalancer may be pending)${NC}"
+            echo "  You can manually add it later with:"
+            echo "  kubectl patch environmentconfig dns-config --type merge -p '{\"data\": {\"ingressIP\": \"YOUR_IP\"}}'"
+        fi
     } || {
         echo -e "${RED}Error: Failed to apply environment configs${NC}"
         echo "Please check the error message above"
@@ -388,6 +452,7 @@ print_summary() {
     echo "  ✓ Flux catalog watcher for Crossplane templates"
     echo "  ✓ Crossplane v2.0.0"
     echo "  ✓ provider-kubernetes (both cluster & managed APIs)"
+    echo "  ✓ cert-manager with Let's Encrypt DNS-01 support"
     echo "  ✓ External-DNS with Cloudflare (configure with config scripts)"
     echo "  ✓ Crossplane composition functions"
     
@@ -419,11 +484,50 @@ print_summary() {
     echo "  kubectl get pods -n flux-system"
     echo "  kubectl get gitrepository -n flux-system"
     echo "  kubectl get pods -n crossplane-system"
+    echo "  kubectl get pods -n cert-manager"
     echo "  kubectl get providers.pkg.crossplane.io"
     echo "  kubectl get functions.pkg.crossplane.io"
+    echo "  kubectl get clusterissuers  # After running cluster-config.sh with valid domain"
     echo ""
     echo ""
     echo "============================================================"
+}
+
+# Run cluster configuration if environment file exists
+run_cluster_config() {
+    echo ""
+    echo -e "${BLUE}Checking for cluster configuration...${NC}"
+    
+    # Get current context
+    CURRENT_CONTEXT=$(kubectl config current-context 2>/dev/null || echo "")
+    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+    WORKSPACE_DIR="$(dirname "$SCRIPT_DIR")"
+    ENV_FILE="${WORKSPACE_DIR}/.env.${CURRENT_CONTEXT}"
+    
+    if [ -f "$ENV_FILE" ]; then
+        echo -e "${GREEN}Environment file found: .env.${CURRENT_CONTEXT}${NC}"
+        echo ""
+        echo -e "${YELLOW}Running cluster configuration to set up credentials...${NC}"
+        echo "============================================================"
+        
+        # Run the config script
+        "${SCRIPT_DIR}/cluster-config.sh"
+        
+        echo ""
+        echo -e "${GREEN}✅ Configuration applied successfully!${NC}"
+        echo ""
+    else
+        echo -e "${YELLOW}No environment file found for context: ${CURRENT_CONTEXT}${NC}"
+        echo ""
+        echo "To configure credentials later:"
+        echo "1. Create environment file:"
+        echo -e "   ${GREEN}cp .env.rancher-desktop.example .env.${CURRENT_CONTEXT}${NC}"
+        echo "2. Edit with your credentials:"
+        echo -e "   ${GREEN}vim .env.${CURRENT_CONTEXT}${NC}"
+        echo "3. Run configuration:"
+        echo -e "   ${GREEN}./scripts/cluster-config.sh${NC}"
+        echo ""
+    fi
 }
 
 # Main execution
@@ -434,12 +538,14 @@ main() {
     configure_flux_catalog  # Configure Flux to watch catalog
     install_crossplane
     install_provider_kubernetes
+    install_cert_manager  # Install cert-manager for TLS certificates
     install_external_dns
     install_provider_helm  # Install provider-helm for Helm chart deployments
     install_crossplane_functions  # Install common functions
     install_environment_configs  # Install platform-wide configs
     create_backstage_service_account
     print_summary
+    run_cluster_config  # Run configuration if environment file exists
 }
 
 # Run main function

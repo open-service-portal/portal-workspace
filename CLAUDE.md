@@ -28,28 +28,34 @@ open-service-portal/         # THIS directory = portal-workspace repo
 │   ├── cluster-setup.sh    # Universal K8s cluster setup
 │   ├── cluster-config.sh   # Auto-detect cluster and configure
 │   ├── cluster-cleanup.sh  # Remove all platform components
+│   ├── cluster-kubeconfig.sh # Extract and manage kubeconfig files
 │   ├── template-status.sh  # Check template releases and PRs
 │   ├── template-reload.sh  # Reload templates in cluster
+│   ├── template-release.sh # Automate template releases to GitHub
 │   ├── repos-sync.sh       # Sync all nested repositories
 │   ├── manifests-setup-cluster/  # Infrastructure manifests
 │   │   ├── crossplane-functions.yaml  # Composition functions
 │   │   ├── crossplane-provider-*.yaml # Provider definitions
 │   │   ├── external-dns.yaml         # External-DNS with CRDs
 │   │   └── flux-catalog.yaml         # Catalog watcher
-│   ├── manifests-config/   # Environment configs
-│   │   ├── environment-configs.yaml
-│   │   └── flux-catalog-orders.yaml
-│   └── cloudflare/         # Cloudflare debug suite (legacy, for testing)
-│       ├── setup.sh        # Test setup
-│       ├── validate.sh     # Comprehensive validation
-│       ├── remove.sh       # Cleanup
-│       └── test-xr.sh      # XR testing
+│   └── manifests-config/   # Environment configs
+│       ├── environment-configs.yaml
+│       └── flux-catalog-orders.yaml
 ├── .gitignore              # Ignores nested repos below
 │
 ├── app-portal/             # NESTED repo - Main Backstage application
 │   ├── packages/           # Frontend and backend packages
-│   ├── plugins/            # Custom plugins (scaffolder, kubernetes-ingestor)
-│   └── app-config.yaml     # Main configuration with XRD publishing
+│   ├── plugins/            # Custom plugins (scaffolder, kubernetes-ingestor, crossplane-ingestor)
+│   ├── app-config.yaml     # Legacy monolithic configuration
+│   └── app-config/         # Modular configuration directory
+│       ├── auth.yaml       # Authentication providers
+│       ├── backend.yaml    # Backend service settings
+│       ├── catalog.yaml    # Software catalog configuration
+│       ├── ingestor.yaml   # Ingestor plugins configuration
+│       ├── integrations.yaml # SCM integrations
+│       ├── kubernetes.yaml # Kubernetes clusters
+│       ├── scaffolder.yaml # Scaffolder settings
+│       └── techdocs.yaml   # TechDocs configuration
 ├── catalog/                # NESTED repo - Template registry for Flux
 │   └── templates/          # Template references (XRDs/Compositions)
 ├── catalog-orders/         # NESTED repo - XR instances from Backstage
@@ -79,8 +85,7 @@ open-service-portal/         # THIS directory = portal-workspace repo
 ├── service-cluster-template/     # NESTED repo - Cluster provisioning
 │
 ├── backstage/              # LOCAL CLONE - Backstage core docs (gitignored)
-├── backstage-terasky-plugins-fork/  # LOCAL CLONE - TeraSky plugins fork
-└── scripts/                # Unified setup and utility scripts
+└── backstage-terasky-plugins-fork/  # LOCAL CLONE - TeraSky plugins fork
 
 ## Setup
 
@@ -147,6 +152,50 @@ Each repository has its own `CLAUDE.md` file with specific development commands:
 - **docs/CLAUDE.md** - Documentation build and preview commands
 
 See the respective repository's CLAUDE.md for detailed instructions.
+
+### Modular Configuration
+
+The app-portal now uses a modular configuration architecture:
+
+```yaml
+# Configuration is split into focused modules
+app-config/
+├── auth.yaml        # Authentication (GitHub, GitLab, etc.)
+├── backend.yaml     # Backend settings (ports, CORS, database)
+├── catalog.yaml     # Catalog providers and locations
+├── ingestor.yaml    # Kubernetes and Crossplane ingestors
+├── integrations.yaml # SCM integrations
+├── kubernetes.yaml  # Cluster connections
+├── scaffolder.yaml  # Template settings
+└── techdocs.yaml    # Documentation platform
+```
+
+The `start.js` script automatically loads all configuration modules. See [Modular Configuration Documentation](./docs/backstage/modular-config.md) for details.
+
+### Crossplane Ingestor Plugin
+
+A new advanced plugin for Crossplane integration:
+
+```typescript
+// Discovers XRDs and generates Backstage entities
+plugins/crossplane-ingestor/
+├── src/
+│   ├── provider/          # Data providers for K8s resources
+│   ├── transformers/      # XRD to entity transformers
+│   ├── cli/              # CLI tools for testing
+│   └── module.ts         # Backend module registration
+├── tests/                # Comprehensive test suite
+└── docs/                 # Detailed documentation
+```
+
+**Key Features:**
+- Discovers XRDs from multiple clusters
+- Generates Template and API entities
+- Tracks Composition relationships
+- Provides CLI tools for debugging
+- Includes 16,000+ lines of code with tests
+
+See [Crossplane Ingestor Documentation](./docs/backstage/crossplane-ingestor.md) for complete details.
 
 ## Troubleshooting
 
@@ -266,7 +315,7 @@ We support any Kubernetes distribution with a unified setup:
 # - Base environment configurations
 # - provider-kubernetes with RBAC
 # - provider-helm for chart deployments
-# - External-DNS for DNS management (namespace-isolated, replaces provider-cloudflare)
+# - External-DNS for DNS management (namespace-isolated)
 # - Backstage service account with token secret
 ```
 
@@ -277,11 +326,36 @@ We support any Kubernetes distribution with a unified setup:
 # - Automatically detects current kubectl context
 # - Loads .env.${context} file (e.g., .env.rancher-desktop)
 # - Creates demo namespace for testing
-# - Creates app-config.${context}.local.yaml for Backstage
+# - Creates app-config.${context}.local.yaml for Backstage with API token
 # - Configures External-DNS credentials if provided
 # - Updates EnvironmentConfigs for the cluster
 # - Patches Flux to watch cluster-specific paths in catalog-orders
+# - Generates secure API token for programmatic Backstage access
 ```
+
+**Backstage API Access**
+The `cluster-config.sh` script generates a secure API token for programmatic access to Backstage. This token is stored in the cluster-specific configuration file (`app-config.${context}.local.yaml`) and can be used to query the Backstage catalog.
+
+Finding and using the API token:
+```bash
+# Token is generated by cluster-config.sh and stored in context-specific config
+grep "token:" app-portal/app-config.*.local.yaml | grep static
+
+# Extract token from config file (example for openportal context)
+TOKEN=$(grep -A2 "type: static" app-portal/app-config.openportal.local.yaml | grep "token:" | awk '{print $2}')
+
+# Access catalog entities
+curl -H "Authorization: Bearer $TOKEN" http://localhost:7007/api/catalog/entities
+
+# Filter for specific entity types
+curl -H "Authorization: Bearer $TOKEN" "http://localhost:7007/api/catalog/entities?filter=kind=Template"
+
+# Get a specific entity
+curl -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:7007/api/catalog/entities/by-name/template/default/your-template-name"
+```
+
+The API provides read access to all catalog entities including templates, components, and systems. Remember to restart Backstage after running `cluster-config.sh` for the new token to take effect.
 
 **DNS Management with External-DNS**
 We use External-DNS for unified DNS management across all providers:

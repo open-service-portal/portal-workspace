@@ -12,6 +12,7 @@ catalog-orders/
 docusaurus/
 
 # Service Template Repositories
+templates/
 template-*/
 service-*-template/
 
@@ -31,6 +32,9 @@ crossplane*/
 # OS
 .DS_Store
 Thumbs.db
+
+# Scripting
+node_modules/
 
 # IDE
 .vscode/

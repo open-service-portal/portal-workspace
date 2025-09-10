@@ -31,13 +31,17 @@ fi
 
 TEMPLATE_NAME=$1
 VERSION_ARG=${2:-""}
-TEMPLATE_DIR="/Users/felix/work/open-service-portal/portal-workspace/${TEMPLATE_NAME}"
+
+# Get script and workspace directories
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORKSPACE_DIR="$(dirname "$SCRIPT_DIR")"
+TEMPLATE_DIR="${WORKSPACE_DIR}/${TEMPLATE_NAME}"
 
 # Check if template directory exists
 if [ ! -d "${TEMPLATE_DIR}" ]; then
     echo -e "${RED}Error: Template directory not found: ${TEMPLATE_DIR}${NC}"
     echo "Available templates:"
-    ls -d /Users/felix/work/open-service-portal/portal-workspace/template-* 2>/dev/null | xargs -n1 basename || echo "No templates found"
+    ls -d "${WORKSPACE_DIR}"/template-* 2>/dev/null | xargs -n1 basename || echo "No templates found"
     exit 1
 fi
 
