@@ -202,37 +202,24 @@ install_provider_kubernetes() {
 
 # Install cert-manager for TLS certificate management
 install_cert_manager() {
+
+    MANIFEST_DIR="$(cd "$(dirname "$0")" && pwd)/manifests-setup-cluster"
+    CERT_MANAGER_VERSION="v1.18.2"
+
     echo -e "${YELLOW}Installing cert-manager for TLS certificates...${NC}"
-    
-    # Check if already installed
-    if helm list -n cert-manager 2>/dev/null | grep -q cert-manager; then
-        CURRENT_VERSION=$(helm list -n cert-manager -o json | jq -r '.[0].app_version' 2>/dev/null || echo "unknown")
-        echo -e "${GREEN}✓ cert-manager already installed (version: $CURRENT_VERSION)${NC}"
-        return
-    fi
     
     # Add Jetstack Helm repository
     helm repo add jetstack https://charts.jetstack.io --force-update
     helm repo update
     
-    # Get latest chart version dynamically
-    LATEST_VERSION=$(helm search repo jetstack/cert-manager -o json | jq -r '.[0].version' 2>/dev/null || echo "")
-    
-    if [ -z "$LATEST_VERSION" ]; then
-        echo -e "${YELLOW}Could not determine latest version, using v1.16.2${NC}"
-        LATEST_VERSION="v1.16.2"
-    else
-        echo "Found latest cert-manager chart version: $LATEST_VERSION"
-    fi
-    
     # Create namespace
-    kubectl create namespace cert-manager --dry-run=client -o yaml | kubectl apply -f -
+    kubectl apply -f "$MANIFEST_DIR/cert-manager.yaml"
     
     # Install cert-manager with CRDs and default ClusterIssuer
-    echo "Installing cert-manager $LATEST_VERSION..."
+    echo "Installing cert-manager $CERT_MANAGER_VERSION..."
     helm upgrade --install cert-manager jetstack/cert-manager \
         --namespace cert-manager \
-        --version "$LATEST_VERSION" \
+        --version "$CERT_MANAGER_VERSION" \
         --set crds.enabled=true \
         --set crds.keep=true \
         --set global.leaderElection.namespace=cert-manager \
@@ -249,7 +236,7 @@ install_cert_manager() {
         echo -e "${YELLOW}Webhook may need more time to be ready${NC}"
     }
     
-    echo -e "${GREEN}✓ cert-manager $LATEST_VERSION installed${NC}"
+    echo -e "${GREEN}✓ cert-manager $CERT_MANAGER_VERSION installed${NC}"
     echo "  - CRDs installed for Certificate, ClusterIssuer, etc."
     echo "  - Webhook ready for validating resources"
     echo "  - Default ClusterIssuer: letsencrypt-prod (once configured)"
