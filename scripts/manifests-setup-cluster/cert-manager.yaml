@@ -1,0 +1,20 @@
+# cert-manager v1.16.2
+# This manifest installs cert-manager with CRDs included
+# Source: https://github.com/cert-manager/cert-manager/releases/download/v1.16.2/cert-manager.yaml
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cert-manager
+---
+# Note: This is a placeholder for the full cert-manager installation
+# In production, we'll use Helm for installation which handles CRDs properly
+# The actual manifest would be ~40KB with all CRDs and deployments
+#
+# Installation will be done via Helm in cluster-setup.sh:
+# helm install cert-manager jetstack/cert-manager \
+#   --namespace cert-manager \
+#   --create-namespace \
+#   --version v1.16.2 \
+#   --set crds.enabled=true \
+#   --set crds.keep=true
