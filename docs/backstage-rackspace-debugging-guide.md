@@ -92,16 +92,6 @@ kubectl port-forward -n app-portal deployment/app-portal 7007:7007
 {"level":"warn","message":"Signing key has expired"}
 ```
 
-## Useful Aliases
-
-```bash
-# Add to ~/.bashrc or ~/.zshrc
-alias bspod='kubectl get pods -n app-portal -o jsonpath="{.items[0].metadata.name}"'
-alias bslogs='kubectl logs $(bspod) -n app-portal'
-alias bslogsf='kubectl logs -f $(bspod) -n app-portal'
-alias bsrestart='kubectl delete pod $(bspod) -n app-portal'
-```
-
 ## Troubleshooting Checklist
 
 1. **Pod running?** → `kubectl get pods -n app-portal`
