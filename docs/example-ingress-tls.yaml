@@ -1,0 +1,169 @@
+# Example Ingress with TLS using cert-manager and Let's Encrypt
+# This demonstrates automatic TLS certificate provisioning
+---
+# Simple Ingress - Uses default ClusterIssuer (letsencrypt-prod)
+# No cert-manager annotations needed!
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: example-app-simple
+  namespace: default
+  # No cert-manager annotations needed - uses default issuer
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - app.example.com
+    secretName: example-app-tls  # cert-manager creates this automatically
+  rules:
+  - host: app.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: example-app-service
+            port:
+              number: 80
+
+---
+# Advanced Ingress - Override default issuer if needed
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: example-app-custom
+  namespace: default
+  annotations:
+    # Only needed if you want to override the default issuer
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    
+    # Optional: Request a wildcard certificate (requires DNS-01 challenge)
+    # cert-manager.io/common-name: "*.example.com"
+    
+    # Optional: Set certificate duration (default is 90 days)
+    # cert-manager.io/duration: "2160h"  # 90 days
+    # cert-manager.io/renew-before: "720h"  # Renew 30 days before expiry
+spec:
+  ingressClassName: nginx  # Use NGINX Ingress Controller
+  
+  # TLS configuration - cert-manager will create the secret automatically
+  tls:
+  - hosts:
+    - app.example.com
+    # Optional: add more hosts for SAN (Subject Alternative Names)
+    # - www.app.example.com
+    # - api.app.example.com
+    secretName: example-app-tls  # cert-manager will create this secret with the certificate
+  
+  rules:
+  - host: app.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: example-app-service
+            port:
+              number: 80
+
+---
+# Example Service (for reference)
+apiVersion: v1
+kind: Service
+metadata:
+  name: example-app-service
+  namespace: default
+spec:
+  selector:
+    app: example-app
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+
+---
+# Certificate Resource (Optional - created automatically by cert-manager from Ingress)
+# You can also create certificates explicitly for more control
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: example-app-cert
+  namespace: default
+spec:
+  # Secret that will store the certificate
+  secretName: example-app-manual-tls
+  
+  # Certificate details
+  dnsNames:
+  - app.example.com
+  - www.app.example.com
+  
+  # Issuer reference
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+    group: cert-manager.io
+  
+  # Optional: Certificate options
+  duration: 2160h  # 90 days
+  renewBefore: 720h  # Renew 30 days before expiry
+  
+  # Optional: Key configuration
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
+    
+  # Optional: Add more control
+  usages:
+  - digital signature
+  - key encipherment
+  - server auth
+
+---
+# Wildcard Certificate Example (requires DNS-01 challenge)
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: wildcard-cert
+  namespace: default
+spec:
+  secretName: wildcard-tls
+  dnsNames:
+  - "*.example.com"
+  - example.com  # Also include base domain
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+    group: cert-manager.io
+
+---
+# How it works:
+# 1. When you create an Ingress with a TLS section
+# 2. cert-manager detects it and uses the default issuer (letsencrypt-prod)
+# 3. It creates a Certificate resource automatically
+# 4. cert-manager requests a certificate from Let's Encrypt
+# 5. For DNS-01 challenge:
+#    - cert-manager creates a TXT record in Cloudflare
+#    - Let's Encrypt validates the DNS record
+#    - Certificate is issued after validation
+# 6. cert-manager stores the certificate in the specified secret
+# 7. NGINX Ingress uses the secret for TLS termination
+# 8. cert-manager monitors expiry and auto-renews before expiration
+
+# Testing workflow:
+# 1. Apply your Ingress with cert-manager annotations
+# 2. Verify certificate is issued: kubectl get certificate
+# 3. Check certificate details: kubectl describe certificate example-app-cert
+# 4. Monitor cert-manager logs: kubectl logs -n cert-manager deploy/cert-manager
+# 5. Check certificate ready: kubectl get certificate -w
+
+# Debugging:
+# - Check certificate status: kubectl get certificate -A
+# - Check certificate events: kubectl describe certificate <name>
+# - Check cert-manager logs: kubectl logs -n cert-manager deploy/cert-manager
+# - Check orders: kubectl get orders -A
+# - Check challenges: kubectl get challenges -A
+# - Verify DNS record: dig TXT _acme-challenge.app.example.com

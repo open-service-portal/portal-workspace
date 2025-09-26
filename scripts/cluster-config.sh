@@ -163,7 +163,7 @@ EOF
 # Configure Flux for catalog-orders
 configure_flux_catalog_orders() {
     echo ""
-    echo "Configuring Flux to watch catalog-orders for cluster: ${CURRENT_CONTEXT}"
+    echo "Configuring Flux to watch catalog-orders for context: ${CURRENT_CONTEXT}"
     
     # Check if Flux is installed
     if ! kubectl get namespace flux-system &>/dev/null; then
@@ -176,14 +176,80 @@ configure_flux_catalog_orders() {
     
     # Apply catalog-orders configuration with environment substitution
     if envsubst < "$MANIFEST_DIR/flux-catalog-orders.yaml" | kubectl apply -f -; then
-        echo -e "${GREEN}✓ Flux configured to watch catalog-orders${NC}"
-        echo -e "${GREEN}✓ Set catalog-orders path to ./${CURRENT_CONTEXT}${NC}"
+        echo -e "${GREEN}✓ Created/Updated Kustomization: catalog-orders-${CURRENT_CONTEXT}${NC}"
+        echo -e "${GREEN}✓ Watching path: ./${CURRENT_CONTEXT}${NC}"
         
-        # Force reconciliation
+        # List all catalog-orders Kustomizations on this cluster
+        echo ""
+        echo "Active catalog-orders Kustomizations on this cluster:"
+        kubectl get kustomizations -n flux-system | grep -E "NAME|catalog-orders" || true
+        echo ""
+        
+        # Force reconciliation for the context-specific Kustomization
         flux reconcile source git catalog-orders 2>/dev/null || true
+        flux reconcile kustomization catalog-orders-${CURRENT_CONTEXT} 2>/dev/null || true
     else
         echo -e "${YELLOW}Note: Could not configure catalog-orders${NC}"
     fi
+}
+
+# Configure cert-manager for Let's Encrypt (if applicable)
+configure_cert_manager() {
+    echo ""
+    echo "Checking cert-manager configuration..."
+    
+    # Skip cert-manager for localhost development
+    if [ -z "$BASE_DOMAIN" ] || [ "$BASE_DOMAIN" == "localhost" ] || [ "$BASE_DOMAIN" == "127.0.0.1" ]; then
+        echo -e "${YELLOW}Skipping cert-manager configuration for local development (BASE_DOMAIN=$BASE_DOMAIN)${NC}"
+        echo "  TLS certificates are not needed for localhost"
+        return 0
+    fi
+    
+    # Check if cert-manager is installed
+    if ! kubectl get namespace cert-manager &>/dev/null; then
+        echo -e "${YELLOW}cert-manager is not installed${NC}"
+        echo "  Run cluster-setup.sh to install cert-manager for non-local domains"
+        return 1
+    fi
+    
+    # Check for required environment variables
+    if [ -z "$LETSENCRYPT_EMAIL" ] || [ "$LETSENCRYPT_EMAIL" == "admin@example.com" ]; then
+        echo -e "${YELLOW}Note: LETSENCRYPT_EMAIL not configured${NC}"
+        echo "  Add LETSENCRYPT_EMAIL to your $ENV_FILE to enable Let's Encrypt"
+        return 1
+    fi
+    
+    if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ "$CLOUDFLARE_API_TOKEN" == "your-api-token-here" ]; then
+        echo -e "${YELLOW}Note: CLOUDFLARE_API_TOKEN not configured${NC}"
+        echo "  cert-manager needs Cloudflare API token for DNS-01 challenge"
+        return 1
+    fi
+    
+    # Create Cloudflare API token secret for cert-manager
+    echo "Creating Cloudflare API token secret for cert-manager..."
+    kubectl create secret generic cloudflare-api-token-cert-manager \
+        --from-literal=api-token="${CLOUDFLARE_API_TOKEN}" \
+        --namespace cert-manager \
+        --dry-run=client -o yaml | kubectl apply -f -
+    
+    # Apply ClusterIssuers with environment substitution
+    echo "Creating Let's Encrypt ClusterIssuers..."
+
+    # Create letsencrypt issuer
+    export LETSENCRYPT_EMAIL
+    if envsubst < "$MANIFEST_DIR/letsencrypt-issuers.yaml" | kubectl apply -f -; then
+        echo -e "${GREEN}✓ cert-manager configured with Let's Encrypt${NC}"
+        echo "  Email: ${LETSENCRYPT_EMAIL}"
+        echo "  Issuer: letsencrypt-prod"
+        echo "  Challenge: DNS-01 via Cloudflare"
+    else
+        echo -e "${YELLOW}Note: Could not configure Let's Encrypt${NC}"
+    fi
+    
+    # Verify issuers are ready
+    echo "Verifying ClusterIssuers..."
+    sleep 2
+    kubectl get clusterissuers
 }
 
 # Configure External-DNS (if applicable)
@@ -254,6 +320,7 @@ echo -e "${GREEN}✓ System namespace created for infrastructure XRs${NC}"
 # Run common configurations
 update_backstage_config
 configure_flux_catalog_orders
+configure_cert_manager
 configure_external_dns
 update_environment_configs
 

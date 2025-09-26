@@ -200,6 +200,52 @@ install_provider_kubernetes() {
     echo "  - Managed API (kubernetes.m.crossplane.io) configured for namespaced XRs"
 }
 
+# Install cert-manager for TLS certificate management
+install_cert_manager() {
+
+    MANIFEST_DIR="$(cd "$(dirname "$0")" && pwd)/manifests-setup-cluster"
+    CERT_MANAGER_VERSION="v1.18.2"
+
+    echo -e "${YELLOW}Installing cert-manager for TLS certificates...${NC}"
+    
+    # Add Jetstack Helm repository
+    helm repo add jetstack https://charts.jetstack.io --force-update
+    helm repo update
+    
+    # Create namespace
+    kubectl apply -f "$MANIFEST_DIR/cert-manager.yaml"
+    
+    # Install cert-manager with CRDs and default ClusterIssuer
+    echo "Installing cert-manager $CERT_MANAGER_VERSION..."
+    helm upgrade --install cert-manager jetstack/cert-manager \
+        --namespace cert-manager \
+        --version "$CERT_MANAGER_VERSION" \
+        --set crds.enabled=true \
+        --set crds.keep=true \
+        --set global.leaderElection.namespace=cert-manager \
+        --set ingressShim.defaultIssuerName=letsencrypt-prod \
+        --set ingressShim.defaultIssuerKind=ClusterIssuer \
+        --wait --timeout=5m
+    
+    # Wait for cert-manager webhook to be ready (critical for issuer creation)
+    echo "Waiting for cert-manager webhook to be ready..."
+    kubectl wait --for=condition=ready pod \
+        -l app.kubernetes.io/component=webhook \
+        -n cert-manager \
+        --timeout=60s || {
+        echo -e "${YELLOW}Webhook may need more time to be ready${NC}"
+    }
+    
+    echo -e "${GREEN}✓ cert-manager $CERT_MANAGER_VERSION installed${NC}"
+    echo "  - CRDs installed for Certificate, ClusterIssuer, etc."
+    echo "  - Webhook ready for validating resources"
+    echo "  - Default ClusterIssuer: letsencrypt-prod (once configured)"
+    echo "  - Ready for Let's Encrypt DNS-01 integration"
+    
+    # Note about ClusterIssuers
+    echo -e "${YELLOW}Note: Let's Encrypt ClusterIssuer will be configured by cluster-config.sh${NC}"
+}
+
 # Install External-DNS for Cloudflare DNS management
 install_external_dns() {
     echo -e "${YELLOW}Installing External-DNS with Cloudflare support...${NC}"
@@ -340,45 +386,72 @@ configure_flux_catalog() {
 }
 
 
-# Create Backstage service account
-create_backstage_service_account() {
-    echo -e "${YELLOW}Creating Backstage service account...${NC}"
-    
+# Create service account with persistent token
+# Arguments:
+#   $1 - Service account name (e.g., "backstage", "github-actions")
+#   $2 - Description (e.g., "Persistent token for Backstage - shared by team")
+create_service_account_with_token() {
+    local SA_NAME="${1}"
+    local SA_DESCRIPTION="${2}"
+
+    # Validate required parameters
+    if [ -z "$SA_NAME" ]; then
+        echo -e "${RED}Error: Service account name is required${NC}"
+        return 1
+    fi
+    if [ -z "$SA_DESCRIPTION" ]; then
+        echo -e "${RED}Error: Service account description is required${NC}"
+        return 1
+    fi
+
+    # Derive names from base name
+    local SA_FULL_NAME="${SA_NAME}-k8s-sa"
+    local BINDING_NAME="${SA_FULL_NAME}-binding"
+    local SECRET_NAME="${SA_FULL_NAME}-token"
+
+    echo -e "${YELLOW}Creating service account: ${SA_FULL_NAME}...${NC}"
+    echo "  Purpose: ${SA_DESCRIPTION}"
+
     # Create service account (idempotent)
-    kubectl create serviceaccount backstage-k8s-sa -n default --dry-run=client -o yaml | kubectl apply -f -
-    
+    kubectl create serviceaccount "$SA_FULL_NAME" -n default --dry-run=client -o yaml | kubectl apply -f -
+
     # Create cluster role binding (idempotent)
-    kubectl create clusterrolebinding backstage-k8s-sa-binding \
+    kubectl create clusterrolebinding "$BINDING_NAME" \
         --clusterrole=cluster-admin \
-        --serviceaccount=default:backstage-k8s-sa \
+        --serviceaccount="default:${SA_FULL_NAME}" \
         --dry-run=client -o yaml | kubectl apply -f -
-    
+
     # Check for existing persistent token secret
-    SECRET_NAME="backstage-k8s-sa-token"
-    EXISTING_SECRET=$(kubectl get secret $SECRET_NAME -n default -o name 2>/dev/null || echo "")
-    
+    EXISTING_SECRET=$(kubectl get secret "$SECRET_NAME" -n default -o name 2>/dev/null || echo "")
+
     if [ -n "$EXISTING_SECRET" ]; then
         echo -e "${GREEN}✓ Found existing token secret in cluster: $SECRET_NAME${NC}"
         # Validate token is still working
-        TOKEN=$(kubectl get secret $SECRET_NAME -n default -o jsonpath='{.data.token}' 2>/dev/null | base64 -d)
+        TOKEN=$(kubectl get secret "$SECRET_NAME" -n default -o jsonpath='{.data.token}' 2>/dev/null | base64 -d)
         if kubectl auth can-i get pods --token="$TOKEN" &>/dev/null; then
             echo -e "${GREEN}✓ Existing token is valid${NC}"
         else
             echo -e "${YELLOW}⚠ Existing token is invalid, recreating...${NC}"
-            kubectl delete secret $SECRET_NAME -n default
+            kubectl delete secret "$SECRET_NAME" -n default
             EXISTING_SECRET=""
         fi
     fi
-    
+
     # Create persistent token secret if it doesn't exist
     if [ -z "$EXISTING_SECRET" ]; then
         echo "Creating persistent token secret..."
-        kubectl apply -f "$MANIFEST_DIR/backstage-token-secret.yaml"
-        
+
+        # Export variables for envsubst
+        export SA_NAME="$SA_NAME"
+        export SA_DESCRIPTION="$SA_DESCRIPTION"
+
+        # Apply the template with substituted values
+        envsubst < "$MANIFEST_DIR/service-account-token-secret.template.yaml" | kubectl apply -f -
+
         # Wait for token to be populated
         echo -n "Waiting for token generation"
         for i in {1..10}; do
-            TOKEN=$(kubectl get secret $SECRET_NAME -n default -o jsonpath='{.data.token}' 2>/dev/null | base64 -d)
+            TOKEN=$(kubectl get secret "$SECRET_NAME" -n default -o jsonpath='{.data.token}' 2>/dev/null | base64 -d)
             if [ -n "$TOKEN" ]; then
                 echo -e " ${GREEN}✓${NC}"
                 echo -e "${GREEN}✓ New token secret created${NC}"
@@ -388,10 +461,18 @@ create_backstage_service_account() {
             sleep 1
         done
     fi
-    
-    echo -e "${GREEN}✓ Backstage service account ready${NC}"
-    echo ""
-    echo "Note: Run cluster-config.sh to configure Backstage for this cluster"
+
+    echo -e "${GREEN}✓ Service account ${SA_FULL_NAME} ready${NC}"
+
+    # Show specific instructions based on the service account type
+    if [ "$SA_NAME" == "backstage" ]; then
+        echo ""
+        echo "Note: Run cluster-config.sh to configure Backstage for this cluster"
+    else
+        echo ""
+        echo "Note: Extract the token with:"
+        echo "  kubectl get secret ${SECRET_NAME} -n default -o jsonpath='{.data.token}' | base64 -d"
+    fi
 }
 
 # Print summary and configuration
@@ -406,6 +487,7 @@ print_summary() {
     echo "  ✓ Flux catalog watcher for Crossplane templates"
     echo "  ✓ Crossplane v2.0.0"
     echo "  ✓ provider-kubernetes (both cluster & managed APIs)"
+    echo "  ✓ cert-manager with Let's Encrypt DNS-01 support"
     echo "  ✓ External-DNS with Cloudflare (configure with config scripts)"
     echo "  ✓ Crossplane composition functions"
     
@@ -437,8 +519,10 @@ print_summary() {
     echo "  kubectl get pods -n flux-system"
     echo "  kubectl get gitrepository -n flux-system"
     echo "  kubectl get pods -n crossplane-system"
+    echo "  kubectl get pods -n cert-manager"
     echo "  kubectl get providers.pkg.crossplane.io"
     echo "  kubectl get functions.pkg.crossplane.io"
+    echo "  kubectl get clusterissuers  # After running cluster-config.sh with valid domain"
     echo ""
     echo ""
     echo "============================================================"
@@ -451,6 +535,8 @@ run_cluster_config() {
     
     # Get current context
     CURRENT_CONTEXT=$(kubectl config current-context 2>/dev/null || echo "")
+    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+    WORKSPACE_DIR="$(dirname "$SCRIPT_DIR")"
     ENV_FILE="${WORKSPACE_DIR}/.env.${CURRENT_CONTEXT}"
     
     if [ -f "$ENV_FILE" ]; then
@@ -487,11 +573,13 @@ main() {
     configure_flux_catalog  # Configure Flux to watch catalog
     install_crossplane
     install_provider_kubernetes
+    install_cert_manager  # Install cert-manager for TLS certificates
     install_external_dns
     install_provider_helm  # Install provider-helm for Helm chart deployments
     install_crossplane_functions  # Install common functions
     install_environment_configs  # Install platform-wide configs
-    create_backstage_service_account
+    create_service_account_with_token "backstage" "Persistent token for Backstage - shared by team"
+    create_service_account_with_token "gha-app-portal-deploy" "GitHub Actions deployment for app-portal"
     print_summary
     run_cluster_config  # Run configuration if environment file exists
 }

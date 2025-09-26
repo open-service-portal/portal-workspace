@@ -13,14 +13,17 @@ This workspace contains the following repositories:
 - **[catalog/](https://github.com/open-service-portal/catalog)** - Template catalog (XRDs/Compositions definitions)
 - **[catalog-orders/](https://github.com/open-service-portal/catalog-orders)** - XR instances created from Backstage templates
 - **[template-dns-record/](https://github.com/open-service-portal/template-dns-record)** - DNS record management template
-- **[template-cloudflare-dnsrecord/](https://github.com/open-service-portal/template-cloudflare-dnsrecord)** - Cloudflare DNS template
+- **[template-cloudflare-dnsrecord/](https://github.com/open-service-portal/template-cloudflare-dnsrecord)** - DNS management via External-DNS
 - **[template-whoami/](https://github.com/open-service-portal/template-whoami)** - Demo application template
-- Additional templates to be added via catalog pattern
+- **[template-whoami-service/](https://github.com/open-service-portal/template-whoami-service)** - Composite service (app + DNS)
 
 ### Service Templates (Backstage)
 - **[service-nodejs-template/](https://github.com/open-service-portal/service-nodejs-template)** - Node.js service template
-- **service-golang-template/** - Go service template (planned)
-- **service-python-template/** - Python service template (planned)
+- **[service-mongodb-template/](https://github.com/open-service-portal/service-mongodb-template)** - MongoDB database service
+- **[service-mongodb-golden-path-template/](https://github.com/open-service-portal/service-mongodb-golden-path-template)** - MongoDB with best practices
+- **[service-firewall-template/](https://github.com/open-service-portal/service-firewall-template)** - Network firewall rules
+- **[service-dnsrecord-template/](https://github.com/open-service-portal/service-dnsrecord-template)** - DNS record management
+- **[service-cluster-template/](https://github.com/open-service-portal/service-cluster-template)** - Kubernetes cluster provisioning
 
 ## Setup
 
@@ -31,12 +34,11 @@ To set up this workspace, clone each repository:
 git clone git@github.com:open-service-portal/portal-workspace.git open-service-portal
 cd open-service-portal
 
-# Clone individual repositories
+# Clone core application repository
 git clone git@github.com:open-service-portal/app-portal.git
 
-# Future: Clone templates when created
-# git clone git@github.com:open-service-portal/service-nodejs-template.git
-# git clone git@github.com:open-service-portal/service-golang-template.git
+# Clone all repositories with the sync script
+./scripts/repos-sync.sh
 ```
 
 ## Development
@@ -59,7 +61,8 @@ yarn start
 
 - [CLAUDE.md](./CLAUDE.md) - Development instructions for Claude Code
 - [Cluster Overview](./docs/cluster/overview.md) - Kubernetes cluster architecture
-- [Cluster Setup](./docs/cluster/setup.md) - Set up Kubernetes locally with Crossplane
+- [DNS Management](./docs/cluster/dns-management.md) - DNS management with External-DNS
+- [Manifests](./docs/cluster/manifests.md) - Platform manifest documentation
 - [Catalog Setup](./docs/cluster/catalog-setup.md) - How to create and manage Crossplane templates
 - [Configuration](./docs/cluster/configuration.md) - Environment and provider configuration
 - [GitHub App Setup](./docs/backstage/github-app-setup.md) - Configure GitHub authentication
@@ -86,7 +89,7 @@ yarn start
 # - Base environment configurations
 # - provider-kubernetes with RBAC
 # - provider-helm for chart deployments
-# - External-DNS for DNS management (replaces provider-cloudflare)
+# - External-DNS for DNS management (supports multiple providers)
 # - Backstage service account + token
 ```
 
@@ -97,10 +100,6 @@ Configure your cluster after setup:
 ```bash
 # Option 1: Auto-detect cluster from kubectl context (recommended)
 ./scripts/cluster-config.sh
-
-# Option 2: Use specific configuration scripts
-./scripts/cluster-config-local.sh      # For local development
-./scripts/cluster-config-openportal.sh  # For OpenPortal production
 
 # The config script will:
 # - Create Backstage configuration (app-config.{context}.local.yaml)
@@ -173,21 +172,20 @@ spec:
     targets: ['192.168.1.100']
 ```
 
+### Template Management
+
+We provide scripts to manage Crossplane templates:
+
 ```bash
-# For local development (uses mock DNS provider)
-cp .env.local.example .env.local
-# Edit .env.local with your local cluster context (e.g., rancher-desktop)
-./scripts/config-local.sh
+# Check status of all templates (releases and PRs)
+./scripts/template-status.sh
 
-# For OpenPortal production (uses Cloudflare)
-cp .env.openportal.example .env.openportal
-# Edit .env.openportal with your Cloudflare credentials
-./scripts/config-openportal.sh
+# Reload all templates in the cluster
+./scripts/template-reload.sh
+
+# Create a new release for a template
+./scripts/template-release.sh template-name
 ```
-
-**Configuration Scripts:**
-- `config-local.sh` - Switches to local cluster, configures mock DNS for localhost
-- `config-openportal.sh` - Switches to production, configures Cloudflare DNS and credentials
 
 ### Crossplane Templates
 We use a GitOps catalog pattern for managing Crossplane templates:
@@ -216,12 +214,34 @@ See [Crossplane Catalog Setup](./docs/crossplane-catalog-setup.md) for details.
 - Shared environment configurations
 - Reusable transformation logic
 
+### Scripts Reference
+
+### Cluster Management
+- `cluster-setup.sh` - Universal K8s cluster setup with all platform components
+- `cluster-config.sh` - Auto-detect and configure based on kubectl context
+- `cluster-cleanup.sh` - Remove all platform components cleanly
+- `cluster-kubeconfig.sh` - Extract and manage kubeconfig files
+
+### Template Management
+- `template-status.sh` - Check template releases and PR status
+- `template-reload.sh` - Reload templates with finalizer handling
+- `template-release.sh` - Automate GitHub releases for templates
+
+### Repository Management
+- `repos-sync.sh` - Clone/update all nested repositories
+
+## Custom Plugins
+
+The app-portal includes custom plugins:
+- **kubernetes-ingestor** - Enhanced Kubernetes resource monitoring
+- **scaffolder actions** - Custom actions for template processing
+
 ## Note
 
 This workspace parent directory is version controlled separately to maintain:
 - Workspace-level documentation (this README, CLAUDE.md)
 - Shared configurations and setup scripts
 - Cross-repository documentation
-- Unified cluster setup (`scripts/setup-cluster.sh`)
+- Unified cluster setup and management scripts
 
 The actual repository directories are excluded via `.gitignore`.

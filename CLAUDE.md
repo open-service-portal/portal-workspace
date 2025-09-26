@@ -28,29 +28,35 @@ open-service-portal/         # THIS directory = portal-workspace repo
 │   ├── cluster-setup.sh    # Universal K8s cluster setup
 │   ├── cluster-config.sh   # Auto-detect cluster and configure
 │   ├── cluster-cleanup.sh  # Remove all platform components
+│   ├── cluster-kubeconfig.sh # Extract and manage kubeconfig files
 │   ├── template-status.sh  # Check template releases and PRs
 │   ├── template-reload.sh  # Reload templates in cluster
+│   ├── template-release.sh # Automate template releases to GitHub
 │   ├── repos-sync.sh       # Sync all nested repositories
 │   ├── manifests-setup-cluster/  # Infrastructure manifests
 │   │   ├── crossplane-functions.yaml  # Composition functions
 │   │   ├── crossplane-provider-*.yaml # Provider definitions
 │   │   ├── external-dns.yaml         # External-DNS with CRDs
 │   │   └── flux-catalog.yaml         # Catalog watcher
-│   ├── manifests-config/   # Environment configs
-│   │   ├── environment-configs.yaml
-│   │   └── flux-catalog-orders.yaml
-│   └── cloudflare/         # Cloudflare debug suite (legacy, for testing)
-│       ├── setup.sh        # Test setup
-│       ├── validate.sh     # Comprehensive validation
-│       ├── remove.sh       # Cleanup
-│       └── test-xr.sh      # XR testing
+│   └── manifests-config/   # Environment configs
+│       ├── environment-configs.yaml
+│       └── flux-catalog-orders.yaml
 ├── .gitignore              # Ignores nested repos below
 │
 ├── ingestor/               # Standalone ingestor plugin (if cloned separately)
 ├── app-portal/             # NESTED repo - Main Backstage application
 │   ├── packages/           # Frontend and backend packages
 │   ├── plugins/            # Custom plugins (scaffolder, ingestor)
-│   └── app-config.yaml     # Main configuration with XRD publishing
+│   ├── app-config.yaml     # Legacy monolithic configuration
+│   └── app-config/         # Modular configuration directory
+│       ├── auth.yaml       # Authentication providers
+│       ├── backend.yaml    # Backend service settings
+│       ├── catalog.yaml    # Software catalog configuration
+│       ├── ingestor.yaml   # Ingestor plugins configuration
+│       ├── integrations.yaml # SCM integrations
+│       ├── kubernetes.yaml # Kubernetes clusters
+│       ├── scaffolder.yaml # Scaffolder settings
+│       └── techdocs.yaml   # TechDocs configuration
 ├── catalog/                # NESTED repo - Template registry for Flux
 │   └── templates/          # Template references (XRDs/Compositions)
 ├── catalog-orders/         # NESTED repo - XR instances from Backstage
@@ -159,6 +165,53 @@ Each repository has its own `CLAUDE.md` file with specific development commands:
 - **docs/CLAUDE.md** - Documentation build and preview commands
 
 See the respective repository's CLAUDE.md for detailed instructions.
+
+### Modular Configuration
+
+The app-portal now uses a modular configuration architecture:
+
+```yaml
+# Configuration is split into focused modules
+app-config/
+├── auth.yaml        # Authentication (GitHub, GitLab, etc.)
+├── backend.yaml     # Backend settings (ports, CORS, database)
+├── catalog.yaml     # Catalog providers and locations
+├── ingestor.yaml    # Kubernetes and Crossplane ingestors
+├── integrations.yaml # SCM integrations
+├── kubernetes.yaml  # Cluster connections
+├── scaffolder.yaml  # Template settings
+└── techdocs.yaml    # Documentation platform
+```
+
+The `start.js` script automatically loads all configuration modules. See [Modular Configuration Documentation](./docs/backstage/modular-config.md) for details.
+
+### Ingestor Plugin
+
+The standalone ingestor plugin provides Kubernetes resource discovery:
+
+```typescript
+// Discovers K8s resources and generates Backstage entities
+plugins/ingestor/
+├── src/
+│   ├── lib/              # Core processing engine
+│   │   ├── IngestionEngine.ts
+│   │   ├── ResourceValidator.ts
+│   │   └── EntityBuilder.ts
+│   ├── adapters/         # Environment adapters
+│   ├── cli/              # CLI tools (ts-node)
+│   └── module.ts         # Backend module registration
+├── tests/                # Comprehensive test suite
+└── docs/                 # Detailed documentation
+```
+
+**Key Features:**
+- Discovers XRDs from multiple clusters
+- Generates Template and API entities
+- Unified engine for CLI and runtime
+- Direct ts-node execution for development
+- Includes export and ingestion CLI tools
+
+See [Ingestor Documentation](./docs/ingestor.md) for complete details.
 
 ## Troubleshooting
 
@@ -278,7 +331,7 @@ We support any Kubernetes distribution with a unified setup:
 # - Base environment configurations
 # - provider-kubernetes with RBAC
 # - provider-helm for chart deployments
-# - External-DNS for DNS management (namespace-isolated, replaces provider-cloudflare)
+# - External-DNS for DNS management (namespace-isolated)
 # - Backstage service account with token secret
 ```
 
