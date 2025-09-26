@@ -10,7 +10,7 @@ deploy-app-portal/
 catalog/
 catalog-orders/
 docusaurus/
-ingestor-plugin/
+ingestor/
 
 # Service Template Repositories
 templates/

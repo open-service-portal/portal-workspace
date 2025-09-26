@@ -3,6 +3,7 @@
 # Backstage Template Export Tool
 #
 # Fetches templates and API entities from a running Backstage instance
+# using the ingestor plugin's export CLI tool
 # Usage: template-export.sh [options]
 
 set -e
@@ -15,13 +16,18 @@ NC='\033[0m' # No Color
 
 # Find workspace root
 WORKSPACE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PLUGIN_DIR="$WORKSPACE_ROOT/app-portal/plugins/crossplane-ingestor"
-EXPORT_SCRIPT="$PLUGIN_DIR/src/cli/export.js"
+PLUGIN_DIR="$WORKSPACE_ROOT/app-portal/plugins/ingestor"
+EXPORT_CLI="$PLUGIN_DIR/dist/cli/backstage-export-cli.js"
 
-# Check if export script exists
-if [ ! -f "$EXPORT_SCRIPT" ]; then
-    echo -e "${RED}Error: Export script not found at $EXPORT_SCRIPT${NC}"
-    exit 1
+# Check if CLI is built
+if [ ! -f "$EXPORT_CLI" ]; then
+    echo -e "${YELLOW}Building export CLI...${NC}"
+    cd "$PLUGIN_DIR"
+    yarn build:cli
+    if [ ! -f "$EXPORT_CLI" ]; then
+        echo -e "${RED}Error: Failed to build export CLI${NC}"
+        exit 1
+    fi
 fi
 
 # Auto-detect API token from Backstage config if not provided
@@ -44,32 +50,60 @@ if [ -z "$BACKSTAGE_TOKEN" ]; then
 fi
 
 # Default values
-OUTPUT_DIR="templates"
-PATTERN=""
-KIND="all"
-URL="http://localhost:7007"
+OUTPUT_DIR="exported"
+ARGS=()
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
         -o|--output)
             OUTPUT_DIR="$2"
-            shift 2
-            ;;
-        -p|--pattern)
-            PATTERN="$2"
+            ARGS+=("--output" "$2")
             shift 2
             ;;
         -k|--kind)
-            KIND="$2"
+            ARGS+=("--kind" "$2")
             shift 2
             ;;
         -u|--url)
-            URL="$2"
+            ARGS+=("--url" "$2")
             shift 2
             ;;
         -t|--token)
             export BACKSTAGE_TOKEN="$2"
+            ARGS+=("--token" "$2")
+            shift 2
+            ;;
+        --organize)
+            ARGS+=("--organize")
+            shift
+            ;;
+        --manifest)
+            ARGS+=("--manifest")
+            shift
+            ;;
+        -p|--preview)
+            ARGS+=("--preview")
+            shift
+            ;;
+        -l|--list)
+            ARGS+=("--list")
+            shift
+            ;;
+        --tags)
+            ARGS+=("--tags" "$2")
+            shift 2
+            ;;
+        --namespace)
+            ARGS+=("--namespace" "$2")
+            shift 2
+            ;;
+        --owner)
+            ARGS+=("--owner" "$2")
+            shift 2
+            ;;
+        --name)
+            ARGS+=("--name" "$2")
             shift 2
             ;;
         -h|--help)
@@ -78,25 +112,32 @@ while [[ $# -gt 0 ]]; do
             echo "Usage: template-export.sh [options]"
             echo ""
             echo "Options:"
-            echo "  -o, --output <dir>     Output directory (default: templates)"
-            echo "  -p, --pattern <name>   Name pattern to match"
-            echo "  -k, --kind <kind>      Entity kind: template, api, or all (default: all)"
+            echo "  -o, --output <dir>     Output directory (default: exported)"
+            echo "  -k, --kind <kinds>     Entity kinds (comma-separated)"
             echo "  -u, --url <url>        Backstage URL (default: http://localhost:7007)"
             echo "  -t, --token <token>    API token (or auto-detected from config)"
-            echo "  -h, --help            Show this help message"
+            echo "  --namespace <ns>       Namespace filter"
+            echo "  --name <pattern>       Name pattern (supports wildcards)"
+            echo "  --owner <owner>        Owner filter"
+            echo "  --tags <tags>          Tags filter (comma-separated)"
+            echo "  --organize             Organize output by entity type"
+            echo "  --manifest             Generate export manifest file"
+            echo "  -p, --preview          Preview what would be exported"
+            echo "  -l, --list             List matching entities only"
+            echo "  -h, --help             Show this help message"
             echo ""
             echo "Examples:"
-            echo "  # Export all templates and APIs to default 'templates' directory"
-            echo "  template-export.sh"
+            echo "  # Export all templates"
+            echo "  template-export.sh --kind Template"
             echo ""
-            echo "  # Export all templates and APIs to specific directory"
-            echo "  template-export.sh -o ./template-namespace/docs/backstage-templates/original"
+            echo "  # Export with filters and organization"
+            echo "  template-export.sh --kind Template --tags crossplane --organize"
             echo ""
-            echo "  # Export namespace-related templates"
-            echo "  template-export.sh -k template -p namespace -o ./templates"
+            echo "  # Preview export"
+            echo "  template-export.sh --preview --kind Template,API"
             echo ""
-            echo "  # Export from specific Backstage instance"
-            echo "  template-export.sh -u https://backstage.example.com -o ./exported"
+            echo "  # List all APIs"
+            echo "  template-export.sh --list --kind API"
             exit 0
             ;;
         *)
@@ -107,56 +148,21 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Output directory now has a default value, no validation needed
-
-# Check if Backstage is running
-echo "Checking Backstage connection..."
-if ! curl -s -f -o /dev/null "$URL/api/catalog/entities?limit=1" -H "Authorization: Bearer $BACKSTAGE_TOKEN" 2>/dev/null; then
-    echo -e "${RED}Error: Cannot connect to Backstage at $URL${NC}"
-    echo ""
-    echo "Please ensure Backstage is running"
-    echo "Or specify a different URL with -u/--url if Backstage is running elsewhere."
-    exit 1
-fi
-echo -e "${GREEN}✓ Connected to Backstage${NC}"
-echo ""
-
-# Save original working directory
-ORIGINAL_PWD="$(pwd)"
-
-# Create absolute path for output directory relative to where user executed the script
-if [[ ! "$OUTPUT_DIR" = /* ]]; then
-    OUTPUT_DIR="$ORIGINAL_PWD/$OUTPUT_DIR"
+# If no URL specified, use default
+if ! echo "${ARGS[@]}" | grep -q -- "--url"; then
+    ARGS+=("--url" "http://localhost:7007")
 fi
 
-# Run the export
-echo "Exporting Backstage entities..."
-echo "  URL: $URL"
-echo "  Kind: $KIND"
-[ -n "$PATTERN" ] && echo "  Pattern: $PATTERN"
-echo "  Output: $OUTPUT_DIR"
-echo ""
-
-# Build command
-CMD="node \"$EXPORT_SCRIPT\" --url \"$URL\" --output \"$OUTPUT_DIR\" --kind \"$KIND\""
-[ -n "$PATTERN" ] && CMD="$CMD --pattern \"$PATTERN\""
-
-# Execute
-eval $CMD
-
-# Show results
-if [ $? -eq 0 ]; then
-    echo ""
-    echo -e "${GREEN}✓ Export complete${NC}"
-    echo "Files saved to: $OUTPUT_DIR"
-    
-    # List exported files
-    if [ -d "$OUTPUT_DIR" ]; then
-        echo ""
-        echo "Exported files:"
-        ls -la "$OUTPUT_DIR" | grep -E '\.(yaml|json)$' | awk '{print "  - " $9}'
-    fi
-else
-    echo -e "${RED}✗ Export failed${NC}"
-    exit 1
+# If output not in args, add default
+if ! echo "${ARGS[@]}" | grep -q -- "--output"; then
+    ARGS+=("--output" "$OUTPUT_DIR")
 fi
+
+# Add token if available
+if [ -n "$BACKSTAGE_TOKEN" ] && ! echo "${ARGS[@]}" | grep -q -- "--token"; then
+    ARGS+=("--token" "$BACKSTAGE_TOKEN")
+fi
+
+# Run the export CLI
+cd "$PLUGIN_DIR"
+node "$EXPORT_CLI" "${ARGS[@]}"

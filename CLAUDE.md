@@ -46,12 +46,10 @@ open-service-portal/         # THIS directory = portal-workspace repo
 │       └── test-xr.sh      # XR testing
 ├── .gitignore              # Ignores nested repos below
 │
-├── ingestor-plugin/        # Standalone ingestor plugin (extracted and renamed)
-├── backstage-plugins/      # OPTIONAL FORK - TeraSky plugins (upstream main branch)
-├── backstage-plugins-custom/ # OPTIONAL FORK - TeraSky plugins (customized branch)
+├── ingestor/               # Standalone ingestor plugin (if cloned separately)
 ├── app-portal/             # NESTED repo - Main Backstage application
 │   ├── packages/           # Frontend and backend packages
-│   ├── plugins/            # Custom plugins (scaffolder, ingestor, crossplane-ingestor)
+│   ├── plugins/            # Custom plugins (scaffolder, ingestor)
 │   └── app-config.yaml     # Main configuration with XRD publishing
 ├── catalog/                # NESTED repo - Template registry for Flux
 │   └── templates/          # Template references (XRDs/Compositions)
@@ -82,7 +80,6 @@ open-service-portal/         # THIS directory = portal-workspace repo
 ├── service-cluster-template/     # NESTED repo - Cluster provisioning
 │
 ├── backstage/              # LOCAL CLONE - Backstage core docs (gitignored)
-├── backstage-terasky-plugins-fork/  # LOCAL CLONE - TeraSky plugins fork
 └── scripts/                # Unified setup and utility scripts
 
 ## Setup
@@ -102,11 +99,6 @@ git clone https://github.com/open-service-portal/app-portal.git
 # Clone the standalone ingestor plugin into app-portal plugins directory
 cd app-portal/plugins
 git clone https://github.com/open-service-portal/ingestor.git
-
-# OPTIONAL: Clone TeraSky fork for additional ingestor plugins (DEPRECATED)
-# Note: We now maintain our own ingestor plugin above, this is no longer needed
-# git clone git@github.com:open-service-portal/backstage-plugins.git
-# git worktree add backstage-plugins-custom backstage-plugins/feat/open-service-portal-customizations
 ```
 
 ### GitHub Organization
@@ -127,7 +119,8 @@ git clone https://github.com/open-service-portal/ingestor.git
 - **ingestor/** - Standalone Kubernetes resource discovery plugin (git@github.com:open-service-portal/ingestor.git)
   - Automatically discovers and imports K8s resources into catalog
   - Supports Crossplane XRD template generation
-  - Renamed and refactored from kubernetes-ingestor
+  - Includes CLI tools for ingestion and export operations
+  - Uses unified ingestion engine for both CLI and runtime
 
 #### Crossplane Templates & GitOps
 - **catalog/** - Central registry for Crossplane templates/XRDs (git@github.com:open-service-portal/catalog.git)
@@ -154,7 +147,6 @@ git clone https://github.com/open-service-portal/ingestor.git
 
 #### Local Reference Repositories (gitignored)
 - **backstage/** - Local clone of Backstage core for documentation reference
-- **backstage-terasky-plugins-fork/** - Fork of TeraSky plugins for development
 
 ## Development
 

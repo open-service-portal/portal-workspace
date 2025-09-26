@@ -2,28 +2,31 @@
 
 ## Overview
 
-The `ingestor.sh` script is a wrapper for the kubernetes-ingestor plugin's CLI tool that transforms Crossplane XRDs into Backstage Software Templates.
+The `template-ingest.sh` script is a wrapper for the ingestor plugin's CLI tool that transforms Crossplane XRDs into Backstage Software Templates using a unified ingestion engine.
 
 ## Location
 
-- **Wrapper Script**: `scripts/ingestor.sh`
-- **Plugin CLI**: `app-portal/plugins/kubernetes-ingestor/src/cli/ingestor.js`
-- **Documentation**: `app-portal/plugins/kubernetes-ingestor/docs/`
+- **Wrapper Script**: `scripts/template-ingest.sh`
+- **Plugin CLI**: `app-portal/plugins/ingestor/dist/cli/ingestor-cli.js`
+- **Documentation**: `app-portal/plugins/ingestor/docs/`
 
 ## Usage
 
 ```bash
 # Transform a single XRD file
-./scripts/ingestor.sh ./xrd.yaml
+./scripts/template-ingest.sh ./xrd.yaml
 
 # Transform all XRDs in a directory
-./scripts/ingestor.sh ./xrds/ --output ./templates
+./scripts/template-ingest.sh ./xrds/ --output ./templates
 
-# Fetch XRDs from current Kubernetes cluster
-./scripts/ingestor.sh cluster --preview
+# Read from stdin
+cat xrd.yaml | ./scripts/template-ingest.sh -
+
+# Preview what would be generated
+./scripts/template-ingest.sh ./xrd.yaml --preview
 
 # Validate XRDs without generating templates
-./scripts/ingestor.sh ./xrds/ --validate
+./scripts/template-ingest.sh ./xrds/ --validate
 ```
 
 ## Features
@@ -36,13 +39,13 @@ The `ingestor.sh` script is a wrapper for the kubernetes-ingestor plugin's CLI t
 
 ## Architecture
 
-The script uses the actual kubernetes-ingestor plugin code through a modular architecture:
+The script uses the new ingestor plugin's unified ingestion engine with a clean architecture:
 
-1. **CrossplaneDetector** - Detects Crossplane version (v1/v2)
-2. **ParameterExtractor** - Converts OpenAPI schemas to form fields
-3. **StepGenerator** - Generates scaffolder steps (v1 or v2 specific)
-4. **TemplateBuilder** - Assembles complete Backstage templates
-5. **XRDTransformer** - Orchestrates the transformation pipeline
+1. **IngestionEngine** - Core engine shared between CLI and runtime
+2. **ResourceValidator** - Validates XRD structure and requirements
+3. **XRDEntityBuilder** - Transforms XRDs to Template and API entities
+4. **CLIAdapter** - Handles file I/O and console output
+5. **Unified Processing** - Same transformation logic for CLI and Backstage runtime
 
 ## Key Benefits
 
@@ -55,18 +58,19 @@ The script uses the actual kubernetes-ingestor plugin code through a modular arc
 
 For detailed documentation, see:
 
-- [CLI Usage Guide](../app-portal/plugins/kubernetes-ingestor/docs/CLI-USAGE.md)
-- [Metadata Flow](../app-portal/plugins/kubernetes-ingestor/docs/METADATA-FLOW.md)
-- [Developer Guide](../app-portal/plugins/kubernetes-ingestor/docs/DEVELOPER-GUIDE.md)
-- [Development History](../app-portal/plugins/kubernetes-ingestor/docs/HISTORY.md)
+- [CLI Specifications](../app-portal/plugins/ingestor/docs/CLI-INGESTOR-SPEC.md)
+- [CLI Implementation Guide](../app-portal/plugins/ingestor/docs/CLI-IMPLEMENTATION.md)
+- [Export Tool Specification](../app-portal/plugins/ingestor/docs/BACKSTAGE-EXPORT-SPEC.md)
+- [Plugin README](../app-portal/plugins/ingestor/README.md)
 
 ## Troubleshooting
 
-If the plugin is not built, the wrapper script will automatically build it. To manually build:
+To build the plugin and CLI tools:
 
 ```bash
-cd app-portal/plugins/kubernetes-ingestor
+cd app-portal/plugins/ingestor
 yarn build
+yarn build:cli
 ```
 
 ## Maintenance
