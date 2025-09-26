@@ -118,4 +118,4 @@ fi
 # Run the ingestor CLI directly from source using ts-node
 cd "$PLUGIN_DIR"
 # echo "Args: ${ARGS[*]}"
-npx ts-node src/cli/ingestor-cli.ts "${ARGS[@]}"
+npx ts-node --project tsconfig.cli.json src/cli/ingestor-cli.ts "${ARGS[@]}"

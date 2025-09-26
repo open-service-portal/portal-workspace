@@ -153,4 +153,4 @@ fi
 
 # Run the export CLI directly from source using ts-node
 cd "$PLUGIN_DIR"
-npx ts-node src/cli/backstage-export-cli.ts "${ARGS[@]}"
+npx ts-node --project tsconfig.cli.json src/cli/backstage-export-cli.ts "${ARGS[@]}"
