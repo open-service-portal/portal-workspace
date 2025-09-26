@@ -80,6 +80,7 @@ open-service-portal/         # THIS directory = portal-workspace repo
 ├── service-cluster-template/     # NESTED repo - Cluster provisioning
 │
 ├── backstage/              # LOCAL CLONE - Backstage core docs (gitignored)
+├── backstage-community-plugins/  # LOCAL CLONE - Community plugins (gitignored)
 └── scripts/                # Unified setup and utility scripts
 
 ## Setup
@@ -147,6 +148,7 @@ git clone https://github.com/open-service-portal/ingestor.git
 
 #### Local Reference Repositories (gitignored)
 - **backstage/** - Local clone of Backstage core for documentation reference
+- **backstage-community-plugins/** - Community plugins for reference
 
 ## Development
 
@@ -405,16 +407,13 @@ git clone --depth 1 git@github.com:backstage/backstage.git
 
 # Clone Community Plugins
 git clone --depth 1 git@github.com:backstage/community-plugins.git backstage-community-plugins
-
-# Clone TeraSky Plugins
-git clone --depth 1 git@github.com:TeraSky-OSS/backstage-plugins.git backstage-terasky-plugins
 ```
 
 ### Core Documentation Paths
 - **Backstage Core**: `/backstage/docs/` - Architecture, auth providers, plugins, tutorials
 - **Community Plugins**: `/backstage-community-plugins/docs/` - Compatibility guides, maintainer docs
 - **Community Plugins List**: `/backstage-community-plugins/workspaces/*/` - 100+ plugin READMEs
-- **TeraSky Plugins**: `/backstage-terasky-plugins/site/docs/` - Crossplane, Kubernetes, GitOps plugins
+- **Ingestor Plugin**: `/app-portal/plugins/ingestor/docs/` - Our Kubernetes resource discovery and ingestion plugin
 
 ### Key Documentation Areas
 - **Getting Started**: `backstage/docs/getting-started/`
