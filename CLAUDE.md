@@ -43,9 +43,10 @@ open-service-portal/         # THIS directory = portal-workspace repo
 │       └── flux-catalog-orders.yaml
 ├── .gitignore              # Ignores nested repos below
 │
+├── ingestor/               # Standalone ingestor plugin (if cloned separately)
 ├── app-portal/             # NESTED repo - Main Backstage application
 │   ├── packages/           # Frontend and backend packages
-│   ├── plugins/            # Custom plugins (scaffolder, kubernetes-ingestor, crossplane-ingestor)
+│   ├── plugins/            # Custom plugins (scaffolder, ingestor)
 │   ├── app-config.yaml     # Legacy monolithic configuration
 │   └── app-config/         # Modular configuration directory
 │       ├── auth.yaml       # Authentication providers
@@ -85,7 +86,8 @@ open-service-portal/         # THIS directory = portal-workspace repo
 ├── service-cluster-template/     # NESTED repo - Cluster provisioning
 │
 ├── backstage/              # LOCAL CLONE - Backstage core docs (gitignored)
-└── backstage-terasky-plugins-fork/  # LOCAL CLONE - TeraSky plugins fork
+├── backstage-community-plugins/  # LOCAL CLONE - Community plugins (gitignored)
+└── scripts/                # Unified setup and utility scripts
 
 ## Setup
 
@@ -100,6 +102,10 @@ cd portal-workspace
 
 # Clone the app-portal code repository inside the workspace
 git clone https://github.com/open-service-portal/app-portal.git
+
+# Clone the standalone ingestor plugin into app-portal plugins directory
+cd app-portal/plugins
+git clone https://github.com/open-service-portal/ingestor.git
 ```
 
 ### GitHub Organization
@@ -115,6 +121,13 @@ git clone https://github.com/open-service-portal/app-portal.git
   - Scaffolded with `@backstage/create-app`
   - Contains frontend and backend packages
   - Configured for GitHub/GitLab integration
+
+#### Backstage Plugins
+- **ingestor/** - Standalone Kubernetes resource discovery plugin (git@github.com:open-service-portal/ingestor.git)
+  - Automatically discovers and imports K8s resources into catalog
+  - Supports Crossplane XRD template generation
+  - Includes CLI tools for ingestion and export operations
+  - Uses unified ingestion engine for both CLI and runtime
 
 #### Crossplane Templates & GitOps
 - **catalog/** - Central registry for Crossplane templates/XRDs (git@github.com:open-service-portal/catalog.git)
@@ -141,7 +154,7 @@ git clone https://github.com/open-service-portal/app-portal.git
 
 #### Local Reference Repositories (gitignored)
 - **backstage/** - Local clone of Backstage core for documentation reference
-- **backstage-terasky-plugins-fork/** - Fork of TeraSky plugins for development
+- **backstage-community-plugins/** - Community plugins for reference
 
 ## Development
 
@@ -172,17 +185,20 @@ app-config/
 
 The `start.js` script automatically loads all configuration modules. See [Modular Configuration Documentation](./docs/backstage/modular-config.md) for details.
 
-### Crossplane Ingestor Plugin
+### Ingestor Plugin
 
-A new advanced plugin for Crossplane integration:
+The standalone ingestor plugin provides Kubernetes resource discovery:
 
 ```typescript
-// Discovers XRDs and generates Backstage entities
-plugins/crossplane-ingestor/
+// Discovers K8s resources and generates Backstage entities
+plugins/ingestor/
 ├── src/
-│   ├── provider/          # Data providers for K8s resources
-│   ├── transformers/      # XRD to entity transformers
-│   ├── cli/              # CLI tools for testing
+│   ├── lib/              # Core processing engine
+│   │   ├── IngestionEngine.ts
+│   │   ├── ResourceValidator.ts
+│   │   └── EntityBuilder.ts
+│   ├── adapters/         # Environment adapters
+│   ├── cli/              # CLI tools (ts-node)
 │   └── module.ts         # Backend module registration
 ├── tests/                # Comprehensive test suite
 └── docs/                 # Detailed documentation
@@ -191,11 +207,11 @@ plugins/crossplane-ingestor/
 **Key Features:**
 - Discovers XRDs from multiple clusters
 - Generates Template and API entities
-- Tracks Composition relationships
-- Provides CLI tools for debugging
-- Includes 16,000+ lines of code with tests
+- Unified engine for CLI and runtime
+- Direct ts-node execution for development
+- Includes export and ingestion CLI tools
 
-See [Crossplane Ingestor Documentation](./docs/backstage/crossplane-ingestor.md) for complete details.
+See [Ingestor Documentation](./docs/ingestor.md) for complete details.
 
 ## Troubleshooting
 
@@ -444,16 +460,13 @@ git clone --depth 1 git@github.com:backstage/backstage.git
 
 # Clone Community Plugins
 git clone --depth 1 git@github.com:backstage/community-plugins.git backstage-community-plugins
-
-# Clone TeraSky Plugins
-git clone --depth 1 git@github.com:TeraSky-OSS/backstage-plugins.git backstage-terasky-plugins
 ```
 
 ### Core Documentation Paths
 - **Backstage Core**: `/backstage/docs/` - Architecture, auth providers, plugins, tutorials
 - **Community Plugins**: `/backstage-community-plugins/docs/` - Compatibility guides, maintainer docs
 - **Community Plugins List**: `/backstage-community-plugins/workspaces/*/` - 100+ plugin READMEs
-- **TeraSky Plugins**: `/backstage-terasky-plugins/site/docs/` - Crossplane, Kubernetes, GitOps plugins
+- **Ingestor Plugin**: `/app-portal/plugins/ingestor/docs/` - Our Kubernetes resource discovery and ingestion plugin
 
 ### Key Documentation Areas
 - **Getting Started**: `backstage/docs/getting-started/`

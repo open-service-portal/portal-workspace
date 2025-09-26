@@ -2,15 +2,16 @@
 
 #######################################
 # XRD to Backstage Template Ingestor
-# 
-# Wrapper script for the kubernetes-ingestor plugin's CLI tool.
-# Transforms Crossplane XRDs into Backstage Software Templates.
 #
-# Usage: ingestor.sh <source> [options]
-#   source: XRD file, directory, or 'cluster'
+# Wrapper script for the ingestor plugin's CLI tool.
+# Transforms Crossplane XRDs into Backstage Software Templates
+# using a unified ingestion engine.
+#
+# Usage: template-ingest.sh <source> [options]
+#   source: XRD file, directory, or '-' for stdin
 #   options: --preview, --validate, --output, etc.
-# 
-# See: app-portal/plugins/kubernetes-ingestor/docs/CLI-USAGE.md
+#
+# See: app-portal/plugins/ingestor/docs/CLI-INGESTOR-SPEC.md
 #######################################
 
 set -e
@@ -24,12 +25,12 @@ NC='\033[0m' # No Color
 # Get the script directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 WORKSPACE_DIR="$(dirname "$SCRIPT_DIR")"
-PLUGIN_DIR="$WORKSPACE_DIR/app-portal/plugins/crossplane-ingestor"
+PLUGIN_DIR="$WORKSPACE_DIR/app-portal/plugins/ingestor"
 
 # Check if plugin directory exists
 if [ ! -d "$PLUGIN_DIR" ]; then
     echo -e "${RED}Error: Plugin directory not found at $PLUGIN_DIR${NC}"
-    echo "Please ensure the app-portal repository is cloned in the workspace."
+    echo "Please ensure the ingestor plugin is cloned in app-portal/plugins/"
     exit 1
 fi
 
@@ -86,9 +87,9 @@ done
 
 # Convert source path to absolute if it's a file/directory
 if [[ -n "$SOURCE" ]]; then
-    if [[ "$SOURCE" == "cluster" ]]; then
-        # Special case for cluster source
-        ARGS+=("cluster")
+    if [[ "$SOURCE" == "-" ]]; then
+        # Special case for stdin
+        ARGS+=("-")
     elif [[ "$SOURCE" = /* ]]; then
         # Already absolute
         ARGS+=("$SOURCE")
@@ -114,7 +115,7 @@ else
     ARGS+=("--output" "$ORIGINAL_PWD")
 fi
 
-# Run the ingestor script from the plugin directory
+# Run the ingestor CLI directly from source using ts-node
 cd "$PLUGIN_DIR"
 # echo "Args: ${ARGS[*]}"
-node src/cli/ingestor.js "${ARGS[@]}"
+npx ts-node src/cli/ingestor-cli.ts "${ARGS[@]}"
