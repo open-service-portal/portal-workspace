@@ -17,18 +17,6 @@ NC='\033[0m' # No Color
 # Find workspace root
 WORKSPACE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PLUGIN_DIR="$WORKSPACE_ROOT/app-portal/plugins/ingestor"
-EXPORT_CLI="$PLUGIN_DIR/dist/cli/backstage-export-cli.js"
-
-# Check if CLI is built
-if [ ! -f "$EXPORT_CLI" ]; then
-    echo -e "${YELLOW}Building export CLI...${NC}"
-    cd "$PLUGIN_DIR"
-    yarn build:cli
-    if [ ! -f "$EXPORT_CLI" ]; then
-        echo -e "${RED}Error: Failed to build export CLI${NC}"
-        exit 1
-    fi
-fi
 
 # Auto-detect API token from Backstage config if not provided
 if [ -z "$BACKSTAGE_TOKEN" ]; then
@@ -163,6 +151,6 @@ if [ -n "$BACKSTAGE_TOKEN" ] && ! echo "${ARGS[@]}" | grep -q -- "--token"; then
     ARGS+=("--token" "$BACKSTAGE_TOKEN")
 fi
 
-# Run the export CLI
+# Run the export CLI directly from source using ts-node
 cd "$PLUGIN_DIR"
-node "$EXPORT_CLI" "${ARGS[@]}"
+npx ts-node src/cli/backstage-export-cli.ts "${ARGS[@]}"

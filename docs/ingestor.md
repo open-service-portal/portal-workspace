@@ -7,8 +7,10 @@ The `template-ingest.sh` script is a wrapper for the ingestor plugin's CLI tool 
 ## Location
 
 - **Wrapper Script**: `scripts/template-ingest.sh`
-- **Plugin CLI**: `app-portal/plugins/ingestor/dist/cli/ingestor-cli.js`
+- **Plugin CLI Source**: `app-portal/plugins/ingestor/src/cli/ingestor-cli.ts`
 - **Documentation**: `app-portal/plugins/ingestor/docs/`
+
+> Note: The wrapper script runs directly from TypeScript source using ts-node, no build required!
 
 ## Usage
 
@@ -65,19 +67,23 @@ For detailed documentation, see:
 
 ## Troubleshooting
 
-To build the plugin and CLI tools:
+The scripts run directly from TypeScript source, so no build is needed. If you encounter issues:
 
 ```bash
+# Ensure dependencies are installed
 cd app-portal/plugins/ingestor
-yarn build
-yarn build:cli
+yarn install
+
+# Test the CLI directly
+npx ts-node src/cli/ingestor-cli.ts --help
+npx ts-node src/cli/backstage-export-cli.ts --help
 ```
 
 ## Maintenance
 
 The wrapper script is a thin layer that:
-1. Checks if the plugin is built
-2. Builds if necessary
-3. Passes all arguments to the plugin's CLI
+1. Resolves file paths to absolute paths
+2. Handles output directory configuration
+3. Passes all arguments to ts-node for execution
 
-Any updates to transformation logic should be made in the plugin itself, not the wrapper.
+Any updates to transformation logic should be made in the plugin source code. Changes take effect immediately without rebuilding.

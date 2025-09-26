@@ -115,19 +115,7 @@ else
     ARGS+=("--output" "$ORIGINAL_PWD")
 fi
 
-# Check if CLI is built
-CLI_PATH="$PLUGIN_DIR/dist/cli/ingestor-cli.js"
-if [ ! -f "$CLI_PATH" ]; then
-    echo -e "${YELLOW}Building ingestor CLI...${NC}"
-    cd "$PLUGIN_DIR"
-    yarn build:cli
-    if [ ! -f "$CLI_PATH" ]; then
-        echo -e "${RED}Error: Failed to build CLI${NC}"
-        exit 1
-    fi
-fi
-
-# Run the ingestor CLI
+# Run the ingestor CLI directly from source using ts-node
 cd "$PLUGIN_DIR"
 # echo "Args: ${ARGS[*]}"
-node "$CLI_PATH" "${ARGS[@]}"
+npx ts-node src/cli/ingestor-cli.ts "${ARGS[@]}"
