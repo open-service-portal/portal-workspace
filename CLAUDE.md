@@ -46,9 +46,12 @@ open-service-portal/         # THIS directory = portal-workspace repo
 │       └── test-xr.sh      # XR testing
 ├── .gitignore              # Ignores nested repos below
 │
+├── ingestor-plugin/        # Standalone ingestor plugin (extracted and renamed)
+├── backstage-plugins/      # OPTIONAL FORK - TeraSky plugins (upstream main branch)
+├── backstage-plugins-custom/ # OPTIONAL FORK - TeraSky plugins (customized branch)
 ├── app-portal/             # NESTED repo - Main Backstage application
 │   ├── packages/           # Frontend and backend packages
-│   ├── plugins/            # Custom plugins (scaffolder, kubernetes-ingestor)
+│   ├── plugins/            # Custom plugins (scaffolder, ingestor, crossplane-ingestor)
 │   └── app-config.yaml     # Main configuration with XRD publishing
 ├── catalog/                # NESTED repo - Template registry for Flux
 │   └── templates/          # Template references (XRDs/Compositions)
@@ -95,6 +98,15 @@ cd portal-workspace
 
 # Clone the app-portal code repository inside the workspace
 git clone https://github.com/open-service-portal/app-portal.git
+
+# Clone the standalone ingestor plugin into app-portal plugins directory
+cd app-portal/plugins
+git clone https://github.com/open-service-portal/ingestor.git
+
+# OPTIONAL: Clone TeraSky fork for additional ingestor plugins (DEPRECATED)
+# Note: We now maintain our own ingestor plugin above, this is no longer needed
+# git clone git@github.com:open-service-portal/backstage-plugins.git
+# git worktree add backstage-plugins-custom backstage-plugins/feat/open-service-portal-customizations
 ```
 
 ### GitHub Organization
@@ -110,6 +122,12 @@ git clone https://github.com/open-service-portal/app-portal.git
   - Scaffolded with `@backstage/create-app`
   - Contains frontend and backend packages
   - Configured for GitHub/GitLab integration
+
+#### Backstage Plugins
+- **ingestor/** - Standalone Kubernetes resource discovery plugin (git@github.com:open-service-portal/ingestor.git)
+  - Automatically discovers and imports K8s resources into catalog
+  - Supports Crossplane XRD template generation
+  - Renamed and refactored from kubernetes-ingestor
 
 #### Crossplane Templates & GitOps
 - **catalog/** - Central registry for Crossplane templates/XRDs (git@github.com:open-service-portal/catalog.git)

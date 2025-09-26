@@ -15,7 +15,7 @@ NC='\033[0m' # No Color
 
 # Find workspace root
 WORKSPACE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PLUGIN_DIR="$WORKSPACE_ROOT/app-portal/plugins/kubernetes-ingestor"
+PLUGIN_DIR="$WORKSPACE_ROOT/app-portal/plugins/crossplane-ingestor"
 EXPORT_SCRIPT="$PLUGIN_DIR/src/cli/export.js"
 
 # Check if export script exists
@@ -44,7 +44,7 @@ if [ -z "$BACKSTAGE_TOKEN" ]; then
 fi
 
 # Default values
-OUTPUT_DIR=""
+OUTPUT_DIR="templates"
 PATTERN=""
 KIND="all"
 URL="http://localhost:7007"
@@ -78,7 +78,7 @@ while [[ $# -gt 0 ]]; do
             echo "Usage: template-export.sh [options]"
             echo ""
             echo "Options:"
-            echo "  -o, --output <dir>     Output directory (required)"
+            echo "  -o, --output <dir>     Output directory (default: templates)"
             echo "  -p, --pattern <name>   Name pattern to match"
             echo "  -k, --kind <kind>      Entity kind: template, api, or all (default: all)"
             echo "  -u, --url <url>        Backstage URL (default: http://localhost:7007)"
@@ -86,7 +86,10 @@ while [[ $# -gt 0 ]]; do
             echo "  -h, --help            Show this help message"
             echo ""
             echo "Examples:"
-            echo "  # Export all templates and APIs to original directory"
+            echo "  # Export all templates and APIs to default 'templates' directory"
+            echo "  template-export.sh"
+            echo ""
+            echo "  # Export all templates and APIs to specific directory"
             echo "  template-export.sh -o ./template-namespace/docs/backstage-templates/original"
             echo ""
             echo "  # Export namespace-related templates"
@@ -104,12 +107,19 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Validate output directory
-if [ -z "$OUTPUT_DIR" ]; then
-    echo -e "${RED}Error: Output directory is required${NC}"
-    echo "Use -o or --output to specify the output directory"
+# Output directory now has a default value, no validation needed
+
+# Check if Backstage is running
+echo "Checking Backstage connection..."
+if ! curl -s -f -o /dev/null "$URL/api/catalog/entities?limit=1" -H "Authorization: Bearer $BACKSTAGE_TOKEN" 2>/dev/null; then
+    echo -e "${RED}Error: Cannot connect to Backstage at $URL${NC}"
+    echo ""
+    echo "Please ensure Backstage is running"
+    echo "Or specify a different URL with -u/--url if Backstage is running elsewhere."
     exit 1
 fi
+echo -e "${GREEN}✓ Connected to Backstage${NC}"
+echo ""
 
 # Save original working directory
 ORIGINAL_PWD="$(pwd)"
