@@ -352,7 +352,8 @@ We support any Kubernetes distribution with a unified setup:
 **Backstage API Access**
 The `cluster-config.sh` script generates a secure API token for programmatic access to Backstage. This token is stored in the cluster-specific configuration file (`app-config.${context}.local.yaml`) and can be used to query the Backstage catalog.
 
-**Recommended: Use the backstage-api.sh wrapper script**
+### Recommended: Use the backstage-api.sh wrapper script
+
 ```bash
 # Get all templates
 ./scripts/backstage-api.sh '/api/catalog/entities?filter=kind=Template'

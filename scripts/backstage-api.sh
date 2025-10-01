@@ -32,7 +32,10 @@ CONFIG_FILE="app-config.${CONTEXT}.local.yaml"
 
 # Extract token from config
 if [ -f "$CONFIG_FILE" ]; then
-  TOKEN=$(grep -A2 "type: static" "$CONFIG_FILE" | grep "token:" | awk '{print $2}')
+  TOKEN=$(grep -A2 "type: static" "$CONFIG_FILE" \
+    | grep "token:" \
+    | awk -F':' '{print $2}' \
+    | tr -d " \"'")
 else
   echo "Error: Config file $CONFIG_FILE not found in $APP_PORTAL_DIR" >&2
   exit 1
