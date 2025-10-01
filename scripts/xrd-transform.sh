@@ -88,13 +88,13 @@ for arg in "$@"; do
     # -t is now template name, not a path - pass through as-is
     elif [[ "$PREV_ARG" == "-t" ]] || [[ "$PREV_ARG" == "--template" ]]; then
         ARGS+=("$arg")
-    # If it's a non-option argument (input file), make it absolute
+    # If it's a non-option argument (input file or directory), make it absolute
     elif [[ ! "$arg" =~ ^- ]]; then
-        # Try relative to user's CWD first
-        if [[ -f "${USER_CWD}/${arg}" ]]; then
+        # Try relative to user's CWD first (file or directory)
+        if [[ -e "${USER_CWD}/${arg}" ]]; then
             ARGS+=("${USER_CWD}/${arg}")
         # Try relative to workspace
-        elif [[ -f "${WORKSPACE_DIR}/${arg}" ]]; then
+        elif [[ -e "${WORKSPACE_DIR}/${arg}" ]]; then
             ARGS+=("${WORKSPACE_DIR}/${arg}")
         # Use as-is (absolute or doesn't exist)
         else
