@@ -22,13 +22,18 @@
 #   # Save to file
 #   ./scripts/xrd-transform.sh template-namespace/configuration/xrd.yaml > output.yaml
 #
-#   # Use custom templates
-#   ./scripts/xrd-transform.sh -t my-templates template-namespace/configuration/xrd.yaml
+#   # Use debug template
+#   ./scripts/xrd-transform.sh -t debug template-namespace/configuration/xrd.yaml
+#
+#   # Use custom template directory
+#   ./scripts/xrd-transform.sh --template-path my-templates template-namespace/configuration/xrd.yaml
 #
 # Options:
-#   -t, --templates <dir>    Template directory (defaults to built-in templates)
+#   -t, --template <name>    Template name to use (e.g., "debug", "default") - overrides XRD annotation
+#   --template-path <dir>    Template directory path (defaults to built-in templates)
 #   -o, --output <dir>       Output directory (default: stdout)
 #   -f, --format <format>    Output format (yaml|json) (default: yaml)
+#   --only <type>            Only generate specific entity type (template|api)
 #   --single-file            Output all entities to a single file
 #   --organize               Organize output by entity type
 #   -v, --verbose            Verbose output
@@ -65,7 +70,7 @@ OUTPUT_DIR=""
 for arg in "$@"; do
     # Check if previous argument was an option that takes a path
     if [[ "$PREV_ARG" == "-o" ]] || [[ "$PREV_ARG" == "--output" ]] || \
-       [[ "$PREV_ARG" == "-t" ]] || [[ "$PREV_ARG" == "--templates" ]]; then
+       [[ "$PREV_ARG" == "--template-path" ]]; then
         # This is a path argument, make it absolute if relative
         if [[ ! "$arg" =~ ^/ ]]; then
             ARGS+=("${USER_CWD}/${arg}")
@@ -80,6 +85,9 @@ for arg in "$@"; do
                 OUTPUT_DIR="$arg"
             fi
         fi
+    # -t is now template name, not a path - pass through as-is
+    elif [[ "$PREV_ARG" == "-t" ]] || [[ "$PREV_ARG" == "--template" ]]; then
+        ARGS+=("$arg")
     # If it's a non-option argument (input file), make it absolute
     elif [[ ! "$arg" =~ ^- ]]; then
         # Try relative to user's CWD first
