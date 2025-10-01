@@ -1,0 +1,344 @@
+metadata:
+  namespace: default
+  annotations:
+    backstage.io/managed-by-location: 'cluster: openportal'
+    backstage.io/managed-by-origin-location: 'cluster: openportal'
+  name: cloudflarednsrecord-openportal.dev--v1alpha1
+  title: cloudflarednsrecord-openportal.dev--v1alpha1
+  uid: 0e4b621f-baf8-4d6f-9933-c2540ab65b70
+  etag: dab605e6763dcd3e59bf08cfcbc28731314b6f31
+apiVersion: backstage.io/v1alpha1
+kind: API
+spec:
+  type: openapi
+  lifecycle: production
+  owner: kubernetes-auto-ingested
+  system: kubernets-auto-ingested
+  definition: |
+    openapi: 3.0.0
+    info:
+      title: cloudflarednsrecords.openportal.dev
+      version: v1alpha1
+    servers:
+      - url: https://hcp-ebadc4bb-307d-482e-a9d9-fdca15fd5ff1.spot.rackspace.com/
+        description: openportal
+    tags:
+      - name: Cluster Scoped Operations
+        description: Operations on the cluster level
+      - name: Namespace Scoped Operations
+        description: Operations on the namespace level
+      - name: Specific Object Scoped Operations
+        description: Operations on a specific resource
+    paths:
+      /apis/openportal.dev/v1alpha1/cloudflarednsrecords:
+        get:
+          tags:
+            - Cluster Scoped Operations
+          summary: List all cloudflarednsrecords in all namespaces
+          operationId: listcloudflarednsrecordsAllNamespaces
+          responses:
+            '200':
+              description: List of cloudflarednsrecords in all namespaces
+              content:
+                application/json:
+                  schema:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Resource'
+      /apis/openportal.dev/v1alpha1/namespaces/{namespace}/cloudflarednsrecords:
+        get:
+          tags:
+            - Namespace Scoped Operations
+          summary: List all cloudflarednsrecords in a namespace
+          operationId: listcloudflarednsrecords
+          parameters:
+            - name: namespace
+              in: path
+              required: true
+              schema:
+                type: string
+          responses:
+            '200':
+              description: List of cloudflarednsrecords
+              content:
+                application/json:
+                  schema:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Resource'
+        post:
+          tags:
+            - Namespace Scoped Operations
+          summary: Create a resource
+          operationId: createResource
+          parameters:
+            - name: namespace
+              in: path
+              required: true
+              schema:
+                type: string
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  $ref: '#/components/schemas/Resource'
+          responses:
+            '201':
+              description: Resource created
+      /apis/openportal.dev/v1alpha1/namespaces/{namespace}/cloudflarednsrecords/{name}:
+        get:
+          tags:
+            - Specific Object Scoped Operations
+          summary: Get a CloudflareDNSRecord
+          operationId: getCloudflareDNSRecord
+          parameters:
+            - name: namespace
+              in: path
+              required: true
+              schema:
+                type: string
+            - name: name
+              in: path
+              required: true
+              schema:
+                type: string
+          responses:
+            '200':
+              description: Resource details
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    $ref: '#/components/schemas/Resource'
+        put:
+          tags:
+            - Specific Object Scoped Operations
+          summary: Update a resource
+          operationId: updateResource
+          parameters:
+            - name: namespace
+              in: path
+              required: true
+              schema:
+                type: string
+            - name: name
+              in: path
+              required: true
+              schema:
+                type: string
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  $ref: '#/components/schemas/Resource'
+          responses:
+            '200':
+              description: Resource updated
+        delete:
+          tags:
+            - Specific Object Scoped Operations
+          summary: Delete a resource
+          operationId: deleteResource
+          parameters:
+            - name: namespace
+              in: path
+              required: true
+              schema:
+                type: string
+            - name: name
+              in: path
+              required: true
+              schema:
+                type: string
+          responses:
+            '200':
+              description: Resource deleted
+    components:
+      schemas:
+        Resource:
+          type: object
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+              properties:
+                name:
+                  type: string
+                  maxLength: 63
+            spec:
+              type: object
+              required:
+                - type
+                - name
+                - value
+              properties:
+                comment:
+                  description: Optional comment for the DNS record
+                  type: string
+                  maxLength: 100
+                crossplane:
+                  description: Configures how Crossplane will reconcile this composite resource
+                  type: object
+                  properties:
+                    compositionRef:
+                      type: object
+                      required:
+                        - name
+                      properties:
+                        name:
+                          type: string
+                    compositionRevisionRef:
+                      type: object
+                      required:
+                        - name
+                      properties:
+                        name:
+                          type: string
+                    compositionRevisionSelector:
+                      type: object
+                      required:
+                        - matchLabels
+                      properties:
+                        matchLabels:
+                          type: object
+                          additionalProperties:
+                            type: string
+                    compositionSelector:
+                      type: object
+                      required:
+                        - matchLabels
+                      properties:
+                        matchLabels:
+                          type: object
+                          additionalProperties:
+                            type: string
+                    compositionUpdatePolicy:
+                      type: string
+                      default: Automatic
+                      enum:
+                        - Automatic
+                        - Manual
+                    resourceRefs:
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - apiVersion
+                          - kind
+                        properties:
+                          apiVersion:
+                            type: string
+                          kind:
+                            type: string
+                          name:
+                            type: string
+                      x-kubernetes-list-type: atomic
+                name:
+                  description: >-
+                    Subdomain name (e.g., 'api' creates api.yourdomain.com, use '@'
+                    for root domain)
+                  type: string
+                  maxLength: 63
+                  minLength: 1
+                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(@)?$
+                priority:
+                  description: Priority for MX and SRV records
+                  type: integer
+                  maximum: 65535
+                  minimum: 0
+                proxied:
+                  description: Whether to use Cloudflare proxy (orange cloud)
+                  type: boolean
+                  default: false
+                ttl:
+                  description: Time to live in seconds (1 = automatic)
+                  type: integer
+                  default: 1
+                  maximum: 86400
+                  minimum: 1
+                type:
+                  description: DNS record type
+                  type: string
+                  enum:
+                    - A
+                    - AAAA
+                    - CNAME
+                    - TXT
+                    - MX
+                    - NS
+                    - SRV
+                value:
+                  description: >-
+                    Target value: IPv4 for A, IPv6 for AAAA, hostname for CNAME,
+                    text for TXT
+                  type: string
+                zone:
+                  description: >-
+                    Cloudflare Zone resource (leave default for openportal.dev
+                    domain)
+                  type: string
+                  default: openportal-zone
+            status:
+              type: object
+              properties:
+                conditions:
+                  description: Conditions of the resource.
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - lastTransitionTime
+                      - reason
+                      - status
+                      - type
+                    properties:
+                      lastTransitionTime:
+                        type: string
+                        format: date-time
+                      message:
+                        type: string
+                      observedGeneration:
+                        type: integer
+                        format: int64
+                      reason:
+                        type: string
+                      status:
+                        type: string
+                      type:
+                        type: string
+                  x-kubernetes-list-map-keys:
+                    - type
+                  x-kubernetes-list-type: map
+                fqdn:
+                  description: Fully qualified domain name
+                  type: string
+                ready:
+                  description: Whether the record is ready
+                  type: boolean
+                recordId:
+                  description: Cloudflare record ID
+                  type: string
+      securitySchemes:
+        bearerHttpAuthentication:
+          description: Bearer token using a JWT
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+    security:
+      - bearerHttpAuthentication: []
+relations:
+  - type: apiConsumedBy
+    targetRef: component:demo/whoami-demo-dns-openportal
+  - type: apiConsumedBy
+    targetRef: component:test/whoami-dns-openportal
+  - type: ownedBy
+    targetRef: group:default/kubernetes-auto-ingested
+  - type: partOf
+    targetRef: system:default/kubernets-auto-ingested

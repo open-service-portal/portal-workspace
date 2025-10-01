@@ -39,6 +39,9 @@
 
 set -euo pipefail
 
+# Save the user's current working directory
+USER_CWD="$(pwd)"
+
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
@@ -54,15 +57,37 @@ fi
 # Change to plugin directory (required for ts-node and template resolution)
 cd "${PLUGIN_DIR}"
 
-# Collect all arguments
+# Process arguments and convert relative paths to absolute
 ARGS=()
+PREV_ARG=""
+
 for arg in "$@"; do
-    # If argument is a file path and not an option, make it absolute
-    if [[ ! "$arg" =~ ^- ]] && [[ -f "${WORKSPACE_DIR}/${arg}" ]]; then
-        ARGS+=("${WORKSPACE_DIR}/${arg}")
+    # Check if previous argument was an option that takes a path
+    if [[ "$PREV_ARG" == "-o" ]] || [[ "$PREV_ARG" == "--output" ]] || \
+       [[ "$PREV_ARG" == "-t" ]] || [[ "$PREV_ARG" == "--templates" ]]; then
+        # This is a path argument, make it absolute if relative
+        if [[ ! "$arg" =~ ^/ ]]; then
+            ARGS+=("${USER_CWD}/${arg}")
+        else
+            ARGS+=("$arg")
+        fi
+    # If it's a non-option argument (input file), make it absolute
+    elif [[ ! "$arg" =~ ^- ]]; then
+        # Try relative to user's CWD first
+        if [[ -f "${USER_CWD}/${arg}" ]]; then
+            ARGS+=("${USER_CWD}/${arg}")
+        # Try relative to workspace
+        elif [[ -f "${WORKSPACE_DIR}/${arg}" ]]; then
+            ARGS+=("${WORKSPACE_DIR}/${arg}")
+        # Use as-is (absolute or doesn't exist)
+        else
+            ARGS+=("$arg")
+        fi
     else
+        # Regular option, pass through
         ARGS+=("$arg")
     fi
+    PREV_ARG="$arg"
 done
 
 # Run the CLI via ts-node

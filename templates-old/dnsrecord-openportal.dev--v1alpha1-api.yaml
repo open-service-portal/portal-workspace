@@ -1,0 +1,312 @@
+metadata:
+  namespace: default
+  annotations:
+    backstage.io/managed-by-location: 'cluster: openportal'
+    backstage.io/managed-by-origin-location: 'cluster: openportal'
+  name: dnsrecord-openportal.dev--v1alpha1
+  title: dnsrecord-openportal.dev--v1alpha1
+  uid: 882668b1-ef12-4f41-b1b8-16897cf7e7b8
+  etag: 08a3e6cb33f16f6ef44eb306a9bc4bb70a48a1ea
+apiVersion: backstage.io/v1alpha1
+kind: API
+spec:
+  type: openapi
+  lifecycle: production
+  owner: kubernetes-auto-ingested
+  system: kubernets-auto-ingested
+  definition: |
+    openapi: 3.0.0
+    info:
+      title: dnsrecords.openportal.dev
+      version: v1alpha1
+    servers:
+      - url: https://hcp-ebadc4bb-307d-482e-a9d9-fdca15fd5ff1.spot.rackspace.com/
+        description: openportal
+    tags:
+      - name: Cluster Scoped Operations
+        description: Operations on the cluster level
+      - name: Namespace Scoped Operations
+        description: Operations on the namespace level
+      - name: Specific Object Scoped Operations
+        description: Operations on a specific resource
+    paths:
+      /apis/openportal.dev/v1alpha1/dnsrecords:
+        get:
+          tags:
+            - Cluster Scoped Operations
+          summary: List all dnsrecords in all namespaces
+          operationId: listdnsrecordsAllNamespaces
+          responses:
+            '200':
+              description: List of dnsrecords in all namespaces
+              content:
+                application/json:
+                  schema:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Resource'
+      /apis/openportal.dev/v1alpha1/namespaces/{namespace}/dnsrecords:
+        get:
+          tags:
+            - Namespace Scoped Operations
+          summary: List all dnsrecords in a namespace
+          operationId: listdnsrecords
+          parameters:
+            - name: namespace
+              in: path
+              required: true
+              schema:
+                type: string
+          responses:
+            '200':
+              description: List of dnsrecords
+              content:
+                application/json:
+                  schema:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Resource'
+        post:
+          tags:
+            - Namespace Scoped Operations
+          summary: Create a resource
+          operationId: createResource
+          parameters:
+            - name: namespace
+              in: path
+              required: true
+              schema:
+                type: string
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  $ref: '#/components/schemas/Resource'
+          responses:
+            '201':
+              description: Resource created
+      /apis/openportal.dev/v1alpha1/namespaces/{namespace}/dnsrecords/{name}:
+        get:
+          tags:
+            - Specific Object Scoped Operations
+          summary: Get a DNSRecord
+          operationId: getDNSRecord
+          parameters:
+            - name: namespace
+              in: path
+              required: true
+              schema:
+                type: string
+            - name: name
+              in: path
+              required: true
+              schema:
+                type: string
+          responses:
+            '200':
+              description: Resource details
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    $ref: '#/components/schemas/Resource'
+        put:
+          tags:
+            - Specific Object Scoped Operations
+          summary: Update a resource
+          operationId: updateResource
+          parameters:
+            - name: namespace
+              in: path
+              required: true
+              schema:
+                type: string
+            - name: name
+              in: path
+              required: true
+              schema:
+                type: string
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  $ref: '#/components/schemas/Resource'
+          responses:
+            '200':
+              description: Resource updated
+        delete:
+          tags:
+            - Specific Object Scoped Operations
+          summary: Delete a resource
+          operationId: deleteResource
+          parameters:
+            - name: namespace
+              in: path
+              required: true
+              schema:
+                type: string
+            - name: name
+              in: path
+              required: true
+              schema:
+                type: string
+          responses:
+            '200':
+              description: Resource deleted
+    components:
+      schemas:
+        Resource:
+          type: object
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+              properties:
+                name:
+                  type: string
+                  maxLength: 63
+            spec:
+              type: object
+              required:
+                - type
+                - name
+                - value
+              properties:
+                crossplane:
+                  description: Configures how Crossplane will reconcile this composite resource
+                  type: object
+                  properties:
+                    compositionRef:
+                      type: object
+                      required:
+                        - name
+                      properties:
+                        name:
+                          type: string
+                    compositionRevisionRef:
+                      type: object
+                      required:
+                        - name
+                      properties:
+                        name:
+                          type: string
+                    compositionRevisionSelector:
+                      type: object
+                      required:
+                        - matchLabels
+                      properties:
+                        matchLabels:
+                          type: object
+                          additionalProperties:
+                            type: string
+                    compositionSelector:
+                      type: object
+                      required:
+                        - matchLabels
+                      properties:
+                        matchLabels:
+                          type: object
+                          additionalProperties:
+                            type: string
+                    compositionUpdatePolicy:
+                      type: string
+                      default: Automatic
+                      enum:
+                        - Automatic
+                        - Manual
+                    resourceRefs:
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - apiVersion
+                          - kind
+                        properties:
+                          apiVersion:
+                            type: string
+                          kind:
+                            type: string
+                          name:
+                            type: string
+                      x-kubernetes-list-type: atomic
+                name:
+                  description: DNS record name (subdomain)
+                  type: string
+                  maxLength: 63
+                  minLength: 1
+                  pattern: ^[a-z]([-a-z0-9]*[a-z0-9])?(\.[a-z]([-a-z0-9]*[a-z0-9])?)*$
+                  example: my-app
+                ttl:
+                  description: Time to live in seconds
+                  type: integer
+                  default: 300
+                  maximum: 86400
+                  minimum: 60
+                type:
+                  description: DNS record type
+                  type: string
+                  enum:
+                    - A
+                    - AAAA
+                    - CNAME
+                    - TXT
+                  example: A
+                value:
+                  description: DNS record value (IP address, hostname, or text)
+                  type: string
+                  example: 192.168.1.100
+            status:
+              type: object
+              properties:
+                conditions:
+                  description: Conditions of the resource.
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - lastTransitionTime
+                      - reason
+                      - status
+                      - type
+                    properties:
+                      lastTransitionTime:
+                        type: string
+                        format: date-time
+                      message:
+                        type: string
+                      observedGeneration:
+                        type: integer
+                        format: int64
+                      reason:
+                        type: string
+                      status:
+                        type: string
+                      type:
+                        type: string
+                  x-kubernetes-list-map-keys:
+                    - type
+                  x-kubernetes-list-type: map
+                fqdn:
+                  description: Fully qualified domain name
+                  type: string
+                  example: my-app.portal.example.com
+      securitySchemes:
+        bearerHttpAuthentication:
+          description: Bearer token using a JWT
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+    security:
+      - bearerHttpAuthentication: []
+relations:
+  - type: ownedBy
+    targetRef: group:default/kubernetes-auto-ingested
+  - type: partOf
+    targetRef: system:default/kubernets-auto-ingested
