@@ -59,15 +59,6 @@ if [ -z "$ENDPOINT" ]; then
   exit 1
 fi
 
-# Check if endpoint contains unquoted ? (common mistake)
-if [[ "$ENDPOINT" == *"?"* ]] && [[ "$#" -gt 2 ]]; then
-  echo -e "${RED}Error: It looks like you forgot to quote the endpoint${NC}" >&2
-  echo "" >&2
-  echo -e "${YELLOW}Did you mean:${NC}" >&2
-  echo "  $0 '$ENDPOINT' ${2:-}" >&2
-  exit 1
-fi
-
 # Get optional jq filter
 JQ_FILTER="${2:-.}"
 
