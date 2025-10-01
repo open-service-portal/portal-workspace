@@ -8,6 +8,7 @@
 #   ./backstage-api.sh '/api/catalog/entities?filter=kind=Template'
 #   ./backstage-api.sh '/api/catalog/entities' '.[] | .metadata.name'
 #
+# Documentation: ../docs/backstage/api-access.md
 # Note: Always quote endpoints with query parameters (?)
 #
 
@@ -70,8 +71,8 @@ fi
 # Get optional jq filter
 JQ_FILTER="${2:-.}"
 
-# Check if Backstage is running
-if ! curl -s -f -o /dev/null "http://localhost:7007/api/catalog/entities?limit=1" 2>/dev/null; then
+# Check if Backstage is running (with authentication)
+if ! curl -s -f -o /dev/null -H "Authorization: Bearer $TOKEN" "http://localhost:7007/api/catalog/entities?limit=1" 2>/dev/null; then
   echo -e "${RED}Error: Cannot connect to Backstage API at http://localhost:7007${NC}" >&2
   echo "" >&2
   echo "Is Backstage running?" >&2

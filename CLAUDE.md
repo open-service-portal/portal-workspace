@@ -364,7 +364,7 @@ The `cluster-config.sh` script generates a secure API token for programmatic acc
 ./scripts/backstage-api.sh '/api/catalog/entities?filter=kind=Template' '.[] | .metadata.name'
 ```
 
-See [`scripts/backstage-api.README.md`](scripts/backstage-api.README.md) for full documentation.
+See [`docs/backstage/api-access.md`](docs/backstage/api-access.md) for full documentation.
 
 The API provides read access to all catalog entities including templates, components, and systems. Remember to restart Backstage after running `cluster-config.sh` for the new token to take effect.
 
