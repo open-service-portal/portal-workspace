@@ -60,6 +60,7 @@ cd "${PLUGIN_DIR}"
 # Process arguments and convert relative paths to absolute
 ARGS=()
 PREV_ARG=""
+OUTPUT_DIR=""
 
 for arg in "$@"; do
     # Check if previous argument was an option that takes a path
@@ -68,8 +69,16 @@ for arg in "$@"; do
         # This is a path argument, make it absolute if relative
         if [[ ! "$arg" =~ ^/ ]]; then
             ARGS+=("${USER_CWD}/${arg}")
+            # Save output directory for creation
+            if [[ "$PREV_ARG" == "-o" ]] || [[ "$PREV_ARG" == "--output" ]]; then
+                OUTPUT_DIR="${USER_CWD}/${arg}"
+            fi
         else
             ARGS+=("$arg")
+            # Save output directory for creation
+            if [[ "$PREV_ARG" == "-o" ]] || [[ "$PREV_ARG" == "--output" ]]; then
+                OUTPUT_DIR="$arg"
+            fi
         fi
     # If it's a non-option argument (input file), make it absolute
     elif [[ ! "$arg" =~ ^- ]]; then
@@ -89,6 +98,11 @@ for arg in "$@"; do
     fi
     PREV_ARG="$arg"
 done
+
+# Create output directory if specified and doesn't exist
+if [[ -n "$OUTPUT_DIR" ]] && [[ ! -d "$OUTPUT_DIR" ]]; then
+    mkdir -p "$OUTPUT_DIR"
+fi
 
 # Run the CLI via ts-node
 npx ts-node --project tsconfig.cli.json \
