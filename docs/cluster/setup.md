@@ -60,7 +60,7 @@ This script will:
 7. Install External-DNS for DNS management
 8. Install platform-wide environment configurations
 9. Create Backstage service account with K8s integration
-10. Generate app-config.${context}.local.yaml with cluster credentials (if app-portal exists)
+10. Generate `app-config.${context}.local.yaml` with cluster credentials (if app-portal exists)
 
 The script works with any Kubernetes cluster and uses manifests from [`scripts/manifests-setup-cluster/`](../../scripts/manifests-setup-cluster/).
 
