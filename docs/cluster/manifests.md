@@ -57,8 +57,8 @@ Functions transform resource specifications in the composition pipeline:
 
 **Config Manifests** (`manifests-config-openportal/`):
 - **environment-configs.yaml** - Production overrides (uses envsubst)
-  - dns-config: zone=${DNS_ZONE}, provider=${DNS_PROVIDER}
-  - cloudflare-config: zone_id=${CLOUDFLARE_ZONE_ID}, account_id=${CLOUDFLARE_ACCOUNT_ID}
+  - dns-config: zone=`${DNS_ZONE}`, provider=`${DNS_PROVIDER}`
+  - cloudflare-config: zone_id=`${CLOUDFLARE_ZONE_ID}`, account_id=`${CLOUDFLARE_ACCOUNT_ID}`
 - **cloudflare-zone-openportal-dev.yaml** - Zone import for openportal.dev
 
 ### GitOps Integration
