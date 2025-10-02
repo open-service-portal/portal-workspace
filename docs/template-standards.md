@@ -390,8 +390,8 @@ crossplane-cli = "latest"
 ## Examples Structure
 
 Provide at least:
-1. **basic-\<resource\>.yaml** - Minimal configuration
-2. **\<resource\>-with-\<feature\>.yaml** - Advanced features
+1. `basic-<resource>.yaml` - Minimal configuration
+2. `<resource>-with-<feature>.yaml` - Advanced features
 
 Example format:
 ```yaml
