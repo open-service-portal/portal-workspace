@@ -38,11 +38,30 @@ whoamiservices.openportal.dev         True                    33d
 
 Deploy updated XRDs with new annotation namespaces to the cluster.
 
-#### 1.1 Backup Current XRDs (Optional)
+#### 1.1 Suspend Flux GitOps Synchronization ⏸️
+
+**Important**: The cluster uses Flux GitOps which syncs from the `catalog` repository every 1 minute. We need to suspend this to prevent Flux from overwriting our local XRD changes.
 
 ```bash
 cd /Users/felix/work/open-service-portal/portal-workspace
 
+# Suspend Flux synchronization for local testing
+./scripts/template-sync.sh stop
+```
+
+**Expected Output**:
+```
+✓ Template sync suspended
+
+You can now:
+  1. Apply local XRD changes
+  2. Test with Backstage
+  3. Resume sync when done
+```
+
+#### 1.2 Backup Current XRDs (Optional)
+
+```bash
 # Backup existing XRDs
 mkdir -p /tmp/xrd-backup
 kubectl get xrd whoamiapps.openportal.dev -o yaml > /tmp/xrd-backup/whoamiapps.yaml
@@ -52,7 +71,7 @@ kubectl get xrd dnsrecords.openportal.dev -o yaml > /tmp/xrd-backup/dnsrecords.y
 kubectl get xrd whoamiservices.openportal.dev -o yaml > /tmp/xrd-backup/whoamiservices.yaml
 ```
 
-#### 1.2 Apply Updated XRDs
+#### 1.3 Apply Updated XRDs
 
 ```bash
 # Apply updated XRDs with new annotations
@@ -489,7 +508,7 @@ For cluster-scoped resources, verify:
 
 ## Cleanup 🧹
 
-After testing, clean up test resources:
+After testing, clean up test resources and resume GitOps:
 
 ```bash
 # Delete test XRs
@@ -498,7 +517,13 @@ kubectl delete managednamespace test-managed-ns
 
 # Delete test namespaces (if created)
 kubectl delete namespace test-managed-ns
+
+# Resume Flux synchronization (IMPORTANT!)
+cd /Users/felix/work/open-service-portal/portal-workspace
+./scripts/template-sync.sh start
 ```
+
+**Note**: Resuming Flux will restore cluster state from the `catalog` repository. Any manual XRD changes will be overwritten unless they're committed to the catalog repository.
 
 ---
 
