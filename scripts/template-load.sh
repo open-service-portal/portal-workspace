@@ -88,55 +88,59 @@ echo ""
 # Step 2: Find and apply XRDs
 echo -e "${YELLOW}Step 2: Applying XRDs from local templates...${NC}"
 
-XRD_COUNT=0
+# Collect all XRD files
+XRD_FILES=()
 for template_dir in template-*/; do
-    template_name="${template_dir%/}"
-
-    # Try configuration/xrd.yaml first, then xrd.yaml
     if [ -f "${template_dir}configuration/xrd.yaml" ]; then
-        xrd_file="${template_dir}configuration/xrd.yaml"
+        XRD_FILES+=("${template_dir}configuration/xrd.yaml")
+        echo -e "  → ${template_dir%/}"
     elif [ -f "${template_dir}xrd.yaml" ]; then
-        xrd_file="${template_dir}xrd.yaml"
-    else
-        continue
-    fi
-
-    echo -e "  → ${template_name}"
-    if kubectl apply -f "${xrd_file}" 2>&1 | grep -v "Warning:"; then
-        ((XRD_COUNT++))
-    else
-        echo -e "${RED}    ✗ Failed${NC}"
+        XRD_FILES+=("${template_dir}xrd.yaml")
+        echo -e "  → ${template_dir%/}"
     fi
 done
 
-echo -e "${GREEN}  ✓ Applied ${XRD_COUNT} XRDs${NC}"
+# Apply all XRDs at once
+if [ ${#XRD_FILES[@]} -gt 0 ]; then
+    for xrd_file in "${XRD_FILES[@]}"; do
+        kubectl apply -f "${xrd_file}" &>/dev/null
+    done
+    XRD_COUNT=${#XRD_FILES[@]}
+    echo -e "${GREEN}  ✓ Applied ${XRD_COUNT} XRDs${NC}"
+else
+    echo -e "${RED}  ✗ No XRD files found${NC}"
+    XRD_COUNT=0
+fi
+
 echo ""
 
 # Step 3: Apply Compositions
 echo -e "${YELLOW}Step 3: Applying Compositions from local templates...${NC}"
 
-COMP_COUNT=0
+# Collect all Composition files
+COMP_FILES=()
 for template_dir in template-*/; do
-    template_name="${template_dir%/}"
-
-    # Try configuration/composition.yaml first, then composition.yaml
     if [ -f "${template_dir}configuration/composition.yaml" ]; then
-        comp_file="${template_dir}configuration/composition.yaml"
+        COMP_FILES+=("${template_dir}configuration/composition.yaml")
+        echo -e "  → ${template_dir%/}"
     elif [ -f "${template_dir}composition.yaml" ]; then
-        comp_file="${template_dir}composition.yaml"
-    else
-        continue
-    fi
-
-    echo -e "  → ${template_name}"
-    if kubectl apply -f "${comp_file}" 2>&1 | grep -v "Warning:"; then
-        ((COMP_COUNT++))
-    else
-        echo -e "${RED}    ✗ Failed${NC}"
+        COMP_FILES+=("${template_dir}composition.yaml")
+        echo -e "  → ${template_dir%/}"
     fi
 done
 
-echo -e "${GREEN}  ✓ Applied ${COMP_COUNT} Compositions${NC}"
+# Apply all Compositions at once
+if [ ${#COMP_FILES[@]} -gt 0 ]; then
+    for comp_file in "${COMP_FILES[@]}"; do
+        kubectl apply -f "${comp_file}" &>/dev/null
+    done
+    COMP_COUNT=${#COMP_FILES[@]}
+    echo -e "${GREEN}  ✓ Applied ${COMP_COUNT} Compositions${NC}"
+else
+    echo -e "${YELLOW}  ⚠ No Composition files found${NC}"
+    COMP_COUNT=0
+fi
+
 echo ""
 
 # Step 4: Wait for XRDs to be established
