@@ -10,10 +10,11 @@
 #   ./scripts/template-load.sh
 #
 # What it does:
-#   1. Deletes all XRDs from cluster (removes finalizers if stuck)
-#   2. Applies XRDs from local template-* directories
-#   3. Applies Compositions from local template-* directories
-#   4. Shows status summary
+#   1. Checks Flux sync status and suspends if needed
+#   2. Deletes all XRDs from cluster (removes finalizers if stuck)
+#   3. Applies XRDs from local template-* directories
+#   4. Applies Compositions from local template-* directories
+#   5. Shows status summary
 #
 # Use cases:
 #   - After changing XRD annotations (e.g., template-steps)
@@ -41,6 +42,28 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 cd "${WORKSPACE_DIR}"
+
+# Step 0: Check Flux status and suspend if running
+echo -e "${YELLOW}Step 0: Checking Flux GitOps status...${NC}"
+
+if ! command -v flux &> /dev/null; then
+    echo -e "${YELLOW}  ⚠ Flux CLI not found, skipping Flux check${NC}"
+elif ! kubectl get namespace flux-system &> /dev/null; then
+    echo -e "${YELLOW}  ⚠ Flux not installed, skipping Flux check${NC}"
+else
+    # Get Flux status using template-sync.sh
+    FLUX_STATUS=$("${SCRIPT_DIR}/template-sync.sh" 2>/dev/null | grep "Status:" | awk '{print $2}' || echo "UNKNOWN")
+
+    if [[ "$FLUX_STATUS" == *"RUNNING"* ]] || [[ "$FLUX_STATUS" == *"32m"* ]]; then
+        echo -e "${YELLOW}  ⚠ Flux is running, suspending to prevent conflicts...${NC}"
+        "${SCRIPT_DIR}/template-sync.sh" stop > /dev/null 2>&1
+        echo -e "${GREEN}  ✓ Flux suspended${NC}"
+    else
+        echo -e "${GREEN}  ✓ Flux already suspended${NC}"
+    fi
+fi
+
+echo ""
 
 # Step 1: Delete all XRDs
 echo -e "${YELLOW}Step 1: Deleting all XRDs from cluster...${NC}"
@@ -152,6 +175,11 @@ echo ""
 echo -e "${GREEN}✅ Template load complete!${NC}"
 echo ""
 echo -e "${BLUE}💡 Next steps:${NC}"
+echo "  • Flux is SUSPENDED - local changes will persist"
 echo "  • Restart Backstage to pick up changes: cd app-portal && yarn start"
 echo "  • Or wait for ingestor plugin to sync (typically 5-10 minutes)"
 echo "  • Check Backstage logs for: 'Discovered X XRDs'"
+echo ""
+echo -e "${YELLOW}⚠️  Remember:${NC}"
+echo "  • Resume Flux when done testing: ./scripts/template-sync.sh start"
+echo "  • Or keep it suspended for continued local development"
