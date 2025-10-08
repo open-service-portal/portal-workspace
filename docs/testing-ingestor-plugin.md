@@ -104,7 +104,7 @@ Test the standalone CLI tool with updated XRDs.
 cd /Users/felix/work/open-service-portal/portal-workspace
 
 # Generate templates from XRD
-./scripts/xrd-transform.sh template-namespace -o /tmp/test-namespace
+./scripts/template-ingest.sh template-namespace -o /tmp/test-namespace
 
 # Verify output
 ls -la /tmp/test-namespace/
@@ -122,7 +122,7 @@ cat /tmp/test-namespace/managednamespaces-openportal-dev-default-api.yaml
 #### 2.2 Test WhoAmI Template (Namespaced)
 
 ```bash
-./scripts/xrd-transform.sh template-whoami -o /tmp/test-whoami
+./scripts/template-ingest.sh template-whoami -o /tmp/test-whoami
 
 # Check output
 cat /tmp/test-whoami/whoamiapps-openportal-dev-default-template.yaml | head -40
@@ -140,7 +140,7 @@ cat /tmp/test-whoami/whoamiapps-openportal-dev-default-api.yaml | grep -A 5 "spe
 # Generate all templates
 for template in template-namespace template-whoami template-cloudflare-dnsrecord template-dns-record template-whoami-service; do
   echo "Testing $template..."
-  ./scripts/xrd-transform.sh $template -o /tmp/test-all/$template
+  ./scripts/template-ingest.sh $template -o /tmp/test-all/$template
 done
 
 # Verify all outputs
