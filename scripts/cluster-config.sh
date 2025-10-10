@@ -143,6 +143,8 @@ backend:
         #   - plugin: kubernetes
 
 kubernetes:
+  serviceLocatorMethod:
+    type: 'multiTenant'
   clusterLocatorMethods:
     - type: 'config'
       clusters:

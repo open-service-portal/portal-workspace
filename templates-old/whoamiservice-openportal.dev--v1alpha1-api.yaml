@@ -1,0 +1,305 @@
+metadata:
+  namespace: default
+  annotations:
+    backstage.io/managed-by-location: 'cluster: openportal'
+    backstage.io/managed-by-origin-location: 'cluster: openportal'
+  name: whoamiservice-openportal.dev--v1alpha1
+  title: whoamiservice-openportal.dev--v1alpha1
+  uid: fe57d7c2-2751-4489-be54-7e6d0963e987
+  etag: 125b812ba7cca4fe75fc8fbd49aeff5739a01b9f
+apiVersion: backstage.io/v1alpha1
+kind: API
+spec:
+  type: openapi
+  lifecycle: production
+  owner: kubernetes-auto-ingested
+  system: kubernets-auto-ingested
+  definition: |
+    openapi: 3.0.0
+    info:
+      title: whoamiservices.openportal.dev
+      version: v1alpha1
+    servers:
+      - url: https://hcp-ebadc4bb-307d-482e-a9d9-fdca15fd5ff1.spot.rackspace.com/
+        description: openportal
+    tags:
+      - name: Cluster Scoped Operations
+        description: Operations on the cluster level
+      - name: Namespace Scoped Operations
+        description: Operations on the namespace level
+      - name: Specific Object Scoped Operations
+        description: Operations on a specific resource
+    paths:
+      /apis/openportal.dev/v1alpha1/whoamiservices:
+        get:
+          tags:
+            - Cluster Scoped Operations
+          summary: List all whoamiservices in all namespaces
+          operationId: listwhoamiservicesAllNamespaces
+          responses:
+            '200':
+              description: List of whoamiservices in all namespaces
+              content:
+                application/json:
+                  schema:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Resource'
+      /apis/openportal.dev/v1alpha1/namespaces/{namespace}/whoamiservices:
+        get:
+          tags:
+            - Namespace Scoped Operations
+          summary: List all whoamiservices in a namespace
+          operationId: listwhoamiservices
+          parameters:
+            - name: namespace
+              in: path
+              required: true
+              schema:
+                type: string
+          responses:
+            '200':
+              description: List of whoamiservices
+              content:
+                application/json:
+                  schema:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Resource'
+        post:
+          tags:
+            - Namespace Scoped Operations
+          summary: Create a resource
+          operationId: createResource
+          parameters:
+            - name: namespace
+              in: path
+              required: true
+              schema:
+                type: string
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  $ref: '#/components/schemas/Resource'
+          responses:
+            '201':
+              description: Resource created
+      /apis/openportal.dev/v1alpha1/namespaces/{namespace}/whoamiservices/{name}:
+        get:
+          tags:
+            - Specific Object Scoped Operations
+          summary: Get a WhoAmIService
+          operationId: getWhoAmIService
+          parameters:
+            - name: namespace
+              in: path
+              required: true
+              schema:
+                type: string
+            - name: name
+              in: path
+              required: true
+              schema:
+                type: string
+          responses:
+            '200':
+              description: Resource details
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    $ref: '#/components/schemas/Resource'
+        put:
+          tags:
+            - Specific Object Scoped Operations
+          summary: Update a resource
+          operationId: updateResource
+          parameters:
+            - name: namespace
+              in: path
+              required: true
+              schema:
+                type: string
+            - name: name
+              in: path
+              required: true
+              schema:
+                type: string
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  $ref: '#/components/schemas/Resource'
+          responses:
+            '200':
+              description: Resource updated
+        delete:
+          tags:
+            - Specific Object Scoped Operations
+          summary: Delete a resource
+          operationId: deleteResource
+          parameters:
+            - name: namespace
+              in: path
+              required: true
+              schema:
+                type: string
+            - name: name
+              in: path
+              required: true
+              schema:
+                type: string
+          responses:
+            '200':
+              description: Resource deleted
+    components:
+      schemas:
+        Resource:
+          type: object
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+              properties:
+                name:
+                  type: string
+                  maxLength: 63
+            spec:
+              type: object
+              required:
+                - name
+              properties:
+                crossplane:
+                  description: Configures how Crossplane will reconcile this composite resource
+                  type: object
+                  properties:
+                    compositionRef:
+                      type: object
+                      required:
+                        - name
+                      properties:
+                        name:
+                          type: string
+                    compositionRevisionRef:
+                      type: object
+                      required:
+                        - name
+                      properties:
+                        name:
+                          type: string
+                    compositionRevisionSelector:
+                      type: object
+                      required:
+                        - matchLabels
+                      properties:
+                        matchLabels:
+                          type: object
+                          additionalProperties:
+                            type: string
+                    compositionSelector:
+                      type: object
+                      required:
+                        - matchLabels
+                      properties:
+                        matchLabels:
+                          type: object
+                          additionalProperties:
+                            type: string
+                    compositionUpdatePolicy:
+                      type: string
+                      default: Automatic
+                      enum:
+                        - Automatic
+                        - Manual
+                    resourceRefs:
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - apiVersion
+                          - kind
+                        properties:
+                          apiVersion:
+                            type: string
+                          kind:
+                            type: string
+                          name:
+                            type: string
+                      x-kubernetes-list-type: atomic
+                name:
+                  description: Service name (becomes subdomain, e.g., myapp.example.com)
+                  type: string
+                  maxLength: 63
+                  minLength: 1
+                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+            status:
+              type: object
+              properties:
+                appReady:
+                  description: Whether the application is deployed and ready
+                  type: boolean
+                conditions:
+                  description: Conditions of the resource.
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - lastTransitionTime
+                      - reason
+                      - status
+                      - type
+                    properties:
+                      lastTransitionTime:
+                        type: string
+                        format: date-time
+                      message:
+                        type: string
+                      observedGeneration:
+                        type: integer
+                        format: int64
+                      reason:
+                        type: string
+                      status:
+                        type: string
+                      type:
+                        type: string
+                  x-kubernetes-list-map-keys:
+                    - type
+                  x-kubernetes-list-type: map
+                dnsReady:
+                  description: Whether the DNS record is configured
+                  type: boolean
+                domain:
+                  description: The full domain name for accessing the service
+                  type: string
+                ingressHost:
+                  description: The ingress hostname
+                  type: string
+                ipAddress:
+                  description: The IP address the DNS points to
+                  type: string
+      securitySchemes:
+        bearerHttpAuthentication:
+          description: Bearer token using a JWT
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+    security:
+      - bearerHttpAuthentication: []
+relations:
+  - type: apiConsumedBy
+    targetRef: component:demo/whoami-demo-openportal
+  - type: apiConsumedBy
+    targetRef: component:test/whoami-openportal
+  - type: ownedBy
+    targetRef: group:default/kubernetes-auto-ingested
+  - type: partOf
+    targetRef: system:default/kubernets-auto-ingested

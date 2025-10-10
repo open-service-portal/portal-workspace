@@ -60,6 +60,7 @@ yarn start
 ## Documentation
 
 - [CLAUDE.md](./CLAUDE.md) - Development instructions for Claude Code
+- **[Annotation Strategy](./docs/annotations.md)** - Annotation namespace guidelines ⭐ **Important**
 - [Cluster Overview](./docs/cluster/overview.md) - Kubernetes cluster architecture
 - [DNS Management](./docs/cluster/dns-management.md) - DNS management with External-DNS
 - [Manifests](./docs/cluster/manifests.md) - Platform manifest documentation

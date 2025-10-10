@@ -1,0 +1,241 @@
+metadata:
+  namespace: default
+  annotations:
+    backstage.io/managed-by-location: 'cluster: openportal'
+    backstage.io/managed-by-origin-location: 'cluster: openportal'
+    terasky.backstage.io/crossplane-version: v2
+    terasky.backstage.io/crossplane-scope: Cluster
+    backstage.io/description: Crossplane template for managing Kubernetes namespaces with automated RBAC and resource quotas
+    backstage.io/source-location: url:https://github.com/open-service-portal/template-namespace
+    backstage.io/techdocs-ref: url:https://github.com/open-service-portal/template-namespace
+    backstage.io/title: ManagedNamespace Template
+    crossplane.io/version: v2.0
+    openportal.dev/tags: namespace,kubernetes,core,rbac,infrastructure,platform
+    terasky.backstage.io/publish-phase: |
+      gitRepo: "github.com?owner=open-service-portal&repo=catalog-orders"
+      gitBranch: "main"
+      gitLayout: "cluster-scoped"
+      basePath: "system/ManagedNamespace"
+      createPr: true
+    backstage.io/discovered-at: '2025-09-10T08:56:44.167Z'
+  name: managednamespaces.openportal.dev-v1alpha1
+  title: ManagedNamespace
+  description: A template to create a managednamespaces.openportal.dev instance
+  labels:
+    forEntity: system
+    source: crossplane
+    openportal.dev/version: v3.2.0
+    terasky.backstage.io/generate-form: 'true'
+  tags:
+    - source:kubernetes-ingestor
+    - crossplane
+    - cluster:openportal
+  uid: 6e9b723e-6f47-4e1d-8fca-da86dc556742
+  etag: a077591d911ead94d1c3865e7365d5637fcb0943
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+spec:
+  type: managednamespaces.openportal.dev
+  parameters:
+    - title: Resource Metadata
+      required:
+        - xrName
+        - owner
+      properties:
+        xrName:
+          title: Name
+          description: The name of the resource
+          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+          maxLength: 63
+          type: string
+        owner:
+          title: Owner
+          description: The owner of the resource
+          type: string
+          ui:field: OwnerPicker
+          ui:options:
+            catalogFilter:
+              kind: Group
+      type: object
+    - title: Resource Spec
+      properties:
+        name:
+          description: Name of the namespace to create
+          maxLength: 63
+          minLength: 1
+          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+          type: string
+      type: object
+    - title: Crossplane Settings
+      properties:
+        crossplane:
+          title: Crossplane Configuration
+          type: object
+          properties:
+            compositionUpdatePolicy:
+              title: Composition Update Policy
+              enum:
+                - Automatic
+                - Manual
+              type: string
+            compositionSelectionStrategy:
+              title: Composition Selection Strategy
+              description: How the composition should be selected.
+              enum:
+                - runtime
+                - direct-reference
+                - label-selector
+              default: runtime
+              type: string
+          dependencies:
+            compositionSelectionStrategy:
+              oneOf:
+                - properties:
+                    compositionSelectionStrategy:
+                      enum:
+                        - runtime
+                - properties:
+                    compositionSelectionStrategy:
+                      enum:
+                        - direct-reference
+                    compositionRef:
+                      title: Composition Reference
+                      properties:
+                        name:
+                          type: string
+                          title: Select A Composition By Name
+                          enum:
+                            - managednamespaces
+                          default: managednamespaces
+                      required:
+                        - name
+                      type: object
+                - properties:
+                    compositionSelectionStrategy:
+                      enum:
+                        - label-selector
+                    compositionSelector:
+                      title: Composition Selector
+                      properties:
+                        matchLabels:
+                          title: Match Labels
+                          additionalProperties:
+                            type: string
+                          type: object
+                      required:
+                        - matchLabels
+                      type: object
+      type: object
+    - title: Creation Settings
+      properties:
+        pushToGit:
+          title: Push Manifest to GitOps Repository
+          type: boolean
+          default: true
+      dependencies:
+        pushToGit:
+          oneOf:
+            - properties:
+                pushToGit:
+                  enum:
+                    - false
+            - properties:
+                pushToGit:
+                  enum:
+                    - true
+                manifestLayout:
+                  type: string
+                  description: Layout of the manifest
+                  default: cluster-scoped
+                  ui:help: |-
+                    Choose how the manifest should be generated in the repo.
+                    * Cluster-scoped - a manifest is created for each selected cluster under the root directory of the clusters name
+                    * namespace-scoped - a manifest is created for the resource under the root directory with the namespace name
+                    * custom - a manifest is created under the specified base path
+                  enum:
+                    - cluster-scoped
+                    - namespace-scoped
+                    - custom
+              dependencies:
+                manifestLayout:
+                  oneOf:
+                    - properties:
+                        manifestLayout:
+                          enum:
+                            - cluster-scoped
+                        clusters:
+                          title: Target Clusters
+                          description: The target clusters to apply the resource to
+                          type: array
+                          minItems: 1
+                          items:
+                            enum:
+                              - openportal
+                            type: string
+                          uniqueItems: true
+                          ui:widget: checkboxes
+                      required:
+                        - clusters
+                    - properties:
+                        manifestLayout:
+                          enum:
+                            - custom
+                        basePath:
+                          type: string
+                          description: Base path in GitOps repository to push the manifest to
+                      required:
+                        - basePath
+                    - properties:
+                        manifestLayout:
+                          enum:
+                            - namespace-scoped
+  steps:
+    - id: generateManifest
+      name: Generate Kubernetes Resource Manifest
+      action: terasky:claim-template
+      input:
+        parameters: ${{ parameters }}
+        nameParam: xrName
+        namespaceParam: ''
+        ownerParam: owner
+        excludeParams:
+          - crossplane.compositionSelectionStrategy
+          - owner
+          - pushToGit
+          - basePath
+          - manifestLayout
+          - _editData
+          - targetBranch
+          - repoUrl
+          - clusters
+          - xrName
+        apiVersion: openportal.dev/v1alpha1
+        kind: ManagedNamespace
+        clusters: ${{ parameters.clusters if parameters.manifestLayout === 'cluster-scoped' and parameters.pushToGit else ['temp'] }}
+        removeEmptyParams: true
+    - id: moveCustomManifest
+      name: Move and Rename Manifest
+      if: ${{ parameters.manifestLayout === 'custom' }}
+      action: fs:rename
+      input:
+        files:
+          - from: ${{ steps.generateManifest.output.filePaths[0] }}
+            to: ./${{ parameters.basePath }}/${{ parameters.xrName }}.yaml
+    - id: create-pull-request
+      name: create-pull-request
+      action: publish:github:pull-request
+      if: ${{ parameters.pushToGit }}
+      input:
+        repoUrl: github.com?owner=open-service-portal&repo=catalog-orders
+        branchName: create-${{ parameters.xrName }}-resource
+        title: Create ManagedNamespace Resource ${{ parameters.xrName }}
+        description: Create ManagedNamespace Resource ${{ parameters.xrName }}
+        targetBranchName: main
+  output:
+    links:
+      - title: Download YAML Manifest
+        url: data:application/yaml;charset=utf-8,${{ steps.generateManifest.output.manifest }}
+      - title: Open Pull Request
+        if: ${{ parameters.pushToGit }}
+        url: ${{ steps["create-pull-request"].output.remoteUrl }}
+relations: []
