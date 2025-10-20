@@ -1,0 +1,300 @@
+metadata:
+  namespace: default
+  annotations:
+    backstage.io/managed-by-location: 'cluster: openportal'
+    backstage.io/managed-by-origin-location: 'cluster: openportal'
+  name: managednamespace-openportal.dev--v1alpha1
+  title: managednamespace-openportal.dev--v1alpha1
+  uid: 77130470-d64d-4b14-8567-8a77196cab13
+  etag: d80bae65d056d03fcc286421cf236eaf56d10bbb
+apiVersion: backstage.io/v1alpha1
+kind: API
+spec:
+  type: openapi
+  lifecycle: production
+  owner: kubernetes-auto-ingested
+  system: kubernets-auto-ingested
+  definition: |
+    openapi: 3.0.0
+    info:
+      title: managednamespaces.openportal.dev
+      version: v1alpha1
+    servers:
+      - url: https://hcp-ebadc4bb-307d-482e-a9d9-fdca15fd5ff1.spot.rackspace.com/
+        description: openportal
+    tags:
+      - name: Cluster Scoped Operations
+        description: Operations on the cluster level
+      - name: Namespace Scoped Operations
+        description: Operations on the namespace level
+      - name: Specific Object Scoped Operations
+        description: Operations on a specific resource
+    paths:
+      /apis/openportal.dev/v1alpha1/managednamespaces:
+        get:
+          tags:
+            - Cluster Scoped Operations
+          summary: List all managednamespaces in all namespaces
+          operationId: listmanagednamespacesAllNamespaces
+          responses:
+            '200':
+              description: List of managednamespaces in all namespaces
+              content:
+                application/json:
+                  schema:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Resource'
+      /apis/openportal.dev/v1alpha1/namespaces/{namespace}/managednamespaces:
+        get:
+          tags:
+            - Namespace Scoped Operations
+          summary: List all managednamespaces in a namespace
+          operationId: listmanagednamespaces
+          parameters:
+            - name: namespace
+              in: path
+              required: true
+              schema:
+                type: string
+          responses:
+            '200':
+              description: List of managednamespaces
+              content:
+                application/json:
+                  schema:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Resource'
+        post:
+          tags:
+            - Namespace Scoped Operations
+          summary: Create a resource
+          operationId: createResource
+          parameters:
+            - name: namespace
+              in: path
+              required: true
+              schema:
+                type: string
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  $ref: '#/components/schemas/Resource'
+          responses:
+            '201':
+              description: Resource created
+      /apis/openportal.dev/v1alpha1/namespaces/{namespace}/managednamespaces/{name}:
+        get:
+          tags:
+            - Specific Object Scoped Operations
+          summary: Get a ManagedNamespace
+          operationId: getManagedNamespace
+          parameters:
+            - name: namespace
+              in: path
+              required: true
+              schema:
+                type: string
+            - name: name
+              in: path
+              required: true
+              schema:
+                type: string
+          responses:
+            '200':
+              description: Resource details
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    $ref: '#/components/schemas/Resource'
+        put:
+          tags:
+            - Specific Object Scoped Operations
+          summary: Update a resource
+          operationId: updateResource
+          parameters:
+            - name: namespace
+              in: path
+              required: true
+              schema:
+                type: string
+            - name: name
+              in: path
+              required: true
+              schema:
+                type: string
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  $ref: '#/components/schemas/Resource'
+          responses:
+            '200':
+              description: Resource updated
+        delete:
+          tags:
+            - Specific Object Scoped Operations
+          summary: Delete a resource
+          operationId: deleteResource
+          parameters:
+            - name: namespace
+              in: path
+              required: true
+              schema:
+                type: string
+            - name: name
+              in: path
+              required: true
+              schema:
+                type: string
+          responses:
+            '200':
+              description: Resource deleted
+    components:
+      schemas:
+        Resource:
+          type: object
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+              properties:
+                name:
+                  type: string
+                  maxLength: 63
+            spec:
+              description: Namespace configuration
+              type: object
+              required:
+                - name
+              properties:
+                crossplane:
+                  description: Configures how Crossplane will reconcile this composite resource
+                  type: object
+                  properties:
+                    compositionRef:
+                      type: object
+                      required:
+                        - name
+                      properties:
+                        name:
+                          type: string
+                    compositionRevisionRef:
+                      type: object
+                      required:
+                        - name
+                      properties:
+                        name:
+                          type: string
+                    compositionRevisionSelector:
+                      type: object
+                      required:
+                        - matchLabels
+                      properties:
+                        matchLabels:
+                          type: object
+                          additionalProperties:
+                            type: string
+                    compositionSelector:
+                      type: object
+                      required:
+                        - matchLabels
+                      properties:
+                        matchLabels:
+                          type: object
+                          additionalProperties:
+                            type: string
+                    compositionUpdatePolicy:
+                      type: string
+                      default: Automatic
+                      enum:
+                        - Automatic
+                        - Manual
+                    resourceRefs:
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - apiVersion
+                          - kind
+                        properties:
+                          apiVersion:
+                            type: string
+                          kind:
+                            type: string
+                          name:
+                            type: string
+                          namespace:
+                            type: string
+                      x-kubernetes-list-type: atomic
+                name:
+                  description: Name of the namespace to create
+                  type: string
+                  maxLength: 63
+                  minLength: 1
+                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+            status:
+              type: object
+              properties:
+                conditions:
+                  description: Conditions of the resource.
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - lastTransitionTime
+                      - reason
+                      - status
+                      - type
+                    properties:
+                      lastTransitionTime:
+                        type: string
+                        format: date-time
+                      message:
+                        type: string
+                      observedGeneration:
+                        type: integer
+                        format: int64
+                      reason:
+                        type: string
+                      status:
+                        type: string
+                      type:
+                        type: string
+                  x-kubernetes-list-map-keys:
+                    - type
+                  x-kubernetes-list-type: map
+                message:
+                  description: Status message
+                  type: string
+                phase:
+                  description: Current phase of the namespace
+                  type: string
+                ready:
+                  description: Whether the namespace is ready
+                  type: boolean
+      securitySchemes:
+        bearerHttpAuthentication:
+          description: Bearer token using a JWT
+          type: http
+          scheme: bearer
+          bearerFormat: JWT
+    security:
+      - bearerHttpAuthentication: []
+relations:
+  - type: apiConsumedBy
+    targetRef: component:default/test-namespace-openportal
+  - type: ownedBy
+    targetRef: group:default/kubernetes-auto-ingested
+  - type: partOf
+    targetRef: system:default/kubernets-auto-ingested

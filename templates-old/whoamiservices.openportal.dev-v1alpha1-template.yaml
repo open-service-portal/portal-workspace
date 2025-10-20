@@ -1,0 +1,256 @@
+metadata:
+  namespace: default
+  annotations:
+    backstage.io/managed-by-location: 'cluster: openportal'
+    backstage.io/managed-by-origin-location: 'cluster: openportal'
+    terasky.backstage.io/crossplane-version: v2
+    terasky.backstage.io/crossplane-scope: Namespaced
+    backstage.io/source-location: url:https://github.com/open-service-portal/template-whoami-service
+    crossplane.io/version: v2.0
+    description: WhoAmI application with automatic DNS configuration
+    openportal.dev/tags: service,composite
+    terasky.backstage.io/add-to-catalog: 'true'
+    terasky.backstage.io/component-type: crossplane-template
+    terasky.backstage.io/dependsOn: template:default/whoamiapps.openportal.dev-v1alpha1,template:default/dnsrecords.openportal.dev-v1alpha1
+    terasky.backstage.io/lifecycle: production
+    terasky.backstage.io/owner: platform-team
+    terasky.backstage.io/system: infrastructure-templates
+    backstage.io/discovered-at: '2025-09-10T08:56:44.167Z'
+  name: whoamiservices.openportal.dev-v1alpha1
+  title: WhoAmIService
+  description: A template to create a whoamiservices.openportal.dev instance
+  labels:
+    forEntity: system
+    source: crossplane
+    openportal.dev/version: v2.0.2
+    terasky.backstage.io/generate-form: 'true'
+  tags:
+    - source:kubernetes-ingestor
+    - crossplane
+    - cluster:openportal
+  uid: c70e38fc-1610-4d7b-93ac-7861a2c4f172
+  etag: e7f508b2b14bb7eeac68d1c8d0b133ef1e3be237
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+spec:
+  type: whoamiservices.openportal.dev
+  parameters:
+    - title: Resource Metadata
+      required:
+        - xrName
+        - owner
+        - xrNamespace
+      properties:
+        xrName:
+          title: Name
+          description: The name of the resource
+          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+          maxLength: 63
+          type: string
+        xrNamespace:
+          title: Namespace
+          description: 'The namespace in which to create the resource (default: demo)'
+          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+          maxLength: 63
+          type: string
+          default: demo
+        owner:
+          title: Owner
+          description: The owner of the resource
+          type: string
+          ui:field: OwnerPicker
+          ui:options:
+            catalogFilter:
+              kind: Group
+      type: object
+    - title: Resource Spec
+      properties:
+        name:
+          description: Service name (becomes subdomain, e.g., myapp.example.com)
+          maxLength: 63
+          minLength: 1
+          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+          type: string
+      type: object
+    - title: Crossplane Settings
+      properties:
+        crossplane:
+          title: Crossplane Configuration
+          type: object
+          properties:
+            compositionUpdatePolicy:
+              title: Composition Update Policy
+              enum:
+                - Automatic
+                - Manual
+              type: string
+            compositionSelectionStrategy:
+              title: Composition Selection Strategy
+              description: How the composition should be selected.
+              enum:
+                - runtime
+                - direct-reference
+                - label-selector
+              default: runtime
+              type: string
+          dependencies:
+            compositionSelectionStrategy:
+              oneOf:
+                - properties:
+                    compositionSelectionStrategy:
+                      enum:
+                        - runtime
+                - properties:
+                    compositionSelectionStrategy:
+                      enum:
+                        - direct-reference
+                    compositionRef:
+                      title: Composition Reference
+                      properties:
+                        name:
+                          type: string
+                          title: Select A Composition By Name
+                          enum:
+                            - whoamiservice
+                          default: whoamiservice
+                      required:
+                        - name
+                      type: object
+                - properties:
+                    compositionSelectionStrategy:
+                      enum:
+                        - label-selector
+                    compositionSelector:
+                      title: Composition Selector
+                      properties:
+                        matchLabels:
+                          title: Match Labels
+                          additionalProperties:
+                            type: string
+                          type: object
+                      required:
+                        - matchLabels
+                      type: object
+      type: object
+    - title: Creation Settings
+      properties:
+        pushToGit:
+          title: Push Manifest to GitOps Repository
+          type: boolean
+          default: true
+      dependencies:
+        pushToGit:
+          oneOf:
+            - properties:
+                pushToGit:
+                  enum:
+                    - false
+            - properties:
+                pushToGit:
+                  enum:
+                    - true
+                manifestLayout:
+                  type: string
+                  description: Layout of the manifest
+                  default: cluster-scoped
+                  ui:help: |-
+                    Choose how the manifest should be generated in the repo.
+                    * Cluster-scoped - a manifest is created for each selected cluster under the root directory of the clusters name
+                    * namespace-scoped - a manifest is created for the resource under the root directory with the namespace name
+                    * custom - a manifest is created under the specified base path
+                  enum:
+                    - cluster-scoped
+                    - namespace-scoped
+                    - custom
+              dependencies:
+                manifestLayout:
+                  oneOf:
+                    - properties:
+                        manifestLayout:
+                          enum:
+                            - cluster-scoped
+                        clusters:
+                          title: Target Clusters
+                          description: The target clusters to apply the resource to
+                          type: array
+                          minItems: 1
+                          items:
+                            enum:
+                              - openportal
+                            type: string
+                          uniqueItems: true
+                          ui:widget: checkboxes
+                      required:
+                        - clusters
+                    - properties:
+                        manifestLayout:
+                          enum:
+                            - custom
+                        basePath:
+                          type: string
+                          description: Base path in GitOps repository to push the manifest to
+                      required:
+                        - basePath
+                    - properties:
+                        manifestLayout:
+                          enum:
+                            - namespace-scoped
+  steps:
+    - id: generateManifest
+      name: Generate Kubernetes Resource Manifest
+      action: terasky:claim-template
+      input:
+        parameters: ${{ parameters }}
+        nameParam: xrName
+        namespaceParam: xrNamespace
+        ownerParam: owner
+        excludeParams:
+          - crossplane.compositionSelectionStrategy
+          - owner
+          - pushToGit
+          - basePath
+          - manifestLayout
+          - _editData
+          - targetBranch
+          - repoUrl
+          - clusters
+          - xrName
+          - xrNamespace
+        apiVersion: openportal.dev/v1alpha1
+        kind: WhoAmIService
+        clusters: ${{ parameters.clusters if parameters.manifestLayout === 'cluster-scoped' and parameters.pushToGit else ['temp'] }}
+        removeEmptyParams: true
+    - id: moveNamespacedManifest
+      name: Move and Rename Manifest
+      if: ${{ parameters.manifestLayout === 'namespace-scoped' }}
+      action: fs:rename
+      input:
+        files:
+          - from: ${{ steps.generateManifest.output.filePaths[0] }}
+            to: ./${{ parameters.xrNamespace }}/${{ steps.generateManifest.input.kind }}/${{ steps.generateManifest.output.filePaths[0].split('/').pop() }}
+    - id: moveCustomManifest
+      name: Move and Rename Manifest
+      if: ${{ parameters.manifestLayout === 'custom' }}
+      action: fs:rename
+      input:
+        files:
+          - from: ${{ steps.generateManifest.output.filePaths[0] }}
+            to: ./${{ parameters.basePath }}/${{ parameters.xrName }}.yaml
+    - id: create-pull-request
+      name: create-pull-request
+      action: publish:github:pull-request
+      if: ${{ parameters.pushToGit }}
+      input:
+        repoUrl: github.com?owner=open-service-portal&repo=catalog-orders
+        branchName: create-${{ parameters.xrName }}-resource
+        title: Create WhoAmIService Resource ${{ parameters.xrName }}
+        description: Create WhoAmIService Resource ${{ parameters.xrName }}
+        targetBranchName: main
+  output:
+    links:
+      - title: Download YAML Manifest
+        url: data:application/yaml;charset=utf-8,${{ steps.generateManifest.output.manifest }}
+      - title: Open Pull Request
+        if: ${{ parameters.pushToGit }}
+        url: ${{ steps["create-pull-request"].output.remoteUrl }}
+relations: []

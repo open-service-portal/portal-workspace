@@ -1,0 +1,113 @@
+metadata:
+  namespace: default
+  annotations:
+    backstage.io/managed-by-location: url:https://github.com/open-service-portal/service-mongodb-template/tree/main/template.yaml
+    backstage.io/managed-by-origin-location: url:https://github.com/open-service-portal/service-mongodb-template/blob/main/template.yaml
+    backstage.io/view-url: https://github.com/open-service-portal/service-mongodb-template/tree/main/template.yaml
+    backstage.io/edit-url: https://github.com/open-service-portal/service-mongodb-template/edit/main/template.yaml
+    backstage.io/source-location: https://github.com/open-service-portal/service-mongodb-template/tree/main/template.yaml
+    backstage.io/discovered-at: '2025-09-10T08:56:30.052Z'
+  name: service-mongodb-template
+  title: MongoDB Database
+  description: Provision a MongoDB database instance using Crossplane
+  tags:
+    - source:github-import
+    - crossplane
+    - database
+    - mongodb
+    - infrastructure
+    - source:github-discovered
+    - auto-discovered
+    - org:open-service-portal
+    - official
+  uid: fc0e3009-601e-4b1b-af16-0587b926c937
+  etag: 2e03af8f4e73dab7e828b930c73b3dd1e0c1d0a9
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+spec:
+  owner: group:open-service-portal
+  type: resource
+  parameters:
+    - title: MongoDB Configuration
+      required:
+        - name
+      properties:
+        name:
+          title: Instance Name
+          type: string
+          description: Unique name for your MongoDB instance
+          pattern: ^[a-z]([-a-z0-9]*[a-z0-9])?$
+          ui:autofocus: true
+        namespace:
+          title: Namespace
+          type: string
+          description: Kubernetes namespace for the MongoDB resources
+          default: default
+        storageSize:
+          title: Storage Size (GB)
+          type: integer
+          description: Storage size for the MongoDB instance in GB
+          default: 10
+          minimum: 1
+          maximum: 100
+        owner:
+          title: Owner
+          type: string
+          description: Owner of the MongoDB instance
+          ui:field: OwnerPicker
+          ui:options:
+            catalogFilter:
+              kind: Group
+    - title: Repository Location
+      required:
+        - repoUrl
+      properties:
+        repoUrl:
+          title: Repository Location
+          type: string
+          ui:field: RepoUrlPicker
+          ui:options:
+            allowedHosts:
+              - github.com
+            allowedOwners:
+              - open-service-portal
+  steps:
+    - id: fetch-base
+      name: Fetch Base
+      action: fetch:template
+      input:
+        url: ./content
+        values:
+          name: ${{ parameters.name }}
+          namespace: ${{ parameters.namespace }}
+          storageSize: ${{ parameters.storageSize }}
+          owner: ${{ parameters.owner }}
+          repoUrl: ${{ parameters.repoUrl }}
+    - id: publish
+      name: Publish to GitHub
+      action: publish:github
+      input:
+        description: MongoDB instance configuration for ${{ parameters.name }}
+        repoUrl: ${{ parameters.repoUrl }}
+        defaultBranch: main
+        gitCommitMessage: 'feat: add MongoDB instance ${{ parameters.name }}'
+        topics:
+          - crossplane
+          - mongodb
+          - infrastructure
+    - id: register
+      name: Register in Catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps['publish'].output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+  output:
+    links:
+      - title: Repository
+        url: ${{ steps['publish'].output.remoteUrl }}
+      - title: Open in catalog
+        icon: catalog
+        entityRef: ${{ steps['register'].output.entityRef }}
+relations:
+  - type: ownedBy
+    targetRef: group:default/open-service-portal

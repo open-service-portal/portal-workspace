@@ -1,0 +1,143 @@
+metadata:
+  namespace: default
+  annotations:
+    backstage.io/managed-by-location: url:https://github.com/open-service-portal/service-dnsrecord-template/tree/main/template.yaml
+    backstage.io/managed-by-origin-location: url:https://github.com/open-service-portal/service-dnsrecord-template/blob/main/template.yaml
+    backstage.io/view-url: https://github.com/open-service-portal/service-dnsrecord-template/tree/main/template.yaml
+    backstage.io/edit-url: https://github.com/open-service-portal/service-dnsrecord-template/edit/main/template.yaml
+    backstage.io/source-location: https://github.com/open-service-portal/service-dnsrecord-template/tree/main/template.yaml
+    backstage.io/discovered-at: '2025-09-10T08:56:30.092Z'
+  name: service-dnsrecord-template
+  title: DNS Record
+  description: Create and manage DNS records using Crossplane
+  tags:
+    - source:github-import
+    - crossplane
+    - dns
+    - infrastructure
+    - networking
+    - source:github-discovered
+    - auto-discovered
+    - org:open-service-portal
+    - official
+  uid: 34979462-aeeb-4d30-a393-52725ac1b9ea
+  etag: a2099c0d05119ab19e86f9e0e947c5b7279878de
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+spec:
+  owner: group:open-service-portal
+  type: resource
+  parameters:
+    - title: DNS Record Configuration
+      required:
+        - name
+        - dnsName
+        - recordValue
+      properties:
+        name:
+          title: Resource Name
+          type: string
+          description: Unique name for this DNS record resource
+          pattern: ^[a-z]([-a-z0-9]*[a-z0-9])?$
+          ui:autofocus: true
+        namespace:
+          title: Namespace
+          type: string
+          description: Kubernetes namespace for the DNS record resource
+          default: default
+        recordType:
+          title: Record Type
+          type: string
+          description: Type of DNS record
+          default: A
+          enum:
+            - A
+            - AAAA
+            - CNAME
+            - TXT
+          enumNames:
+            - A (IPv4 address)
+            - AAAA (IPv6 address)
+            - CNAME (Canonical name)
+            - TXT (Text record)
+        dnsName:
+          title: DNS Name
+          type: string
+          description: The DNS hostname (without domain suffix)
+          pattern: ^[a-z]([-a-z0-9]*[a-z0-9])?(\.[a-z]([-a-z0-9]*[a-z0-9])?)?$
+          examples:
+            - app
+            - api.staging
+            - www
+        recordValue:
+          title: Record Value
+          type: string
+          description: The value for the DNS record (IP address, hostname, or text)
+          examples:
+            - 192.168.1.1
+            - 2001:db8::1
+            - app.example.com
+            - v=spf1 include:_spf.example.com ~all
+        owner:
+          title: Owner
+          type: string
+          description: Owner of the DNS record
+          ui:field: OwnerPicker
+          ui:options:
+            catalogFilter:
+              kind: Group
+    - title: Repository Location
+      required:
+        - repoUrl
+      properties:
+        repoUrl:
+          title: Repository Location
+          type: string
+          ui:field: RepoUrlPicker
+          ui:options:
+            allowedHosts:
+              - github.com
+            allowedOwners:
+              - open-service-portal
+  steps:
+    - id: fetch-base
+      name: Fetch Base
+      action: fetch:template
+      input:
+        url: ./content
+        values:
+          name: ${{ parameters.name }}
+          namespace: ${{ parameters.namespace }}
+          recordType: ${{ parameters.recordType }}
+          dnsName: ${{ parameters.dnsName }}
+          recordValue: ${{ parameters.recordValue }}
+          owner: ${{ parameters.owner }}
+          repoUrl: ${{ parameters.repoUrl }}
+    - id: publish
+      name: Publish to GitHub
+      action: publish:github
+      input:
+        description: DNS record configuration for ${{ parameters.dnsName }}
+        repoUrl: ${{ parameters.repoUrl }}
+        defaultBranch: main
+        gitCommitMessage: 'feat: add DNS record ${{ parameters.dnsName }}'
+        topics:
+          - crossplane
+          - dns
+          - infrastructure
+    - id: register
+      name: Register in Catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps['publish'].output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+  output:
+    links:
+      - title: Repository
+        url: ${{ steps['publish'].output.remoteUrl }}
+      - title: Open in catalog
+        icon: catalog
+        entityRef: ${{ steps['register'].output.entityRef }}
+relations:
+  - type: ownedBy
+    targetRef: group:default/open-service-portal

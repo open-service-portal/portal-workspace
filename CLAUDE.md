@@ -21,6 +21,7 @@ open-service-portal/         # THIS directory = portal-workspace repo
 ├── CLAUDE.md               # Workspace-level context (this file)
 ├── README.md               # Workspace overview
 ├── docs/                   # Shared documentation
+│   ├── annotations.md      # Annotation namespace strategy ⭐ NEW
 │   ├── crossplane-v2-architecture.md  # Crossplane v2 overview
 │   ├── crossplane-catalog-setup.md    # Template management
 │   └── local-kubernetes-setup.md      # K8s setup guide
@@ -266,6 +267,7 @@ When encountering errors, check the troubleshooting guides first.
    - `examples/xr.yaml` - Usage examples (XRs, not claims)
 3. Register in catalog repository
 4. Flux automatically syncs from catalog
+5. **Use standard annotation namespaces** - See [Annotation Strategy](./docs/annotations.md)
 
 ### Environment Variables
 Required environment variables should be documented and include:
