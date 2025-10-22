@@ -44,8 +44,25 @@ open-service-portal/         # THIS directory = portal-workspace repo
 │       └── flux-catalog-orders.yaml
 ├── .gitignore              # Ignores nested repos below
 │
-├── ingestor/               # Standalone ingestor plugin (if cloned separately)
+├── ingestor/               # Standalone ingestor plugin (workspace-level)
+│   ├── src/                # TypeScript source code
+│   ├── templates/          # ⭐ Plugin default Handlebars templates
+│   │   ├── backstage/      # Main template structure (default.hbs, debug.hbs)
+│   │   ├── parameters/     # Parameter generation templates
+│   │   ├── steps/          # Workflow step templates (default, gitops)
+│   │   ├── output/         # Output section templates
+│   │   └── api/            # API documentation templates
+│   ├── scripts/            # CLI wrapper scripts
+│   ├── tests/              # Test suite with assertions
+│   └── docs/               # Comprehensive documentation
 ├── app-portal/             # NESTED repo - Main Backstage application
+│   ├── ingestor-templates/ # ⭐⭐ CUSTOMIZED templates (override plugin defaults)
+│   │   ├── backstage/      # Customized main template (default.hbs, debug.hbs)
+│   │   ├── parameters/     # Customized parameter generation
+│   │   ├── steps/          # Customized workflows (default, gitops)
+│   │   ├── output/         # Customized output messages
+│   │   ├── api/            # Customized API documentation
+│   │   └── README.md       # Customization guide
 │   ├── packages/           # Frontend and backend packages
 │   ├── plugins/            # Custom plugins (scaffolder, ingestor)
 │   ├── app-config.yaml     # Legacy monolithic configuration
@@ -188,13 +205,27 @@ The `start.js` script automatically loads all configuration modules. See [Modula
 
 ### Ingestor Plugin
 
-The standalone ingestor plugin provides Kubernetes resource discovery:
+The standalone ingestor plugin provides Kubernetes resource discovery and XRD-to-Template transformation:
 
-```typescript
-// Discovers K8s resources and generates Backstage entities
-plugins/ingestor/
+**⭐ Key Location: `ingestor/templates/` - Handlebars templates that transform XRDs into Backstage entities**
+
+```
+ingestor/                          # Workspace-level standalone plugin
+├── templates/                     # ⭐ XRD transformation templates (Handlebars)
+│   ├── backstage/default.hbs     # Main template - generates Template entity metadata
+│   ├── backstage/debug.hbs       # Debug template - shows all available variables
+│   ├── parameters/default.hbs    # Parameter generation (namespace, properties, etc.)
+│   ├── parameters/gitops.hbs     # GitOps-specific parameters (owner, repo, branch)
+│   ├── steps/default.hbs         # Direct workflow (kube:apply)
+│   ├── steps/gitops.hbs          # GitOps workflow (publish:github:pull-request)
+│   ├── output/default.hbs        # Output messages for users
+│   ├── output/gitops.hbs         # GitOps-specific outputs (PR links, etc.)
+│   └── api/default.hbs           # API entity generation
 ├── src/
-│   ├── lib/              # Core processing engine
+│   ├── xrd-transform/            # XRD transformation engine
+│   │   ├── lib/transform.ts      # Core Handlebars rendering logic
+│   │   └── helpers/index.ts      # Helper functions (getLabel, getAnnotation, etc.)
+│   ├── lib/                      # Core processing engine
 │   │   ├── IngestionEngine.ts
 │   │   ├── ResourceValidator.ts
 │   │   └── EntityBuilder.ts
@@ -212,7 +243,51 @@ plugins/ingestor/
 - Direct ts-node execution for development
 - Includes export and ingestion CLI tools
 
-See [Ingestor Documentation](./docs/ingestor.md) for complete details.
+**Template System Overview:**
+
+There are TWO template locations:
+1. **Plugin Defaults**: `ingestor/templates/` - Base templates shipped with the plugin
+2. **Customizations**: `app-portal/ingestor-templates/` - Project-specific overrides
+
+**Template Priority:** Customized templates in `app-portal/ingestor-templates/` override plugin defaults.
+
+**When to Edit Which:**
+- **Plugin defaults** (`ingestor/templates/`): When fixing bugs or adding features to the core plugin
+- **Customizations** (`app-portal/ingestor-templates/`): When adapting templates for your organization
+
+**Common Template Modifications:**
+
+1. **Metadata Changes** (title, description, tags, **labels**):
+   - **Plugin default**: `ingestor/templates/backstage/default.hbs`
+   - **Customized**: `app-portal/ingestor-templates/backstage/default.hbs`
+   - Helper functions: `getLabel`, `getAnnotation`, `slugify`, `extractTitle`
+   - Example: Adding XRD labels like `openportal.dev/version` to templates
+
+2. **Parameter Changes** (form fields):
+   - **Plugin default**: `ingestor/templates/parameters/default.hbs` or `gitops.hbs`
+   - **Customized**: `app-portal/ingestor-templates/parameters/default.hbs` or `gitops.hbs`
+   - Controls what fields users see when creating resources
+
+3. **Workflow Changes** (what happens when user submits):
+   - **Plugin default**: `ingestor/templates/steps/default.hbs` or `gitops.hbs`
+   - **Customized**: `app-portal/ingestor-templates/steps/default.hbs` or `gitops.hbs`
+   - Controls direct apply vs GitOps PR workflow
+
+4. **After making plugin template changes:**
+   ```bash
+   cd ingestor
+   ./run-tests.sh                    # Run regression tests
+   # Tests will show what changed in output
+   # Edit test assertions SURGICALLY (preserve headers!)
+   git diff tests/                   # Verify minimal changes only
+   ```
+
+5. **After making customized template changes:**
+   - No tests needed (customizations are project-specific)
+   - Test manually by running the app and creating resources
+   - See `app-portal/ingestor-templates/README.md` for customization guide
+
+See [Ingestor Documentation](./ingestor/docs/) and [Ingestor CLAUDE.md](./ingestor/CLAUDE.md) for complete details.
 
 ## Troubleshooting
 
