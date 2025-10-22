@@ -42,5 +42,59 @@ if [[ ! -f "$PLUGIN_SCRIPT" ]]; then
     exit 1
 fi
 
-# Delegate to the plugin script, forwarding all arguments
-exec "$PLUGIN_SCRIPT" "$@"
+# Parse arguments to check for command and config flag
+FIRST_ARG="${1:-}"
+HAS_CONFIG_ARG=false
+USER_CONFIG_FILE=""
+PREV_ARG=""
+
+# Check if first argument is a command (help or init)
+if [[ "$FIRST_ARG" == "help" ]] || [[ "$FIRST_ARG" == "init" ]] || [[ "$FIRST_ARG" == "--help" ]] || [[ "$FIRST_ARG" == "-h" ]]; then
+    # User wants help or init - pass through directly
+    exec "$PLUGIN_SCRIPT" "$@"
+fi
+
+# Check for config flag in arguments
+for arg in "$@"; do
+    if [[ "$PREV_ARG" == "-c" ]] || [[ "$PREV_ARG" == "--config" ]]; then
+        HAS_CONFIG_ARG=true
+        USER_CONFIG_FILE="$arg"
+        break
+    fi
+    PREV_ARG="$arg"
+done
+
+# Determine config file to use
+CONFIG_FILE=""
+if [[ "$HAS_CONFIG_ARG" == "true" ]]; then
+    # User provided config - use it as-is
+    CONFIG_FILE="$USER_CONFIG_FILE"
+else
+    # Auto-detect config from workspace
+    APP_PORTAL_DIR="${WORKSPACE_DIR}/app-portal"
+    if [[ ! -d "$APP_PORTAL_DIR" ]]; then
+        echo "Error: app-portal directory not found at: $APP_PORTAL_DIR" >&2
+        echo "Either:" >&2
+        echo "  1. Clone app-portal: git clone git@github.com:open-service-portal/app-portal.git" >&2
+        echo "  2. Provide config manually: ./scripts/template-ingest.sh -c /path/to/config.yaml <input>" >&2
+        exit 1
+    fi
+
+    CONFIG_FILE="${APP_PORTAL_DIR}/app-config/ingestor.yaml"
+    if [[ ! -f "$CONFIG_FILE" ]]; then
+        echo "Error: Config file not found at: $CONFIG_FILE" >&2
+        echo "Either:" >&2
+        echo "  1. Ensure app-portal is properly set up with modular config" >&2
+        echo "  2. Provide config manually: ./scripts/template-ingest.sh -c /path/to/config.yaml <input>" >&2
+        exit 1
+    fi
+fi
+
+# Delegate to the plugin script's transform command
+if [[ "$HAS_CONFIG_ARG" == "true" ]]; then
+    # User provided config, pass args as-is (config already in $@)
+    exec "$PLUGIN_SCRIPT" transform "$@"
+else
+    # Inject auto-detected config
+    exec "$PLUGIN_SCRIPT" transform -c "$CONFIG_FILE" "$@"
+fi
