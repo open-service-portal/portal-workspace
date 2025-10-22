@@ -42,13 +42,20 @@ if [[ ! -f "$PLUGIN_SCRIPT" ]]; then
     exit 1
 fi
 
-# Parse arguments to check for config flag
+# Parse arguments to check for command and config flag
+FIRST_ARG="${1:-}"
 HAS_CONFIG_ARG=false
 USER_CONFIG_FILE=""
 PREV_ARG=""
 
+# Check if first argument is a command (help or init)
+if [[ "$FIRST_ARG" == "help" ]] || [[ "$FIRST_ARG" == "init" ]] || [[ "$FIRST_ARG" == "--help" ]] || [[ "$FIRST_ARG" == "-h" ]]; then
+    # User wants help or init - pass through directly
+    exec "$PLUGIN_SCRIPT" "$@"
+fi
+
+# Check for config flag in arguments
 for arg in "$@"; do
-    # Check if user provided -c or --config
     if [[ "$PREV_ARG" == "-c" ]] || [[ "$PREV_ARG" == "--config" ]]; then
         HAS_CONFIG_ARG=true
         USER_CONFIG_FILE="$arg"
@@ -84,8 +91,6 @@ else
 fi
 
 # Delegate to the plugin script's transform command
-# This wrapper is specifically for template transformation (XRD -> Backstage template)
-# For other commands like 'init', call the plugin script directly: ingestor/scripts/xrd-transform.sh
 if [[ "$HAS_CONFIG_ARG" == "true" ]]; then
     # User provided config, pass args as-is (config already in $@)
     exec "$PLUGIN_SCRIPT" transform "$@"
