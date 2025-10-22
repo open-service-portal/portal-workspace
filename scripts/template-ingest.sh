@@ -42,5 +42,22 @@ if [[ ! -f "$PLUGIN_SCRIPT" ]]; then
     exit 1
 fi
 
-# Delegate to the plugin script, forwarding all arguments
-exec "$PLUGIN_SCRIPT" "$@"
+# Auto-detect config file if not provided
+CONFIG_FILE="${WORKSPACE_DIR}/app-portal/app-config/ingestor.yaml"
+HAS_CONFIG_ARG=false
+
+# Check if user already provided -c or --config
+for arg in "$@"; do
+    if [[ "$arg" == "-c" ]] || [[ "$arg" == "--config" ]]; then
+        HAS_CONFIG_ARG=true
+        break
+    fi
+done
+
+# Delegate to the plugin script
+# If config file exists and user didn't provide one, inject it
+if [[ -f "$CONFIG_FILE" ]] && [[ "$HAS_CONFIG_ARG" == "false" ]]; then
+    exec "$PLUGIN_SCRIPT" transform -c "$CONFIG_FILE" "$@"
+else
+    exec "$PLUGIN_SCRIPT" "$@"
+fi
