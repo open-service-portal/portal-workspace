@@ -3,7 +3,7 @@
 # Template Ingest - Workspace Wrapper
 #
 # This script delegates to the ingestor plugin's xrd-transform.sh script.
-# The actual implementation is maintained in app-portal/plugins/ingestor/scripts/
+# The actual implementation is maintained in ingestor/scripts/
 #
 # Usage:
 #   ./scripts/template-ingest.sh [options] [input]
@@ -23,7 +23,7 @@
 #   ./scripts/template-ingest.sh -t debug template-namespace/configuration/xrd.yaml
 #
 # For full documentation and options, see:
-#   app-portal/plugins/ingestor/docs/xrd-transform-examples.md
+#   ingestor/docs/xrd-transform-examples.md
 #
 
 set -euo pipefail
@@ -33,12 +33,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 # Find the ingestor plugin script
-PLUGIN_SCRIPT="${WORKSPACE_DIR}/app-portal/plugins/ingestor/scripts/xrd-transform.sh"
+PLUGIN_SCRIPT="${WORKSPACE_DIR}/ingestor/scripts/xrd-transform.sh"
 
 # Check if the plugin script exists
 if [[ ! -f "$PLUGIN_SCRIPT" ]]; then
     echo "Error: Ingestor plugin script not found at: $PLUGIN_SCRIPT" >&2
-    echo "Please ensure the ingestor plugin is installed at app-portal/plugins/ingestor/" >&2
+    echo "Please ensure the ingestor plugin is installed at ingestor/" >&2
     exit 1
 fi
 

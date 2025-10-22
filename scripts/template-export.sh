@@ -3,7 +3,7 @@
 # Template Export - Workspace Wrapper
 #
 # This script delegates to the ingestor plugin's backstage-export.sh script.
-# The actual implementation is maintained in app-portal/plugins/ingestor/scripts/
+# The actual implementation is maintained in ingestor/scripts/
 #
 # Usage:
 #   ./scripts/template-export.sh [options]
@@ -22,7 +22,7 @@
 #   ./scripts/template-export.sh --list --kind API
 #
 # For full documentation and options, see:
-#   app-portal/plugins/ingestor/docs/cli-export.md
+#   ingestor/docs/cli-export.md
 #
 
 set -euo pipefail
@@ -32,12 +32,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 # Find the ingestor plugin script
-PLUGIN_SCRIPT="${WORKSPACE_DIR}/app-portal/plugins/ingestor/scripts/backstage-export.sh"
+PLUGIN_SCRIPT="${WORKSPACE_DIR}/ingestor/scripts/backstage-export.sh"
 
 # Check if the plugin script exists
 if [[ ! -f "$PLUGIN_SCRIPT" ]]; then
     echo "Error: Ingestor plugin script not found at: $PLUGIN_SCRIPT" >&2
-    echo "Please ensure the ingestor plugin is installed at app-portal/plugins/ingestor/" >&2
+    echo "Please ensure the ingestor plugin is installed at ingestor/" >&2
     exit 1
 fi
 
