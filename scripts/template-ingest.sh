@@ -43,7 +43,6 @@ if [[ ! -f "$PLUGIN_SCRIPT" ]]; then
 fi
 
 # Auto-detect config file if not provided
-CONFIG_FILE="${WORKSPACE_DIR}/app-portal/app-config/ingestor.yaml"
 HAS_CONFIG_ARG=false
 
 # Check if user already provided -c or --config
@@ -56,8 +55,15 @@ done
 
 # Delegate to the plugin script
 # If config file exists and user didn't provide one, inject it
-if [[ -f "$CONFIG_FILE" ]] && [[ "$HAS_CONFIG_ARG" == "false" ]]; then
-    exec "$PLUGIN_SCRIPT" transform -c "$CONFIG_FILE" "$@"
-else
-    exec "$PLUGIN_SCRIPT" "$@"
+if [[ "$HAS_CONFIG_ARG" == "false" ]]; then
+    APP_PORTAL_DIR="${WORKSPACE_DIR}/app-portal"
+    if [[ -d "$APP_PORTAL_DIR" ]]; then
+        CONFIG_FILE="${APP_PORTAL_DIR}/app-config/ingestor.yaml"
+        if [[ -f "$CONFIG_FILE" ]]; then
+            exec "$PLUGIN_SCRIPT" transform -c "$CONFIG_FILE" "$@"
+        fi
+    fi
 fi
+
+# Fall through: no config auto-detection possible or user provided their own
+exec "$PLUGIN_SCRIPT" "$@"
