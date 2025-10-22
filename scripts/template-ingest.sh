@@ -42,30 +42,54 @@ if [[ ! -f "$PLUGIN_SCRIPT" ]]; then
     exit 1
 fi
 
-# Auto-detect config file if not provided
+# Parse arguments to check for config flag
 HAS_CONFIG_ARG=false
+USER_CONFIG_FILE=""
+PREV_ARG=""
 
-# Check if user already provided -c or --config
 for arg in "$@"; do
-    if [[ "$arg" == "-c" ]] || [[ "$arg" == "--config" ]]; then
+    # Check if user provided -c or --config
+    if [[ "$PREV_ARG" == "-c" ]] || [[ "$PREV_ARG" == "--config" ]]; then
         HAS_CONFIG_ARG=true
+        USER_CONFIG_FILE="$arg"
         break
     fi
+    PREV_ARG="$arg"
 done
 
-# Auto-inject config if available and not provided by user
-CONFIG_ARGS=()
-if [[ "$HAS_CONFIG_ARG" == "false" ]]; then
+# Determine config file to use
+CONFIG_FILE=""
+if [[ "$HAS_CONFIG_ARG" == "true" ]]; then
+    # User provided config - use it as-is
+    CONFIG_FILE="$USER_CONFIG_FILE"
+else
+    # Auto-detect config from workspace
     APP_PORTAL_DIR="${WORKSPACE_DIR}/app-portal"
-    if [[ -d "$APP_PORTAL_DIR" ]]; then
-        CONFIG_FILE="${APP_PORTAL_DIR}/app-config/ingestor.yaml"
-        if [[ -f "$CONFIG_FILE" ]]; then
-            CONFIG_ARGS=("-c" "$CONFIG_FILE")
-        fi
+    if [[ ! -d "$APP_PORTAL_DIR" ]]; then
+        echo "Error: app-portal directory not found at: $APP_PORTAL_DIR" >&2
+        echo "Either:" >&2
+        echo "  1. Clone app-portal: git clone git@github.com:open-service-portal/app-portal.git" >&2
+        echo "  2. Provide config manually: ./scripts/template-ingest.sh -c /path/to/config.yaml <input>" >&2
+        exit 1
+    fi
+
+    CONFIG_FILE="${APP_PORTAL_DIR}/app-config/ingestor.yaml"
+    if [[ ! -f "$CONFIG_FILE" ]]; then
+        echo "Error: Config file not found at: $CONFIG_FILE" >&2
+        echo "Either:" >&2
+        echo "  1. Ensure app-portal is properly set up with modular config" >&2
+        echo "  2. Provide config manually: ./scripts/template-ingest.sh -c /path/to/config.yaml <input>" >&2
+        exit 1
     fi
 fi
 
 # Delegate to the plugin script's transform command
-# Note: This wrapper is specifically for template transformation (XRD -> Backstage template)
-# For other commands like 'init', use the plugin script directly: ingestor/scripts/xrd-transform.sh
-exec "$PLUGIN_SCRIPT" transform "${CONFIG_ARGS[@]}" "$@"
+# This wrapper is specifically for template transformation (XRD -> Backstage template)
+# For other commands like 'init', call the plugin script directly: ingestor/scripts/xrd-transform.sh
+if [[ "$HAS_CONFIG_ARG" == "true" ]]; then
+    # User provided config, pass args as-is (config already in $@)
+    exec "$PLUGIN_SCRIPT" transform "$@"
+else
+    # Inject auto-detected config
+    exec "$PLUGIN_SCRIPT" transform -c "$CONFIG_FILE" "$@"
+fi
