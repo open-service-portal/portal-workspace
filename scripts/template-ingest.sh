@@ -53,17 +53,19 @@ for arg in "$@"; do
     fi
 done
 
-# Delegate to the plugin script
-# If config file exists and user didn't provide one, inject it
+# Auto-inject config if available and not provided by user
+CONFIG_ARGS=()
 if [[ "$HAS_CONFIG_ARG" == "false" ]]; then
     APP_PORTAL_DIR="${WORKSPACE_DIR}/app-portal"
     if [[ -d "$APP_PORTAL_DIR" ]]; then
         CONFIG_FILE="${APP_PORTAL_DIR}/app-config/ingestor.yaml"
         if [[ -f "$CONFIG_FILE" ]]; then
-            exec "$PLUGIN_SCRIPT" transform -c "$CONFIG_FILE" "$@"
+            CONFIG_ARGS=("-c" "$CONFIG_FILE")
         fi
     fi
 fi
 
-# Fall through: no config auto-detection possible or user provided their own
-exec "$PLUGIN_SCRIPT" "$@"
+# Delegate to the plugin script's transform command
+# Note: This wrapper is specifically for template transformation (XRD -> Backstage template)
+# For other commands like 'init', use the plugin script directly: ingestor/scripts/xrd-transform.sh
+exec "$PLUGIN_SCRIPT" transform "${CONFIG_ARGS[@]}" "$@"
