@@ -144,9 +144,110 @@ for repo in $REPOS; do
         # These are reference repos, skip them
         continue
     fi
-    
+
     check_repo "$repo" || true
 done
+
+# Check for nested plugin repositories (depth > 2)
+# These are git repositories inside other repositories (e.g., app-portal/plugins/ingestor)
+NESTED_PLUGIN_PATH="$WORKSPACE_ROOT/app-portal/plugins/ingestor"
+if [[ -d "$NESTED_PLUGIN_PATH/.git" ]]; then
+    repo_name=$(basename "$NESTED_PLUGIN_PATH")
+    echo -e "${YELLOW}Checking: app-portal/plugins/${repo_name} (nested plugin)${NC}"
+    cd "$NESTED_PLUGIN_PATH"
+
+    # Get current branch
+    current_branch=$(git branch --show-current 2>/dev/null || echo "unknown")
+
+    # Check for uncommitted changes
+    if ! git diff --quiet || ! git diff --cached --quiet; then
+        echo -e "  ${RED}✗ Has uncommitted changes${NC}"
+        echo -e "  Current branch: ${current_branch}"
+        git status --short | head -5 | sed 's/^/    /'
+        HAS_CHANGES=true
+        echo ""
+    else
+        # Check for untracked files
+        if [[ -n $(git ls-files --others --exclude-standard) ]]; then
+            echo -e "  ${YELLOW}⚠ Has untracked files${NC}"
+            git ls-files --others --exclude-standard | head -5 | sed 's/^/    /'
+        fi
+
+        # Check if we're on main/master branch
+        main_branch="main"
+        if ! git show-ref --verify --quiet refs/heads/main; then
+            if git show-ref --verify --quiet refs/heads/master; then
+                main_branch="master"
+            fi
+        fi
+
+        if [[ "$current_branch" != "$main_branch" ]]; then
+            echo -e "  ${YELLOW}⚠ Not on $main_branch branch (current: $current_branch)${NC}"
+
+            if [[ "$PULL_MODE" == true ]]; then
+                echo -e "  Switching to $main_branch..."
+                if git checkout "$main_branch" 2>/dev/null; then
+                    echo -e "  ${GREEN}✓ Switched to $main_branch${NC}"
+                    current_branch=$main_branch
+                else
+                    echo -e "  ${RED}✗ Failed to switch to $main_branch${NC}"
+                    HAS_ERRORS=true
+                    echo ""
+                fi
+            fi
+        else
+            echo -e "  ${GREEN}✓ On $main_branch branch${NC}"
+        fi
+
+        # Pull latest if in pull mode and on main branch
+        if [[ "$PULL_MODE" == true && "$current_branch" == "$main_branch" ]]; then
+            echo -e "  Pulling latest from origin/$main_branch..."
+
+            # First fetch to see if there are updates
+            git fetch origin "$main_branch" --quiet
+
+            # Check if we're behind
+            LOCAL=$(git rev-parse HEAD)
+            REMOTE=$(git rev-parse "origin/$main_branch")
+
+            if [[ "$LOCAL" != "$REMOTE" ]]; then
+                if git pull origin "$main_branch" --ff-only 2>/dev/null; then
+                    echo -e "  ${GREEN}✓ Successfully pulled latest changes${NC}"
+
+                    # Show what was updated
+                    git log --oneline HEAD@{1}..HEAD | head -5 | sed 's/^/    /'
+                else
+                    echo -e "  ${RED}✗ Failed to pull (may need merge or rebase)${NC}"
+                    HAS_ERRORS=true
+                fi
+            else
+                echo -e "  ${GREEN}✓ Already up to date${NC}"
+            fi
+        elif [[ "$PULL_MODE" == false ]]; then
+            # Just check if we're behind origin
+            git fetch origin "$main_branch" --quiet 2>/dev/null || true
+
+            if git show-ref --verify --quiet "refs/remotes/origin/$main_branch"; then
+                LOCAL=$(git rev-parse HEAD 2>/dev/null || echo "none")
+                REMOTE=$(git rev-parse "origin/$main_branch" 2>/dev/null || echo "none")
+
+                if [[ "$LOCAL" != "$REMOTE" && "$LOCAL" != "none" && "$REMOTE" != "none" ]]; then
+                    BEHIND=$(git rev-list --count HEAD.."origin/$main_branch" 2>/dev/null || echo "0")
+                    AHEAD=$(git rev-list --count "origin/$main_branch"..HEAD 2>/dev/null || echo "0")
+
+                    if [[ "$BEHIND" -gt 0 ]]; then
+                        echo -e "  ${YELLOW}⚠ Behind origin/$main_branch by $BEHIND commit(s)${NC}"
+                    fi
+                    if [[ "$AHEAD" -gt 0 ]]; then
+                        echo -e "  ${YELLOW}⚠ Ahead of origin/$main_branch by $AHEAD commit(s)${NC}"
+                    fi
+                fi
+            fi
+        fi
+
+        echo ""
+    fi
+fi
 
 # Summary
 echo -e "${BLUE}========================================${NC}"
