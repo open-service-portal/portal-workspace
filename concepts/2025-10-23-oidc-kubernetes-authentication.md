@@ -47,6 +47,53 @@ The kubeconfig reveals:
 - **JWT structure**: Includes `org_id` for multi-tenant organization support
 - **Token caching**: kubectl uses `~/.kube/cache/oidc-login/` for token caching
 
+### Actual JWT Token Claims Analysis
+
+Analysis of actual OIDC token from Auth0 (`login.spot.rackspace.com`):
+
+| Claim | Value | Purpose | Recommendation |
+|-------|-------|---------|----------------|
+| **email** | fboehm.ext@cloudpunks.de | User identity | ✅ **Use for Backstage identity** |
+| **email_verified** | true | Email validation | ✅ Verified, reliable |
+| **name** | fboehm.ext@cloudpunks.de | Display name | Same as email |
+| **nickname** | fboehm.ext | Short username | Alternative identifier |
+| **sub** | auth0\|6893b1873be85eaf2d8d6a06 | Unique immutable ID | Alternative for identity |
+| **group** ⚠️ | cloudspace-admin | Kubernetes RBAC | ✅ **Use for K8s groups** |
+| **org_id** | org_zOuCBHiyF1yG8d1D | Organization context | Multi-tenant filtering |
+| **iss** | https://login.spot.rackspace.com/ | Token issuer | OIDC validation |
+| **aud** | mwG3lUMV8KyeMqHe4fJ5Bb3nM1vBvRNa | Client ID | OIDC validation |
+| **exp** | 1761552502 (~3 days) | Token expiration | Good UX (infrequent re-auth) |
+| **picture** | gravatar URL | User avatar | Optional UI enhancement |
+
+**⚠️ Important Findings:**
+
+1. **Group Claim is Singular**: Auth0 returns `"group": "cloudspace-admin"` (string, not array)
+   - Kubernetes expects groups claim to be a string or array
+   - Current value means users belong to ONE group only
+   - If multiple groups needed, Auth0 configuration must be updated
+
+2. **Email is Verified**: `email_verified: true` makes email the most reliable identity claim
+
+3. **Token Lifetime**: 3-day expiration (259200 seconds) provides good UX
+
+4. **No `preferred_username`**: Auth0 doesn't provide this standard OIDC claim
+   - Use `email` or `nickname` instead for Kubernetes username
+
+**Recommended Claim Mapping:**
+
+```yaml
+# For Backstage (Identity Resolution)
+signIn:
+  resolver:
+    emailMatchingUserEntityProfileEmail: {}  # Use "email" claim
+
+# For Kubernetes (Username & Groups)
+kube-apiserver-arg:
+  - "oidc-username-claim=email"     # ✅ Use verified email as username
+  - "oidc-groups-claim=group"       # ⚠️ Singular "group", not "groups"!
+  - "oidc-username-prefix=-"        # No prefix (optional)
+```
+
 ## Choices Made
 
 ### 1. Authentication Flow: Automatic On-Demand OIDC
@@ -164,15 +211,18 @@ auth:
         metadataUrl: https://login.spot.rackspace.com/.well-known/openid-configuration
         clientId: mwG3lUMV8KyeMqHe4fJ5Bb3nM1vBvRNa
         clientSecret: ${AUTH_OIDC_CLIENT_SECRET}
-        scope: 'openid profile email'
+        scope: 'openid profile email'  # ✅ Actual scopes used by Auth0
         prompt: auto  # Prompt user when needed, not on every request
-        # Additional Auth0 parameters
-        additionalScopes:
-          - organization
         signIn:
           resolver:
-            # Start with email matching - reconfigurable later
+            # ✅ RECOMMENDED: Use email for identity matching
+            # JWT claim: "email": "fboehm.ext@cloudpunks.de"
+            # Matches with Backstage user entity email field
             emailMatchingUserEntityProfileEmail: {}
+
+            # Alternative: Use Auth0 subject ID (immutable)
+            # JWT claim: "sub": "auth0|6893b1873be85eaf2d8d6a06"
+            # Would require custom resolver to map to Backstage entity
 ```
 
 **Environment Variables:**
