@@ -5,8 +5,8 @@
 # Cloned repositories (managed separately)
 .github/
 github-org-settings/
-app-portal/
-deploy-app-portal/
+/app-portal/
+/deploy-app-portal/
 catalog/
 catalog-orders/
 docusaurus/
@@ -18,7 +18,7 @@ template-*/
 service-*-template/
 
 # Reference Repositories (for documentation search)
-backstage*/
+# Note: backstage/ folder itself is tracked (with docs), but cloned repos inside are ignored
 crossplane*/
 
 # K8s Configs
@@ -42,9 +42,13 @@ node_modules/
 .idea/
 *.code-workspace
 
+# MCP
+.playwright-mcp/
+
 # Temporary
 *.swp
 *~
+debug/
 
 # Local resources
 .local/

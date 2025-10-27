@@ -1,0 +1,10 @@
+# Ignore cloned repositories (too large for git)
+# These are reference repos cloned locally for documentation search
+
+backstage/
+community-plugins/
+terasky-backstage-plugins/
+
+# Keep documentation files
+!README.md
+!CLAUDE.md
