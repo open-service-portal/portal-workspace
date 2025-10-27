@@ -1,0 +1,174 @@
+# Plugin Override Examples
+#
+# This configuration shows how to override and customize plugin behavior
+# without modifying plugin code.
+
+app:
+  # Extension configuration and overrides
+  extensions:
+    # ============================================
+    # 1. Override Default Paths
+    # ============================================
+
+    # Change catalog path from /catalog to /services
+    - page:catalog/index:
+        config:
+          path: /services
+
+    # Change scaffolder path from /create to /templates
+    - page:scaffolder/index:
+        config:
+          path: /templates
+
+    # ============================================
+    # 2. Disable Extensions
+    # ============================================
+
+    # Disable TechDocs if not using documentation
+    - page:techdocs/index:
+        disabled: true
+
+    - page:techdocs/reader:
+        disabled: true
+
+    # Disable API docs if not needed
+    - page:api-docs/index:
+        disabled: true
+
+    # ============================================
+    # 3. Configure Sign-In Page
+    # ============================================
+
+    - sign-in-page:app/custom:
+        config:
+          provider:
+            id: github
+            title: GitHub
+            message: Sign in with your GitHub organization account
+          autoSignIn: true  # Enable auto sign-in
+
+    # ============================================
+    # 4. Theme Configuration
+    # ============================================
+
+    # Set default theme
+    - theme:app/light:
+        config:
+          default: true
+
+    # Disable dark theme
+    - theme:app/dark:
+        disabled: true
+
+    # ============================================
+    # 5. Navigation Customization
+    # ============================================
+
+    # Reorder nav items by priority
+    - nav-item:catalog/catalog:
+        config:
+          priority: 100  # Higher priority = appears first
+
+    - nav-item:scaffolder/templates:
+        config:
+          priority: 90
+
+    # Change nav item title
+    - nav-item:catalog/catalog:
+        config:
+          title: Services  # Change "Catalog" to "Services"
+
+    # ============================================
+    # 6. Entity Page Customization
+    # ============================================
+
+    # Disable specific entity cards
+    - entity-card:catalog/about:
+        disabled: true  # Hide about card
+
+    # Reorder entity cards
+    - entity-card:catalog/links:
+        config:
+          gridProps:
+            xs: 12
+            md: 6
+
+    # ============================================
+    # 7. Custom Extension Attachment
+    # ============================================
+
+    # Move a widget to a different page
+    - widget:my-plugin/stats:
+        attachTo:
+          id: page:catalog/entity
+          input: widgets
+        config:
+          position: top
+
+    # ============================================
+    # 8. Feature Flags
+    # ============================================
+
+    # Enable/disable features
+    - page:my-plugin/beta-feature:
+        config:
+          enabled: false  # Disable beta features in production
+
+    # ============================================
+    # 9. Plugin-Specific Configuration
+    # ============================================
+
+    # Configure catalog plugin
+    - page:catalog/index:
+        config:
+          initiallySelectedFilter: all
+          columns:
+            - title
+            - type
+            - owner
+            - lifecycle
+
+    # Configure scaffolder plugin
+    - page:scaffolder/index:
+        config:
+          defaultOwner: platform-team
+          defaultNamespace: default
+
+# ============================================
+# Plugin Info Overrides
+# ============================================
+
+# Override plugin metadata
+app:
+  pluginInfo:
+    - pluginId: catalog
+      name: Service Catalog
+      description: Browse and manage your services
+
+    - pluginId: scaffolder
+      name: Template Creator
+      description: Create new services from templates
+
+# ============================================
+# Advanced: Multiple Environment Configs
+# ============================================
+
+# Development environment
+---
+# app-config.local.yaml (gitignored)
+app:
+  extensions:
+    - page:my-plugin/dev-tools:
+        disabled: false  # Enable in dev
+
+# Production environment
+---
+# app-config.production.yaml
+app:
+  extensions:
+    - page:my-plugin/dev-tools:
+        disabled: true  # Disable in production
+
+    - sign-in-page:app/custom:
+        config:
+          autoSignIn: false  # Require explicit sign-in in production

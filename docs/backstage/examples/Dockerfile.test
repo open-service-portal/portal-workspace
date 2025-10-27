@@ -1,0 +1,125 @@
+# Dockerfile for Testing Backstage New Frontend System Examples
+#
+# This provides a clean Backstage v1.42.0+ environment for testing
+# code examples from this documentation.
+#
+# Usage:
+#   docker build -t backstage-test -f Dockerfile.test .
+#   docker run -it -v $(pwd):/examples backstage-test
+
+FROM node:20-bullseye-slim
+
+# Install dependencies
+RUN apt-get update && \
+    apt-get install -y \
+      git \
+      python3 \
+      build-essential \
+      curl && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Yarn
+RUN corepack enable && \
+    corepack prepare yarn@stable --activate
+
+# Set working directory
+WORKDIR /app
+
+# Create a new Backstage app with new frontend system
+RUN npx @backstage/create-app@latest --next \
+    --skip-install \
+    backstage-test-app && \
+    mv backstage-test-app/* . && \
+    mv backstage-test-app/.* . || true && \
+    rmdir backstage-test-app
+
+# Install dependencies
+RUN yarn install
+
+# Expose ports
+EXPOSE 3000 7007
+
+# Default command: start the app
+CMD ["yarn", "dev"]
+
+# --- USAGE INSTRUCTIONS ---
+#
+# 1. Build the image:
+#    docker build -t backstage-test -f Dockerfile.test .
+#
+# 2. Run with examples mounted:
+#    docker run -it -p 3000:3000 -p 7007:7007 \
+#      -v $(pwd)/auth-providers:/app/examples \
+#      backstage-test
+#
+# 3. Inside container, copy examples:
+#    cd /app/packages/app/src
+#    mkdir -p apis modules/auth
+#    cp /examples/custom-oidc-ref.ts apis/
+#    cp /examples/custom-oidc-implementation.tsx modules/auth/
+#
+# 4. Edit App.tsx to use examples
+#
+# 5. Start app:
+#    yarn dev
+#
+# 6. Open browser:
+#    http://localhost:3000
+#
+# --- QUICK TEST SCRIPT ---
+#
+# #!/bin/bash
+# # File: test-oidc-example.sh
+#
+# echo "Building test environment..."
+# docker build -t backstage-test -f Dockerfile.test .
+#
+# echo "Starting container..."
+# docker run -it --rm \
+#   -p 3000:3000 \
+#   -p 7007:7007 \
+#   -v $(pwd)/auth-providers:/examples \
+#   backstage-test \
+#   bash -c "
+#     echo 'Setting up OIDC example...'
+#     cd /app/packages/app/src
+#     mkdir -p apis modules/auth modules/signInPage
+#
+#     # Copy example files
+#     cp /examples/custom-oidc-ref.ts apis/ || echo 'Failed to copy ref'
+#     echo 'Copied API ref'
+#
+#     # Note: You'll need to manually adapt the implementation
+#     # from custom-oidc-implementation.tsx to your App.tsx
+#
+#     echo 'Starting Backstage...'
+#     cd /app
+#     yarn dev
+#   "
+#
+# --- DEVELOPMENT MODE ---
+#
+# For development/testing with live reload:
+#
+# docker run -it --rm \
+#   -p 3000:3000 \
+#   -p 7007:7007 \
+#   -v $(pwd)/auth-providers:/examples \
+#   -v $(pwd)/test-app:/app \
+#   backstage-test
+#
+# This mounts your local test-app directory so changes persist
+#
+# --- TROUBLESHOOTING ---
+#
+# 1. Port conflicts:
+#    - Change ports: -p 3001:3000 -p 7008:7007
+#
+# 2. Permission issues:
+#    - Run with: --user $(id -u):$(id -g)
+#
+# 3. Out of memory:
+#    - Increase Docker memory: --memory=4g
+#
+# 4. Slow builds:
+#    - Use BuildKit: DOCKER_BUILDKIT=1 docker build ...

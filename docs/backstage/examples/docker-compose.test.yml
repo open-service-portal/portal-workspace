@@ -1,0 +1,126 @@
+# Docker Compose for Testing Backstage Examples
+#
+# Usage:
+#   docker-compose -f docker-compose.test.yml up
+#
+# This sets up:
+# - Backstage frontend (port 3000)
+# - Backstage backend (port 7007)
+# - PostgreSQL database (for production-like setup)
+#
+# Examples are mounted and can be tested in a clean environment
+
+version: '3.8'
+
+services:
+  # PostgreSQL database
+  postgres:
+    image: postgres:15-alpine
+    container_name: backstage-test-db
+    environment:
+      POSTGRES_USER: backstage
+      POSTGRES_PASSWORD: backstage
+      POSTGRES_DB: backstage
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U backstage']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backstage application
+  backstage:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: backstage-test-app
+    ports:
+      - '3000:3000'  # Frontend
+      - '7007:7007'  # Backend
+    environment:
+      # Database
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: backstage
+      POSTGRES_PASSWORD: backstage
+
+      # Backend
+      BACKEND_URL: http://localhost:7007
+
+      # Frontend
+      APP_BASE_URL: http://localhost:3000
+
+    volumes:
+      # Mount examples for testing
+      - ./auth-providers:/examples/auth-providers:ro
+      - ./app-creation:/examples/app-creation:ro
+      - ./utility-apis:/examples/utility-apis:ro
+
+      # Optional: Mount app source for live editing
+      # - ./test-app:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: |
+      bash -c "
+        echo '🚀 Starting Backstage Test Environment'
+        echo '📁 Examples mounted in /examples/'
+        echo '🌐 Frontend: http://localhost:3000'
+        echo '🔧 Backend: http://localhost:7007'
+        echo ''
+        echo 'To test examples:'
+        echo '  1. docker exec -it backstage-test-app bash'
+        echo '  2. Copy example files to /app/packages/app/src/'
+        echo '  3. Edit App.tsx to use examples'
+        echo '  4. Restart: docker-compose restart backstage'
+        echo ''
+        yarn dev
+      "
+
+volumes:
+  postgres-data:
+
+# --- USAGE ---
+#
+# 1. Start environment:
+#    docker-compose -f docker-compose.test.yml up
+#
+# 2. In another terminal, exec into container:
+#    docker exec -it backstage-test-app bash
+#
+# 3. Copy and test examples:
+#    cd /app/packages/app/src
+#    mkdir -p apis modules/auth
+#    cp /examples/auth-providers/custom-oidc-ref.ts apis/
+#    # Edit App.tsx to import and use
+#
+# 4. Restart to apply changes:
+#    docker-compose -f docker-compose.test.yml restart backstage
+#
+# 5. Open browser:
+#    http://localhost:3000
+#
+# 6. Stop environment:
+#    docker-compose -f docker-compose.test.yml down
+#
+# --- QUICK TEST ---
+#
+# Test OIDC example:
+#
+# docker-compose -f docker-compose.test.yml up -d
+# docker exec -it backstage-test-app bash -c "
+#   cd /app/packages/app/src
+#   mkdir -p apis
+#   cp /examples/auth-providers/custom-oidc-ref.ts apis/
+#   echo 'Example copied. Edit App.tsx to use it.'
+# "
+#
+# --- CLEANUP ---
+#
+# Remove everything:
+#   docker-compose -f docker-compose.test.yml down -v
+#
+# This removes containers, networks, and volumes
