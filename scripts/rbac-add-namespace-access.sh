@@ -63,9 +63,12 @@ if [[ ! -f "$TEMPLATE_FILE" ]]; then
 fi
 
 # Generate binding name
-username="${USER_EMAIL%%@*}"
-username="${username//./-}"
-BINDING_NAME="${username}-${ROLE}-binding"
+# Convert full email to Kubernetes-compatible label (replace @ with -at-, lowercase, max 63 chars)
+USERNAME=$(echo "$USER_EMAIL" | tr '[:upper:]' '[:lower:]')  # Convert to lowercase
+USERNAME="${USERNAME/@/-at-}"        # Replace @ with -at-
+USERNAME="${USERNAME//./-}"          # Replace dots with dashes
+USERNAME="${USERNAME:0:50}"          # Truncate to leave room for role suffix
+BINDING_NAME="${USERNAME}-${ROLE}-binding"
 
 # Check if exists
 if kubectl get rolebinding "$BINDING_NAME" -n "$NAMESPACE" &> /dev/null 2>&1; then
@@ -74,7 +77,7 @@ if kubectl get rolebinding "$BINDING_NAME" -n "$NAMESPACE" &> /dev/null 2>&1; th
 fi
 
 # Generate manifest using envsubst (creates namespace if not exists)
-export USER_EMAIL NAMESPACE ROLE BINDING_NAME
+export USER_EMAIL NAMESPACE ROLE BINDING_NAME USERNAME
 export CREATED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
 envsubst < "$TEMPLATE_FILE" | kubectl apply -f -

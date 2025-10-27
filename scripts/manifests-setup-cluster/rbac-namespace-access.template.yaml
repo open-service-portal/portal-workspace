@@ -1,13 +1,13 @@
 ---
 # Namespace for User
-# Template variables: NAMESPACE, USER_EMAIL, CREATED_AT
+# Template variables: NAMESPACE, USER_EMAIL, USERNAME, CREATED_AT
 apiVersion: v1
 kind: Namespace
 metadata:
   name: ${NAMESPACE}
   labels:
     name: ${NAMESPACE}
-    rbac.openportal.dev/owner: "oidc:${USER_EMAIL}"
+    rbac.openportal.dev/owner: "${USERNAME}"
     rbac.openportal.dev/managed-by: rbac-add-namespace-access
   annotations:
     rbac.openportal.dev/description: "Namespace for ${USER_EMAIL}"
@@ -15,7 +15,7 @@ metadata:
 
 ---
 # RoleBinding for Namespace Access
-# Template variables: BINDING_NAME, NAMESPACE, USER_EMAIL, ROLE, CREATED_AT
+# Template variables: BINDING_NAME, NAMESPACE, USER_EMAIL, USERNAME, ROLE, CREATED_AT
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
