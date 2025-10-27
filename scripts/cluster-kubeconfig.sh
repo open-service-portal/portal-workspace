@@ -67,6 +67,7 @@ fi
 
 # Define paths
 KUBE_CONFIG_HOME="$HOME/.kube/config"
+TEST_USERS_DIR="$HOME/.kube/test-users"
 
 echo -e "${BLUE}📋 Kubeconfig Import Tool${NC}"
 echo ""
@@ -89,6 +90,13 @@ if [[ ! -f "$KUBECONFIG_FILE" ]]; then
     echo ""
     echo "Available kubeconfig files:"
     ls -1 *.kubeconfig 2>/dev/null | sed 's/^/   - /' || echo "   None found"
+    echo ""
+    echo "Test user kubeconfigs:"
+    if [[ -d "$TEST_USERS_DIR" ]]; then
+        ls -1 "$TEST_USERS_DIR"/*-kubeconfig.yaml 2>/dev/null | sed 's/^/   - /' || echo "   None found"
+    else
+        echo "   None found (directory $TEST_USERS_DIR does not exist)"
+    fi
     exit 1
 fi
 
@@ -221,3 +229,35 @@ echo ""
 # Show imported contexts in kubectl config
 echo "Available contexts:"
 kubectl config get-contexts
+
+# Show test user kubeconfigs if they exist
+echo ""
+if [[ -d "$TEST_USERS_DIR" ]] && ls "$TEST_USERS_DIR"/*-kubeconfig.yaml &>/dev/null; then
+    echo -e "${BLUE}🧪 Test user kubeconfigs:${NC}"
+    for kubeconfig in "$TEST_USERS_DIR"/*-kubeconfig.yaml; do
+        USERNAME=$(basename "$kubeconfig" -kubeconfig.yaml)
+
+        # Get permission from kubeconfig if possible
+        if [[ -f "$kubeconfig" ]]; then
+            # Try to detect permission type
+            if grep -q "clusterrolebinding" <<< "$(kubectl --kubeconfig="$kubeconfig" auth can-i --list 2>/dev/null)"; then
+                PERMISSION="cluster-admin"
+            else
+                NAMESPACE=$(yq '.contexts[0].context.namespace' "$kubeconfig" 2>/dev/null || echo "default")
+                PERMISSION="namespace-scoped ($NAMESPACE)"
+            fi
+        else
+            PERMISSION="unknown"
+        fi
+
+        echo -e "   ${GREEN}✓${NC} $USERNAME"
+        echo "      └─ file: $kubeconfig"
+        echo "      └─ usage: export KUBECONFIG=$kubeconfig"
+    done
+    echo ""
+    echo "   To use a test user:"
+    echo "   export KUBECONFIG=$TEST_USERS_DIR/<username>-kubeconfig.yaml"
+    echo ""
+    echo "   To switch back:"
+    echo "   unset KUBECONFIG"
+fi
