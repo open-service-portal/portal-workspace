@@ -4,7 +4,23 @@ This directory contains **general Backstage documentation** that applies to any 
 
 ## Contents
 
-- `github-app-setup.md` - Guide to setting up GitHub App integration for Backstage
+### Guides
+- **[github-app-setup.md](./github-app-setup.md)** - Guide to setting up GitHub App integration for Backstage
+
+### New Frontend System Documentation
+- **[new-frontend-system/](./new-frontend-system/)** - Complete guide to Backstage's new frontend system (v1.42.0+)
+  - 7 comprehensive documentation files (6,900+ lines)
+  - 15 working code examples
+  - Extension architecture, plugins, APIs, migration
+  - See [new-frontend-system/INDEX.md](./new-frontend-system/INDEX.md) to get started
+
+### Examples
+- **[examples/](./examples/)** - Practical code examples for the new frontend system
+  - App creation examples
+  - Extension examples (simple, with inputs, with config)
+  - Auth provider examples (OIDC, OAuth2)
+  - Utility API examples
+  - Plugin examples
 
 ## Scope
 
