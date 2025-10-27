@@ -6,13 +6,13 @@
 
 ## Overview
 
-This documentation provides a comprehensive guide to Backstage's **New Frontend System**, an extension-based architecture that replaces the legacy frontend system. It includes practical examples, patterns, and answers to common questions, with a specific focus on **auth provider registration** and **custom utility APIs**.
+This documentation provides a comprehensive guide to Backstage's **New Frontend System**, an extension-based architecture that replaces the legacy frontend system. It includes practical examples, patterns, and best practices for building plugins and applications.
 
 ### Purpose
 
 - **Developer Guide**: Help developers build plugins and apps with the new frontend system
 - **Migration Reference**: Assist teams migrating from legacy to new frontend system
-- **Auth Provider Focus**: Deep dive into custom auth provider registration (OIDC, OAuth2, PKCE)
+- **Practical Examples**: Working code examples for common patterns and use cases
 - **Best Practices**: Extract patterns from Backstage core and community plugins
 
 ### Key Benefits of the New Frontend System
@@ -54,13 +54,13 @@ This documentation provides a comprehensive guide to Backstage's **New Frontend 
    - Dependencies between APIs
    - Consuming APIs in components and extensions
 
-5. **[Auth Providers & Custom APIs](./05-auth-providers.md)** ⭐ CRITICAL FOR OIDC/PKCE
+5. **[Auth Providers & Custom APIs](./05-auth-providers.md)**
    - Standard auth API refs (GitHub, GitLab, OIDC, OAuth2)
    - How OAuth2.create() works
    - Frontend/backend separation
-   - PKCE transparency
    - Registering custom auth providers
    - API factory patterns
+   - OIDC and PKCE implementation
 
 6. **[Plugin Development](./06-plugin-development.md)**
    - Plugin structure in new frontend system
@@ -98,7 +98,7 @@ All code examples are extracted from Backstage core and tested patterns:
 - [`examples/utility-apis/api-implementation.tsx`](../examples/utility-apis/api-implementation.tsx) - Implement and register API
 - [`examples/utility-apis/consuming-api.tsx`](../examples/utility-apis/consuming-api.tsx) - Use API in components
 
-### Auth Provider Examples ⭐
+### Auth Provider Examples
 - [`examples/auth-providers/custom-oidc-ref.ts`](../examples/auth-providers/custom-oidc-ref.ts) - Create custom OIDC API ref
 - [`examples/auth-providers/custom-oidc-implementation.tsx`](../examples/auth-providers/custom-oidc-implementation.tsx) - Implement custom OIDC provider
 - [`examples/auth-providers/oauth2-create-pattern.tsx`](../examples/auth-providers/oauth2-create-pattern.tsx) - How OAuth2.create() works
@@ -395,40 +395,37 @@ This section maps all questions from [`new-frontend-system-deep-dive-requirement
 
 ## 🎯 Key Takeaways
 
-### For Custom OIDC/PKCE Implementation
+### 1. Extension-Based Architecture
 
-1. **Backend and Frontend are Independent**
-   - Register PKCE provider in backend module
-   - Frontend uses standard OAuth2 flow (PKCE is transparent)
-   - Provider IDs must match
+- **Everything is an Extension**: Apps, plugins, pages, APIs, themes
+- **Tree Structure**: Extensions form a hierarchical tree
+- **Configuration-Driven**: Override behavior via app-config.yaml without code changes
 
-2. **Minimal Frontend Code Required**
-   - Create custom API ref (or use generic OIDC ref)
-   - Use `OAuth2.create()` with provider ID
-   - Register using `ApiBlueprint.make()`
+### 2. Simplified Development
 
-3. **PKCE is Backend-Only**
-   - No frontend changes needed for PKCE vs client secret
-   - Frontend code is identical
-   - Backend handles `code_challenge`, `code_verifier`, etc.
+- **Blueprints**: Pre-built patterns for common extension types
+  - `PageBlueprint` for pages
+  - `ApiBlueprint` for utility APIs
+  - `SignInPageBlueprint` for sign-in pages
+  - `ThemeBlueprint` for themes
 
-### General New Frontend System
+- **Feature Discovery**: Auto-discover plugins from package.json
+  - Add plugin to dependencies
+  - Enable `app.packages: all` in config
+  - No manual imports needed
 
-1. **Extension-Based Everything**
-   - Apps, plugins, pages, APIs, themes - all are extensions
-   - Extensions form a tree structure
-   - Configuration can override any extension
+### 3. Clean Separation of Concerns
 
-2. **Blueprints Simplify Common Patterns**
-   - `ApiBlueprint` for utility APIs
-   - `PageBlueprint` for pages
-   - `SignInPageBlueprint` for sign-in pages
-   - `ThemeBlueprint` for themes
+- **Frontend/Backend Independence**: Clear boundaries between layers
+- **Type Safety**: Strong TypeScript support throughout
+- **Testability**: Easy to mock and test components
+- **Modularity**: Plugins are self-contained and reusable
 
-3. **Feature Discovery Eliminates Boilerplate**
-   - Add plugin to package.json
-   - Enable `app.packages: all` in config
-   - No manual imports needed
+### 4. Migration Path
+
+- **Hybrid Mode**: Run both systems side-by-side during migration
+- **Incremental**: Migrate one plugin at a time
+- **Backward Compatible**: Plugins can support both systems
 
 ---
 
