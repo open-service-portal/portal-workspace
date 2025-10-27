@@ -1,0 +1,45 @@
+# Feature Discovery Configuration
+#
+# This configuration enables automatic plugin discovery in the New Frontend System.
+# Place this in your app-config.yaml file.
+
+app:
+  # Enable automatic discovery of all plugins
+  packages:
+    - all  # Discovers all packages with /alpha exports
+
+  # Or selectively discover specific plugins
+  # packages:
+  #   - '@backstage/plugin-catalog'
+  #   - '@backstage/plugin-scaffolder'
+  #   - '@backstage-community/plugin-my-plugin'
+
+  # Or use package patterns
+  # packages:
+  #   - '@backstage/plugin-*'
+  #   - '@backstage-community/*'
+  #   - '@internal/*'
+
+# Extension overrides (optional)
+# You can customize or disable discovered extensions
+app:
+  extensions:
+    # Override a page's default path
+    - page:catalog/index:
+        config:
+          path: /services  # Change /catalog to /services
+
+    # Disable an unwanted extension
+    - page:some-plugin/unwanted:
+        disabled: true
+
+    # Configure an extension
+    - sign-in-page:app/github:
+        config:
+          provider:
+            id: github
+            title: GitHub
+            message: Sign in with your GitHub account
+
+# Performance tip: Use auto-discovery in development,
+# but consider explicit imports in production for optimal bundle size
