@@ -13,6 +13,26 @@ backstage/
 └── README.md                    # This file
 ```
 
+## Quick Setup
+
+For deep investigation into Backstage internals, clone the source repositories:
+
+```bash
+cd backstage
+git clone --depth 1 https://github.com/backstage/backstage.git
+git clone --depth 1 https://github.com/backstage/community-plugins.git
+git clone --depth 1 https://github.com/terasky-oss/backstage-plugins.git terasky-backstage-plugins
+```
+
+These provide access to:
+- Core Backstage source code and documentation
+- 100+ community plugins
+- TeraSky OSS plugins
+
+See `CLAUDE.md` in this directory for detailed guidance on investigating the source code.
+
+**Note**: The cloned repositories are NOT included in git. Each developer must clone them locally.
+
 ## Repositories
 
 ### Backstage Core
@@ -55,26 +75,6 @@ backstage/
 - `kro-resources/` - Kubernetes Resource Orchestrator
 - `kyverno-policy-reports/` - Policy compliance UI
 - And 20+ more plugins (see `terasky-backstage-plugins/plugins/`)
-
-## Setup
-
-**Note**: The cloned repositories are NOT included in git. Each developer must clone them locally.
-
-```bash
-# Navigate to the backstage directory
-cd /path/to/portal-workspace/backstage
-
-# Clone Backstage core
-git clone --depth 1 https://github.com/backstage/backstage.git
-
-# Clone community plugins
-git clone --depth 1 https://github.com/backstage/community-plugins.git
-
-# Clone TeraSky OSS plugins
-git clone --depth 1 https://github.com/terasky-oss/backstage-plugins.git terasky-backstage-plugins
-```
-
-The `.gitignore` in this directory ensures these clones won't be tracked by portal-workspace.
 
 ## Usage
 
