@@ -11,6 +11,7 @@ catalog/
 catalog-orders/
 docusaurus/
 ingestor/
+oidc-authenticator/
 
 # Service Template Repositories
 templates/
