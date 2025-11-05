@@ -188,8 +188,8 @@ configure_flux_catalog_orders() {
         echo ""
         
         # Force reconciliation for the context-specific Kustomization
-        flux reconcile source git catalog-orders 2>/dev/null || true
-        flux reconcile kustomization catalog-orders-${CURRENT_CONTEXT} 2>/dev/null || true
+        flux reconcile source git catalog-orders --timeout=1m 2>/dev/null || true
+        flux reconcile kustomization catalog-orders-${CURRENT_CONTEXT} --timeout=1m 2>/dev/null || true
     else
         echo -e "${YELLOW}Note: Could not configure catalog-orders${NC}"
     fi
