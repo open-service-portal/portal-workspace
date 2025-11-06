@@ -28,26 +28,37 @@ if [ -z "$CURRENT_CONTEXT" ]; then
     exit 1
 fi
 
+# Extract cluster name from context (for catalog-orders directory)
+# Multiple contexts can point to the same cluster with different auth methods
+CLUSTER_NAME=$(kubectl config view --minify -o jsonpath='{.contexts[0].context.cluster}')
+
+if [ -z "$CLUSTER_NAME" ]; then
+    echo -e "${RED}Error: Could not extract cluster name from context${NC}"
+    exit 1
+fi
+
 echo -e "${BLUE}================================${NC}"
 echo -e "${BLUE}   Cluster Configuration Tool${NC}"
 echo -e "${BLUE}================================${NC}"
 echo ""
 echo -e "Current context: ${GREEN}${CURRENT_CONTEXT}${NC}"
+echo -e "Cluster name: ${GREEN}${CLUSTER_NAME}${NC}"
 
-# Find environment file
+# Find environment file based on cluster name (not context name)
+# Multiple contexts can point to the same cluster with different auth methods
 ENV_FILE=""
 
-# Try to find environment file for this context
-if [ -f "$WORKSPACE_DIR/.env.${CURRENT_CONTEXT}" ]; then
-    ENV_FILE=".env.${CURRENT_CONTEXT}"
+# Try to find environment file for this cluster
+if [ -f "$WORKSPACE_DIR/.env.${CLUSTER_NAME}" ]; then
+    ENV_FILE=".env.${CLUSTER_NAME}"
 else
-    echo -e "${YELLOW}No environment file found for context: ${CURRENT_CONTEXT}${NC}"
+    echo -e "${YELLOW}No environment file found for cluster: ${CLUSTER_NAME}${NC}"
     echo ""
-    echo "Expected file: .env.${CURRENT_CONTEXT}"
+    echo "Expected file: .env.${CLUSTER_NAME}"
     echo ""
     echo "You can create it from an example:"
-    echo "  cp .env.rancher-desktop.example .env.${CURRENT_CONTEXT}"
-    echo "  vim .env.${CURRENT_CONTEXT}"
+    echo "  cp .env.rancher-desktop.example .env.${CLUSTER_NAME}"
+    echo "  vim .env.${CLUSTER_NAME}"
     echo ""
     exit 1
 fi
@@ -76,7 +87,7 @@ fi
 # Update Backstage configuration
 update_backstage_config() {
     echo ""
-    echo "Configuring Backstage for cluster: $CURRENT_CONTEXT"
+    echo "Configuring Backstage for cluster: $CLUSTER_NAME ($CURRENT_CONTEXT)"
     
     # Check if app-portal directory exists
     if [ ! -d "$WORKSPACE_DIR/app-portal" ]; then
@@ -99,12 +110,12 @@ update_backstage_config() {
     
     # Get cluster information
     K8S_API_URL=$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')
-    K8S_CLUSTER_NAME=$(kubectl config current-context)
-    
-    # Create config file named after the context with .local.yaml suffix
-    CONFIG_FILE="app-config.${CURRENT_CONTEXT}.local.yaml"
-    APP_TITLE="Backstage (${CURRENT_CONTEXT})"
-    
+
+    # Create config file named after the cluster with .local.yaml suffix
+    # Multiple contexts can share the same config (same cluster, different auth)
+    CONFIG_FILE="app-config.${CLUSTER_NAME}.local.yaml"
+    APP_TITLE="Backstage (${CLUSTER_NAME})"
+
     # Generate a secure API token for this cluster
     if ! command -v openssl >/dev/null 2>&1; then
         echo -e "${RED}Error: openssl is not installed or not found in PATH. Cannot generate API token.${NC}"
@@ -115,7 +126,7 @@ update_backstage_config() {
         echo -e "${RED}Error: Failed to generate random token with openssl.${NC}"
         return 1
     fi
-    API_TOKEN="backstage-api-${CURRENT_CONTEXT}-${TOKEN_SUFFIX}"
+    API_TOKEN="backstage-api-${CLUSTER_NAME}-${TOKEN_SUFFIX}"
     
     # Create/update Backstage config
     cat > "$WORKSPACE_DIR/app-portal/$CONFIG_FILE" <<EOF
@@ -134,7 +145,7 @@ backend:
       - type: static
         options:
           token: $API_TOKEN
-          subject: api-client-${CURRENT_CONTEXT}
+          subject: api-client-${CLUSTER_NAME}
         # Access is unrestricted by default
         # To restrict access, uncomment and modify:
         # accessRestrictions:
@@ -146,13 +157,23 @@ kubernetes:
   serviceLocatorMethod:
     type: 'multiTenant'
   clusterLocatorMethods:
+    # Cluster for ingestor (background tasks) - uses service account
     - type: 'config'
       clusters:
         - url: $K8S_API_URL
-          name: $K8S_CLUSTER_NAME
+          name: $CLUSTER_NAME
           authProvider: 'serviceAccount'
           skipTLSVerify: true
           serviceAccountToken: $TOKEN
+    # Cluster for frontend (user interactions) - uses auth from provider
+    - type: 'config'
+      clusters:
+        - url: $K8S_API_URL
+          name: $CLUSTER_NAME-frontend
+          authProvider: 'oidc'
+          oidcTokenProvider: github
+          skipTLSVerify: true
+          skipMetricsLookup: false
 EOF
     
     echo -e "${GREEN}✓ Created app-portal/$CONFIG_FILE${NC}"
@@ -165,31 +186,33 @@ EOF
 # Configure Flux for catalog-orders
 configure_flux_catalog_orders() {
     echo ""
-    echo "Configuring Flux to watch catalog-orders for context: ${CURRENT_CONTEXT}"
-    
+    echo "Configuring Flux to watch catalog-orders for cluster: ${CLUSTER_NAME}"
+
     # Check if Flux is installed
     if ! kubectl get namespace flux-system &>/dev/null; then
         echo -e "${YELLOW}Flux is not installed on this cluster${NC}"
         return 1
     fi
-    
-    # Export CURRENT_CONTEXT for envsubst
-    export CURRENT_CONTEXT
-    
+
+    # Export CLUSTER_NAME for envsubst (keeping CURRENT_CONTEXT for backward compatibility)
+    export CLUSTER_NAME
+    export CURRENT_CONTEXT="${CLUSTER_NAME}"
+
     # Apply catalog-orders configuration with environment substitution
     if envsubst < "$MANIFEST_DIR/flux-catalog-orders.yaml" | kubectl apply -f -; then
-        echo -e "${GREEN}✓ Created/Updated Kustomization: catalog-orders-${CURRENT_CONTEXT}${NC}"
-        echo -e "${GREEN}✓ Watching path: ./${CURRENT_CONTEXT}${NC}"
-        
+        echo -e "${GREEN}✓ Created/Updated Kustomization: catalog-orders-${CLUSTER_NAME}${NC}"
+        echo -e "${GREEN}✓ Watching path: ./${CLUSTER_NAME}${NC}"
+
         # List all catalog-orders Kustomizations on this cluster
         echo ""
         echo "Active catalog-orders Kustomizations on this cluster:"
         kubectl get kustomizations -n flux-system | grep -E "NAME|catalog-orders" || true
         echo ""
-        
-        # Force reconciliation for the context-specific Kustomization
-        flux reconcile source git catalog-orders 2>/dev/null || true
-        flux reconcile kustomization catalog-orders-${CURRENT_CONTEXT} 2>/dev/null || true
+
+        # Force reconciliation with timeout
+        echo "Triggering Flux reconciliation..."
+        flux reconcile source git catalog-orders --timeout=30s 2>/dev/null || true
+        flux reconcile kustomization catalog-orders-${CLUSTER_NAME} --timeout=30s 2>/dev/null || true
     else
         echo -e "${YELLOW}Note: Could not configure catalog-orders${NC}"
     fi
@@ -332,7 +355,8 @@ echo -e "${GREEN}================================${NC}"
 echo -e "${GREEN}   Configuration Complete!${NC}"
 echo -e "${GREEN}================================${NC}"
 echo ""
-echo -e "Cluster: ${CURRENT_CONTEXT}"
+echo -e "Context: ${CURRENT_CONTEXT}"
+echo -e "Cluster: ${CLUSTER_NAME}"
 echo -e "Config: ${ENV_FILE}"
 
 if [ -n "$BASE_DOMAIN" ]; then
