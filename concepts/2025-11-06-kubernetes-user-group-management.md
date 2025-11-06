@@ -141,4 +141,4 @@ This approach:
 ## Related Documentation
 
 - [User Management Guide](../docs/users/README.md) - Complete usage guide
-- [RBAC Scripts Overview](../docs/cluster-auth/rbac-scripts-overview.md) - Technical details
+- [RBAC Scripts Overview](../docs/users/rbac-scripts-overview.md) - Technical details

@@ -357,8 +357,7 @@ See the [OIDC Authentication Guide](../../concepts/2025-10-23-oidc-kubernetes-au
 ## Related Documentation
 
 - [OIDC Authentication Concept](../../concepts/2025-10-23-oidc-kubernetes-authentication.md) - Understanding OIDC auth
-- [Cluster Authentication](../cluster-auth/) - Detailed authentication docs
-- [RBAC Scripts Overview](../cluster-auth/rbac-scripts-overview.md) - Technical script details
+- [RBAC Scripts Overview](./rbac-scripts-overview.md) - Technical script details
 
 ## Script Annotations and Labels
 
@@ -393,3 +392,18 @@ All RBAC templates used by the user management scripts are located in `scripts/m
 - `rbac-group-namespace.template.yaml` - RoleBinding for group-based namespace access
 
 These templates use environment variable substitution (`envsubst`) and are processed by the scripts before applying to the cluster.
+
+---
+
+## Technical Reference
+
+### RBAC Scripts Overview
+
+For detailed technical documentation of all RBAC scripts, see [RBAC Scripts Overview](./rbac-scripts-overview.md).
+
+This technical reference includes:
+- Script architecture and design
+- Template structure and usage
+- Environment variable requirements
+- Error handling and validation
+- Integration with Kubernetes API
