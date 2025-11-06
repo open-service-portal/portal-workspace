@@ -21,8 +21,9 @@ The setup script installs infrastructure components, then configuration scripts 
 
 This script automatically:
 - Detects current kubectl context
-- Looks for `.env.${context}` file (e.g., `.env.rancher-desktop`)
-- Creates `app-config.${context}.local.yaml` for Backstage
+- Extracts cluster name from context (multiple contexts can share same cluster)
+- Looks for `.env.${cluster}` file (e.g., `.env.rancher-desktop`)
+- Creates `app-config.${cluster}.local.yaml` for Backstage
 - Configures External-DNS with credentials if provided
 - Updates EnvironmentConfigs
 
@@ -38,20 +39,30 @@ This script automatically:
 
 ## Environment Files
 
-Environment files are named after kubectl contexts. Create them by copying examples:
+Environment files are named after **cluster names** (not context names). This allows multiple contexts with different authentication methods to share the same configuration when connecting to the same cluster.
+
+Create them by copying examples:
 
 ```bash
-# For rancher-desktop
+# For rancher-desktop cluster
 cp .env.rancher-desktop.example .env.rancher-desktop
 
-# For docker-desktop
+# For docker-desktop cluster
 cp .env.docker-desktop.example .env.docker-desktop
 
-# For OpenPortal
+# For OpenPortal cluster (shared by osp-openportal and osp-openportal-oidc contexts)
 cp .env.openportal.example .env.openportal
 ```
 
 Then edit the files with your specific values. These files are gitignored and should not be committed.
+
+### Cluster vs Context
+
+**Key Concept**: Multiple kubectl contexts can point to the same cluster using different authentication methods:
+- Context `osp-openportal` (client certificates) → Cluster `openportal` → Uses `.env.openportal`
+- Context `osp-openportal-oidc` (OIDC tokens) → Cluster `openportal` → Uses `.env.openportal`
+
+This design reduces configuration duplication and simplifies maintenance.
 
 ## Required Environment Variables
 
@@ -107,8 +118,9 @@ The `cluster-setup.sh` script installs:
 
 1. **Auto-detection** (`cluster-config.sh`):
    - Reads current kubectl context
-   - Loads `.env.${context}` file
-   - Creates Backstage config file
+   - Extracts cluster name from context
+   - Loads `.env.${cluster}` file
+   - Creates `app-config.${cluster}.local.yaml` for Backstage
    - Configures External-DNS credentials
    - Updates EnvironmentConfigs
 
@@ -128,10 +140,13 @@ See [DNS Management](./dns-management.md) for detailed information.
 
 ## Notes
 
-- Configuration scripts can auto-detect kubectl context (no CLUSTER_NAME needed)
+- Configuration scripts automatically extract cluster name from kubectl context
+- **Cluster-based naming**: Config files use cluster name, not context name
+- Multiple contexts pointing to the same cluster share one config file
 - External-DNS credentials go in `external-dns` namespace
 - EnvironmentConfigs are used by Crossplane compositions
 - Backstage config files use `.local.yaml` suffix for gitignore
+- Flux catalog-orders paths use cluster names: `./${cluster}`
 - Manifests are organized in:
   - `scripts/manifests-setup-cluster/` - Infrastructure components
   - `scripts/manifests-config/` - Environment configurations

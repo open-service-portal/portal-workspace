@@ -417,17 +417,23 @@ We support any Kubernetes distribution with a unified setup:
 # Auto-detect cluster from kubectl context and configure
 ./scripts/cluster-config.sh
 # - Automatically detects current kubectl context
-# - Loads .env.${context} file (e.g., .env.rancher-desktop)
+# - Extracts cluster name from context (multiple contexts can share same cluster)
+# - Loads .env.${cluster} file (e.g., .env.rancher-desktop, .env.openportal)
 # - Creates demo namespace for testing
-# - Creates app-config.${context}.local.yaml for Backstage with API token
+# - Creates app-config.${cluster}.local.yaml for Backstage with API token
 # - Configures External-DNS credentials if provided
 # - Updates EnvironmentConfigs for the cluster
 # - Patches Flux to watch cluster-specific paths in catalog-orders
 # - Generates secure API token for programmatic Backstage access
 ```
 
+**Cluster-Based Configuration**
+The script uses cluster names (not context names) for configuration. This allows multiple contexts with different authentication methods to share the same configuration when connecting to the same cluster:
+- Context `osp-openportal` (client certs) → Cluster `openportal` → Uses `.env.openportal`
+- Context `osp-openportal-oidc` (OIDC) → Cluster `openportal` → Uses `.env.openportal`
+
 **Backstage API Access**
-The `cluster-config.sh` script generates a secure API token for programmatic access to Backstage. This token is stored in the cluster-specific configuration file (`app-config.${context}.local.yaml`) and can be used to query the Backstage catalog.
+The `cluster-config.sh` script generates a secure API token for programmatic access to Backstage. This token is stored in the cluster-specific configuration file (`app-config.${cluster}.local.yaml`) and can be used to query the Backstage catalog.
 
 ### Recommended: Use the backstage-api.sh wrapper script
 
@@ -484,16 +490,20 @@ EOF
 ```
 
 **Environment Files**
-Environment files are named after kubectl contexts:
-- `.env.rancher-desktop` - Rancher Desktop configuration
-- `.env.docker-desktop` - Docker Desktop configuration  
-- `.env.openportal` - OpenPortal production configuration
-- `.env.${context}` - Any other cluster context
+Environment files are named after **cluster names** (not context names). Multiple contexts pointing to the same cluster share one config file:
+- `.env.rancher-desktop` - Rancher Desktop cluster
+- `.env.docker-desktop` - Docker Desktop cluster
+- `.env.openportal` - OpenPortal production cluster (shared by multiple contexts)
+- `.env.${cluster}` - Any other cluster
 
 Copy from examples:
 ```bash
 cp .env.rancher-desktop.example .env.rancher-desktop
 vim .env.rancher-desktop
+
+# For OpenPortal (used by both osp-openportal and osp-openportal-oidc contexts)
+cp .env.openportal.example .env.openportal
+vim .env.openportal
 ```
 
 **Version Philosophy: Latest + Greatest**
