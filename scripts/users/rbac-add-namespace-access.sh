@@ -19,7 +19,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TEMPLATE_FILE="${SCRIPT_DIR}/manifests-setup-cluster/rbac-namespace-access.template.yaml"
+TEMPLATE_FILE="${SCRIPT_DIR}/manifests/users/rbac-namespace-access.template.yaml"
 
 # Colors
 GREEN='\033[0;32m'

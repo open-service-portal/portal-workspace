@@ -1,0 +1,23 @@
+---
+# ClusterRoleBinding for OIDC Group
+# Template variables: GROUP_NAME, BINDING_NAME, ROLE, CREATED_AT, DESCRIPTION
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: ${BINDING_NAME}
+  labels:
+    rbac.openportal.dev/type: group-access
+    rbac.openportal.dev/managed-by: rbac-create-group
+    rbac.openportal.dev/group: "${GROUP_NAME}"
+  annotations:
+    rbac.openportal.dev/description: "${DESCRIPTION}"
+    rbac.openportal.dev/created-at: "${CREATED_AT}"
+    rbac.openportal.dev/group-name: "${GROUP_NAME}"
+subjects:
+- kind: Group
+  name: "oidc:${GROUP_NAME}"
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: ${ROLE}
+  apiGroup: rbac.authorization.k8s.io

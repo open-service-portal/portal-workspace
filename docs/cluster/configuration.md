@@ -133,8 +133,8 @@ See [DNS Management](./dns-management.md) for detailed information.
 - EnvironmentConfigs are used by Crossplane compositions
 - Backstage config files use `.local.yaml` suffix for gitignore
 - Manifests are organized in:
-  - `scripts/manifests-setup-cluster/` - Infrastructure components
-  - `scripts/manifests-config/` - Environment configurations
+  - `scripts/manifests/setup/` - Infrastructure components
+  - `scripts/manifests/config/` - Environment configurations
 
 ## Template Management
 
