@@ -92,9 +92,9 @@ BINDING_NAME="${BINDING_NAME:0:253}"
 
 # Select template
 if [[ -n "$NAMESPACE" ]]; then
-  TEMPLATE_FILE="${SCRIPT_DIR}/manifests/users/rbac-group-namespace.template.yaml"
+  TEMPLATE_FILE="${SCRIPT_DIR}/../manifests/users/rbac-group-namespace.template.yaml"
 else
-  TEMPLATE_FILE="${SCRIPT_DIR}/manifests/users/rbac-group.template.yaml"
+  TEMPLATE_FILE="${SCRIPT_DIR}/../manifests/users/rbac-group.template.yaml"
 fi
 
 if [[ ! -f "$TEMPLATE_FILE" ]]; then
