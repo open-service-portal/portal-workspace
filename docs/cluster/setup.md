@@ -62,7 +62,7 @@ This script will:
 9. Create Backstage service account with K8s integration
 10. Generate `app-config.${context}.local.yaml` with cluster credentials (if app-portal exists)
 
-The script works with any Kubernetes cluster and uses manifests from [`scripts/manifests-setup-cluster/`](../../scripts/manifests-setup-cluster/).
+The script works with any Kubernetes cluster and uses manifests from [`scripts/manifests/setup/`](../../scripts/manifests/setup/).
 
 **Note**: The setup script installs infrastructure components only. Use `cluster-config.sh` afterward to configure environment-specific settings like DNS credentials and domains - see [Cluster Configuration](./configuration.md).
 
@@ -93,20 +93,20 @@ kubectl get pods -n crossplane-system
 
 ```bash
 # Apply provider manifest
-kubectl apply -f scripts/manifests-setup-cluster/crossplane-provider-kubernetes.yaml
+kubectl apply -f scripts/manifests/setup/crossplane-provider-kubernetes.yaml
 
 # Wait for provider to be healthy
 kubectl wait --for=condition=Healthy provider/provider-kubernetes --timeout=300s
 
 # Apply provider config
-kubectl apply -f scripts/manifests-setup-cluster/provider-config.yaml
+kubectl apply -f scripts/manifests/setup/provider-config.yaml
 ```
 
 ### 3. Install Crossplane Functions
 
 ```bash
 # Apply functions manifest
-kubectl apply -f scripts/manifests-setup-cluster/crossplane-functions.yaml
+kubectl apply -f scripts/manifests/setup/crossplane-functions.yaml
 
 # Verify functions are installed
 kubectl get functions
@@ -116,7 +116,7 @@ kubectl get functions
 
 ```bash
 # Apply platform-wide environment configs
-kubectl apply -f scripts/manifests-config/environment-configs.yaml
+kubectl apply -f scripts/manifests/config/environment-configs.yaml
 
 # Verify environment configs
 kubectl get environmentconfig
@@ -129,10 +129,10 @@ kubectl get environmentconfig
 kubectl apply -f https://github.com/fluxcd/flux2/releases/latest/download/install.yaml
 
 # Configure Flux to watch catalog
-kubectl apply -f scripts/manifests-setup-cluster/flux-catalog.yaml
+kubectl apply -f scripts/manifests/setup/flux-catalog.yaml
 
 # Configure Flux to watch catalog-orders (after running cluster-config.sh)
-kubectl apply -f scripts/manifests-config/flux-catalog-orders.yaml
+kubectl apply -f scripts/manifests/config/flux-catalog-orders.yaml
 
 # Verify installation
 kubectl get pods -n flux-system

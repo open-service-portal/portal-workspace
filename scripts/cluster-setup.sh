@@ -164,12 +164,12 @@ install_provider_kubernetes() {
     echo -e "${YELLOW}Installing Crossplane provider-kubernetes...${NC}"
     
     # Apply provider manifest
-    MANIFEST_DIR="$(cd "$(dirname "$0")" && pwd)/manifests-setup-cluster"
+    MANIFEST_DIR="$(cd "$(dirname "$0")" && pwd)/manifests/setup"
     PROVIDER_MANIFEST="$MANIFEST_DIR/crossplane-provider-kubernetes.yaml"
     
     if [ ! -f "$PROVIDER_MANIFEST" ]; then
         echo -e "${RED}Error: Provider manifest not found at $PROVIDER_MANIFEST${NC}"
-        echo "Please ensure manifests-setup-cluster directory exists with required files"
+        echo "Please ensure manifests/setup directory exists with required files"
         exit 1
     fi
     
@@ -203,7 +203,7 @@ install_provider_kubernetes() {
 # Install cert-manager for TLS certificate management
 install_cert_manager() {
 
-    MANIFEST_DIR="$(cd "$(dirname "$0")" && pwd)/manifests-setup-cluster"
+    MANIFEST_DIR="$(cd "$(dirname "$0")" && pwd)/manifests/setup"
     CERT_MANAGER_VERSION="v1.18.2"
 
     echo -e "${YELLOW}Installing cert-manager for TLS certificates...${NC}"
@@ -251,7 +251,7 @@ install_external_dns() {
     echo -e "${YELLOW}Installing External-DNS with Cloudflare support...${NC}"
     
     # Apply External-DNS manifest with CRD and deployment
-    MANIFEST_DIR="$(cd "$(dirname "$0")" && pwd)/manifests-setup-cluster"
+    MANIFEST_DIR="$(cd "$(dirname "$0")" && pwd)/manifests/setup"
     
     if [ ! -f "$MANIFEST_DIR/external-dns.yaml" ]; then
         echo -e "${RED}Error: External-DNS manifest not found at $MANIFEST_DIR/external-dns.yaml${NC}"
@@ -279,7 +279,7 @@ install_provider_helm() {
     echo -e "${YELLOW}Installing Crossplane provider-helm...${NC}"
     
     # Apply provider manifest
-    MANIFEST_DIR="$(cd "$(dirname "$0")" && pwd)/manifests-setup-cluster"
+    MANIFEST_DIR="$(cd "$(dirname "$0")" && pwd)/manifests/setup"
     kubectl apply -f "$MANIFEST_DIR/crossplane-provider-helm.yaml"
     
     # Wait for provider to be healthy
@@ -301,7 +301,7 @@ install_provider_helm() {
 install_crossplane_functions() {
     echo -e "${YELLOW}Installing Crossplane composition functions...${NC}"
     
-    MANIFEST_DIR="$(cd "$(dirname "$0")" && pwd)/manifests-setup-cluster"
+    MANIFEST_DIR="$(cd "$(dirname "$0")" && pwd)/manifests/setup"
     FUNCTIONS_MANIFEST="$MANIFEST_DIR/crossplane-functions.yaml"
     
     # Apply functions manifest
@@ -330,7 +330,7 @@ install_crossplane_functions() {
 install_environment_configs() {
     echo -e "${YELLOW}Installing platform environment configurations...${NC}"
     
-    MANIFEST_DIR="$(cd "$(dirname "$0")" && pwd)/manifests-setup-cluster"
+    MANIFEST_DIR="$(cd "$(dirname "$0")" && pwd)/manifests/setup"
     ENV_CONFIGS_MANIFEST="$MANIFEST_DIR/environment-configs.yaml"
     
     # Apply environment configs (CRD is included with Crossplane v2.0)
@@ -365,7 +365,7 @@ install_environment_configs() {
 configure_flux_catalog() {
     echo -e "${YELLOW}Configuring Flux to watch Crossplane template catalog...${NC}"
     
-    MANIFEST_DIR="$(cd "$(dirname "$0")" && pwd)/manifests-setup-cluster"
+    MANIFEST_DIR="$(cd "$(dirname "$0")" && pwd)/manifests/setup"
     FLUX_CATALOG_MANIFEST="$MANIFEST_DIR/flux-catalog.yaml"
     
     # Apply Flux catalog configuration

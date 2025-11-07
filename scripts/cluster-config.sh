@@ -7,7 +7,7 @@ set -e
 # Script directories
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_DIR="$(dirname "$SCRIPT_DIR")"
-MANIFEST_DIR="${SCRIPT_DIR}/manifests-config"
+MANIFEST_DIR="${SCRIPT_DIR}/manifests/config"
 
 # Colors for output
 GREEN='\033[0;32m'

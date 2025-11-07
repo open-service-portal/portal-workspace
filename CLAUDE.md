@@ -34,12 +34,12 @@ open-service-portal/         # THIS directory = portal-workspace repo
 │   ├── template-reload.sh  # Reload templates in cluster
 │   ├── template-release.sh # Automate template releases to GitHub
 │   ├── repos-sync.sh       # Sync all nested repositories
-│   ├── manifests-setup-cluster/  # Infrastructure manifests
+│   ├── manifests/setup/  # Infrastructure manifests
 │   │   ├── crossplane-functions.yaml  # Composition functions
 │   │   ├── crossplane-provider-*.yaml # Provider definitions
 │   │   ├── external-dns.yaml         # External-DNS with CRDs
 │   │   └── flux-catalog.yaml         # Catalog watcher
-│   └── manifests-config/   # Environment configs
+│   └── manifests/config/   # Environment configs
 │       ├── environment-configs.yaml
 │       └── flux-catalog-orders.yaml
 ├── .gitignore              # Ignores nested repos below

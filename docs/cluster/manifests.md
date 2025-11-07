@@ -5,8 +5,8 @@ This document describes the Kubernetes manifests used to set up the Open Service
 ## Overview
 
 The manifests are organized in two directories:
-- `scripts/manifests-setup-cluster/` - Infrastructure components (applied by setup-cluster.sh)
-- `scripts/manifests-config-openportal/` - Environment configurations (applied by config-openportal.sh)
+- `scripts/manifests/setup/` - Infrastructure components (applied by setup-cluster.sh)
+- `scripts/manifests/config-openportal/` - Environment configurations (applied by config-openportal.sh)
 
 These manifests configure:
 - Crossplane providers for infrastructure management
@@ -51,11 +51,11 @@ Functions transform resource specifications in the composition pipeline:
 
 ### Environment Configurations
 
-**Setup Manifests** (`manifests-setup-cluster/`):
+**Setup Manifests** (`manifests/setup/`):
 - **environment-configs.yaml** - Base defaults for local development
   - dns-config: zone=localhost, provider=mock
 
-**Config Manifests** (`manifests-config-openportal/`):
+**Config Manifests** (`manifests/config-openportal/`):
 - **environment-configs.yaml** - Production overrides (uses envsubst)
   - dns-config: zone=`${DNS_ZONE}`, provider=`${DNS_PROVIDER}`
   - cloudflare-config: zone_id=`${CLOUDFLARE_ZONE_ID}`, account_id=`${CLOUDFLARE_ACCOUNT_ID}`
