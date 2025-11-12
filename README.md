@@ -103,19 +103,26 @@ Configure your cluster after setup:
 ./scripts/cluster-config.sh
 
 # The config script will:
-# - Create Backstage configuration (app-config.{context}.local.yaml)
+# - Extract cluster name from context (multiple contexts can share same cluster)
+# - Create Backstage configuration (app-config.{cluster}.local.yaml)
 # - Configure External-DNS with Cloudflare credentials (if provided)
 # - Update EnvironmentConfigs
-# - Configure Flux to watch catalog-orders
+# - Configure Flux to watch catalog-orders using cluster name
 ```
 
-For the generic `cluster-config.sh`, create an environment file matching your context:
+For the generic `cluster-config.sh`, create an environment file matching your **cluster name** (not context):
 ```bash
-# For rancher-desktop
+# For rancher-desktop cluster
 cp .env.rancher-desktop.example .env.rancher-desktop
 # Edit with your settings
 vim .env.rancher-desktop
+
+# For OpenPortal cluster (shared by multiple contexts with different auth methods)
+cp .env.openportal.example .env.openportal
+vim .env.openportal
 ```
+
+**Note**: Configuration uses cluster names, allowing multiple contexts (e.g., different auth methods) to share the same config.
 
 ### DNS Management with External-DNS
 
@@ -219,7 +226,7 @@ See [Crossplane Catalog Setup](./docs/crossplane-catalog-setup.md) for details.
 
 ### Cluster Management
 - `cluster-setup.sh` - Universal K8s cluster setup with all platform components
-- `cluster-config.sh` - Auto-detect and configure based on kubectl context
+- `cluster-config.sh` - Auto-detect cluster name and configure (cluster-based, not context-based)
 - `cluster-cleanup.sh` - Remove all platform components cleanly
 - `cluster-kubeconfig.sh` - Extract and manage kubeconfig files
 
