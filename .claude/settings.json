@@ -1,6 +1,6 @@
 {
   "enabledPlugins": {
-    "agent-sync@ai-plugins-internal": true,
+    "cockpit@ai-plugins-internal": true,
     "workspace@ai-plugins-internal": true,
     "knowledge@ai-plugins-internal": true,
     "craft@ai-plugins-internal": true
