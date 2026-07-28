@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Gateway API standard-channel CRDs, vendored (not a remote base) so the
+# cluster is reproducible from git and kustomize-controller needs no egress.
+#
+# Pinned: v1.2.1
+# Refresh: curl -fsSL -o standard-install.yaml \
+#   https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.1/standard-install.yaml
+# TODO: confirm the version matches what the live cluster runs.
+resources:
+  - standard-install.yaml

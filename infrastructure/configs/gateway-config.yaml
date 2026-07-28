@@ -1,0 +1,18 @@
+# Crossplane EnvironmentConfig consumed by template-exposed-service.
+# The ExposedService composition reads gatewayName / gatewayNamespace to attach
+# its HTTPRoute, and baseDomain to build https://<name>.<baseDomain>.
+#
+# The key name "gateway-config" and these three keys are a locked contract with
+# template-exposed-service. Keep in sync with gateway.yaml (name/namespace) and
+# the base domain of the wildcard Certificate.
+apiVersion: apiextensions.crossplane.io/v1beta1
+kind: EnvironmentConfig
+metadata:
+  name: gateway-config
+  annotations:
+    crossplane.io/version: "v2.0"
+    description: "Shared Gateway coordinates for ExposedService"
+data:
+  gatewayName: openportal
+  gatewayNamespace: traefik
+  baseDomain: openportal.dev

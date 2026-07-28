@@ -20,6 +20,11 @@ rules:
   - apiGroups: ["extensions","networking.k8s.io"]
     resources: ["ingresses"]
     verbs: ["get","watch","list"]
+  # For the Gateway API HTTPRoute source (#139) — only the two kinds the
+  # gateway-httproute source reads (the Gateway for its address + the routes).
+  - apiGroups: ["gateway.networking.k8s.io"]
+    resources: ["gateways","httproutes"]
+    verbs: ["get","watch","list"]
   - apiGroups: [""]
     resources: ["nodes"]
     verbs: ["list","watch"]
@@ -128,7 +133,7 @@ spec:
       - name: external-dns
         image: registry.k8s.io/external-dns/external-dns:v0.14.0
         args:
-        - --source=ingress
+        - --source=gateway-httproute  # #139: DNS follows Gateway API HTTPRoutes (was: ingress)
         - --source=crd
         - --crd-source-apiversion=externaldns.openportal.dev/v1alpha1
         - --crd-source-kind=DNSEndpoint

@@ -1,0 +1,6 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Flux entrypoint for the openportal cluster. Applied by the root Kustomization
+# "cluster-openportal" that scripts/cluster-setup.sh bootstraps.
+resources:
+  - infrastructure.yaml

@@ -1,0 +1,34 @@
+# The shared wildcard Gateway that ExposedService HTTPRoutes attach to.
+# GatewayClass "traefik" is provided by the Traefik HelmRelease.
+#
+# ⚠️ k3s-Traefik listener-port quirk: the kubernetesGateway provider matches
+# the Gateway listener port to Traefik's internal entryPoints (8000/8443,
+# non-root), NOT 80/443. Using 80/443 here yields Accepted=False
+# (PortUnavailable). See the ExposedService build guide.
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: openportal
+  namespace: traefik
+spec:
+  gatewayClassName: traefik
+  listeners:
+    - name: web
+      protocol: HTTP
+      port: 8000
+      hostname: "*.openportal.dev"
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: websecure
+      protocol: HTTPS
+      port: 8443
+      hostname: "*.openportal.dev"
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: wildcard-openportal-dev-tls
+      allowedRoutes:
+        namespaces:
+          from: All

@@ -1,0 +1,21 @@
+# Wildcard certificate for the platform base domain.
+# Lives in the traefik namespace so the Gateway can reference the resulting
+# TLS secret (Gateway certificateRefs are namespace-local).
+#
+# Issued by the letsencrypt-prod ClusterIssuer, which is still created
+# imperatively (scripts/manifests/setup/letsencrypt-issuers.yaml via
+# cluster-config.sh). Migrates into Flux with cert-manager in a later slice.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: wildcard-openportal-dev
+  namespace: traefik
+spec:
+  secretName: wildcard-openportal-dev-tls
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  commonName: "*.openportal.dev"
+  dnsNames:
+    - "*.openportal.dev"
+    - "openportal.dev"

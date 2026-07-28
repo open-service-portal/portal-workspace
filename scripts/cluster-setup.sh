@@ -60,42 +60,55 @@ check_prerequisites() {
     echo ""
 }
 
-# Install NGINX Ingress Controller
-install_nginx_ingress() {
-    echo -e "${YELLOW}Installing NGINX Ingress Controller...${NC}"
-    
-    # Check if already installed
-    if helm list -n ingress-nginx 2>/dev/null | grep -q ingress-nginx; then
-        echo -e "${GREEN}✓ NGINX Ingress Controller already installed${NC}"
-        return
-    fi
-    
-    # Add NGINX Ingress Helm repository
-    helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
-    helm repo update
-    
-    # Install NGINX Ingress with LoadBalancer type
-    helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
-        --namespace ingress-nginx \
-        --create-namespace \
-        --set controller.service.type=LoadBalancer \
-        --wait --timeout=5m
-    
-    echo -e "${GREEN}✓ NGINX Ingress Controller installed${NC}"
-    
-    # Get ingress endpoint
-    echo "Waiting for LoadBalancer IP/hostname..."
-    sleep 10
-    INGRESS_IP=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
-    INGRESS_HOST=$(kubectl get svc -n ingress-nginx ingress-nginx-controller -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "")
-    
-    if [ -n "$INGRESS_IP" ]; then
-        echo "  Ingress IP: $INGRESS_IP"
-    elif [ -n "$INGRESS_HOST" ]; then
-        echo "  Ingress Hostname: $INGRESS_HOST"
-    else
-        echo "  Note: LoadBalancer pending. For local clusters, you may need to use NodePort or port-forward."
-    fi
+# Bootstrap the Flux-managed cluster baseplate (Gateway API networking stack).
+# Creates the GitRepository + root Kustomization that point Flux at
+# ./clusters/openportal in this repo. Flux then reconciles the Gateway API
+# CRDs, Traefik (GatewayClass "traefik"), the wildcard Gateway, and the
+# gateway-config EnvironmentConfig.
+#
+# This replaces the retired ingress-nginx controller (EOL upstream 03/2026).
+# See open-service-portal#139 and docs/decisions/2026-07-07-gitops-baseplate.md.
+# NOTE: first GitOps slice — cert-manager, external-dns and Crossplane remain
+# installed imperatively below and migrate to Flux in later slices.
+bootstrap_flux_infrastructure() {
+    echo -e "${YELLOW}Bootstrapping Flux-managed baseplate (Gateway API)...${NC}"
+
+    local repo_url="${PLATFORM_REPO_URL:-https://github.com/open-service-portal/open-service-portal}"
+    # Defaults to main. To test this baseplate BEFORE it is merged, point Flux at
+    # the PR branch: PLATFORM_REPO_BRANCH=feat/gitops-baseplate ./cluster-setup.sh
+    # (on main, ./clusters/openportal only exists once the PR has merged).
+    local repo_branch="${PLATFORM_REPO_BRANCH:-main}"
+
+    kubectl apply -f - <<EOF
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: platform
+  namespace: flux-system
+spec:
+  interval: 5m
+  url: ${repo_url}
+  ref:
+    branch: ${repo_branch}
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: cluster-openportal
+  namespace: flux-system
+spec:
+  interval: 10m
+  retryInterval: 1m
+  timeout: 5m
+  sourceRef:
+    kind: GitRepository
+    name: platform
+  path: ./clusters/openportal
+  prune: true
+  wait: true
+EOF
+
+    echo -e "${GREEN}✓ Flux baseplate bootstrap applied (Traefik + Gateway API reconciling)${NC}"
 }
 
 # Install Flux
@@ -555,9 +568,9 @@ print_summary() {
     echo -e "${GREEN}✅ Cluster setup complete!${NC}"
     echo ""
     echo "Installed components:"
-    echo "  ✓ NGINX Ingress Controller"
     echo "  ✓ Flux GitOps"
     echo "  ✓ Flux catalog watcher for Crossplane templates"
+    echo "  ✓ Traefik + Gateway API baseplate (Flux-managed, replaces ingress-nginx)"
     echo "  ✓ Crossplane v2.0.0"
     echo "  ✓ provider-kubernetes (both cluster & managed APIs)"
     echo "  ✓ cert-manager with Let's Encrypt DNS-01 support"
@@ -588,9 +601,10 @@ print_summary() {
     echo "   yarn start:openportal  # For OpenPortal cluster"
     echo ""
     echo "To verify installation:"
-    echo "  kubectl get pods -n ingress-nginx"
     echo "  kubectl get pods -n flux-system"
     echo "  kubectl get gitrepository -n flux-system"
+    echo "  kubectl get gatewayclass,gateway -A  # Traefik GatewayClass + wildcard Gateway"
+    echo "  kubectl get pods -n traefik"
     echo "  kubectl get pods -n crossplane-system"
     echo "  kubectl get pods -n cert-manager"
     echo "  kubectl get providers.pkg.crossplane.io"
@@ -641,9 +655,9 @@ run_cluster_config() {
 # Main execution
 main() {
     check_prerequisites
-    install_nginx_ingress
     install_flux
     configure_flux_catalog  # Configure Flux to watch catalog
+    bootstrap_flux_infrastructure  # Flux-managed Gateway API baseplate (replaces ingress-nginx)
     install_crossplane
     install_provider_kubernetes
     install_cert_manager  # Install cert-manager for TLS certificates

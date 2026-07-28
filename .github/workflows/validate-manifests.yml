@@ -1,0 +1,39 @@
+name: validate-manifests
+
+# Build every Flux kustomize overlay so schema/version/reference regressions in
+# the GitOps baseplate are caught in CI instead of on the cluster (#139).
+on:
+  pull_request:
+    paths:
+      - "clusters/**"
+      - "infrastructure/**"
+      - ".github/workflows/validate-manifests.yml"
+  push:
+    branches: [main]
+    paths:
+      - "clusters/**"
+      - "infrastructure/**"
+
+jobs:
+  kustomize-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # kubectl (with built-in kustomize) is preinstalled on ubuntu-latest,
+      # so no separate kustomize install is needed.
+      - name: Build all overlays
+        run: |
+          set -euo pipefail
+          kubectl version --client
+          overlays=(
+            clusters/openportal
+            infrastructure/crds
+            infrastructure/controllers
+            infrastructure/configs
+          )
+          for d in "${overlays[@]}"; do
+            echo "== kubectl kustomize $d =="
+            kubectl kustomize "$d" > /dev/null
+          done
+          echo "All overlays build cleanly."

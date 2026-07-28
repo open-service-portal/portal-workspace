@@ -1,0 +1,7 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# First GitOps slice: Traefik only. cert-manager and external-dns are still
+# installed imperatively by cluster-setup.sh and migrate here in a later slice.
+resources:
+  - namespaces.yaml
+  - traefik.yaml
